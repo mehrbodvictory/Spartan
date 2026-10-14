@@ -1,25 +1,43 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><title>Spartan Drill</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600&family=Teko:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css"></head><body>
 <div id="menu">
-<h1>Spartan Drill</h1><p class="sub">Single-player arena shooter. Pick a mode, a map, and spend 10 points on your loadout.</p>
-<button id="go">Play now</button><p id="rank"></p><button id="prest" class="btn sm" style="display:none"></button><div class="how"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</span><span><kbd>Mouse</kbd> look</span><span><kbd>Click</kbd> shoot</span><span><kbd>R</kbd> reload</span><span><kbd>G</kbd> grenade</span><span><kbd>Space</kbd> jump</span><span><kbd>V</kbd> melee</span><span><kbd>E</kbd> killstreak</span><span><kbd>Esc</kbd> pause</span></div><div class="cols"><div>
-<h2>Game mode</h2><div class="row" id="md"></div>
-<h2>Map</h2><div class="row" id="mp"></div>
-<details><summary>Weapon mastery and camos</summary><div id="wm"></div></details><h2>Settings</h2>
-<label>Aim assist<select id="aa"><option value="0">Off</option><option value="0.6">Light</option><option value="1" selected>Strong</option><option value="1.5">Very strong</option></select></label>
-<label>Look sensitivity<input id="sn" type="range" min="0.3" max="2.5" step="0.1" value="1"></label>
-</div><div><h2>Loadout <span id="pts"></span></h2><div id="ld"></div></div></div>
-
-<p class="keys">No aim button needed: shots go where your crosshair points, and aim assist helps when an enemy is close to it. Just pick Play now to start with a good loadout.</p>
+ <header id="brand"><h1>SPARTAN <b>DRILL</b></h1><p>Arena combat simulator</p></header>
+ <nav id="nav"><button data-p="play">Play</button><button data-p="priv">Private match</button><button data-p="load">Loadout</button><button data-p="mast">Weapon mastery</button><button data-p="set">Settings</button></nav>
+ <div id="prof"><p id="rank"></p><div id="xpb"><div id="xpf"></div></div><button id="prest" class="btn sm" style="display:none"></button></div>
+ <main>
+  <section id="p-play" class="pn"><h2>Game mode</h2><div class="row" id="md"></div><h2>Map</h2><div class="row" id="mp"></div><button id="go" class="big">Deploy</button></section>
+  <section id="p-priv" class="pn"><h2>Private match</h2><p class="sub">Play with friends directly, peer to peer. Host creates a code, friends type it in. Free-for-all, first to 15 kills. Uses your current loadout.</p>
+   <label>Your name<input id="nm" type="text" maxlength="12"></label>
+   <div class="two"><div class="card2"><h3>Host</h3><label>Map<select id="pm"></select></label><button id="host" class="big">Create match</button>
+    <div id="hostbox" style="display:none"><div id="code"></div><button id="startnet" class="big">Start match</button></div></div>
+   <div class="card2"><h3>Join</h3><label>Match code<input id="jc" type="text" maxlength="5" placeholder="ABCDE"></label><button id="join" class="big">Join match</button></div></div>
+   <p id="lb"></p><ul id="plist"></ul></section>
+  <section id="p-load" class="pn"><h2>Loadout <span id="pts"></span></h2><div id="ld"></div></section>
+  <section id="p-mast" class="pn"><h2>Weapon mastery and camos</h2><div id="wm"></div></section>
+  <section id="p-set" class="pn"><h2>Settings</h2>
+   <label>Aim assist<select id="aa"><option value="0">Off</option><option value="0.6">Light</option><option value="1" selected>Strong</option><option value="1.5">Very strong</option></select></label>
+   <label>Look sensitivity<input id="sn" type="range" min="0.3" max="2.5" step="0.1" value="1"></label>
+   <h2>Controls</h2><div class="how"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</span><span><kbd>Mouse</kbd> look</span><span><kbd>Click</kbd>/<kbd>F</kbd> shoot</span><span><kbd>R</kbd> reload</span><span><kbd>G</kbd> grenade</span><span><kbd>V</kbd> melee</span><span><kbd>E</kbd> killstreak</span><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>/<kbd>Q</kbd> weapons</span><span><kbd>Space</kbd> jump</span><span><kbd>Shift</kbd> sprint</span><span><kbd>Esc</kbd> pause</span></div>
+   <p class="sub">No aim button: shots go where your crosshair points, and aim assist helps when an enemy is near it.</p></section>
+ </main>
+ <div id="hot"></div>
+ <div id="dev"><div class="card"><h2>Developer menu</h2><button class="big" data-d="all">Unlock everything</button><button class="big" data-d="lvl">Max level 55</button><button class="big" data-d="master">Prestige Master 1250</button><button class="big alt" data-d="reset">Reset all progress</button><button class="big alt" data-d="close">Close</button></div></div>
 </div>
-<div id="pause">Paused<br><br>Click to resume</div>
-<div id="end"><div id="et"></div><br><button class="btn" id="again">Play again</button><button class="btn alt" id="tomenu">Change loadout</button></div>
+<div id="pause"><div class="card"><h2 id="pt">Paused</h2><button id="resume" class="big">Resume</button>
+ <label>Aim assist<select id="aa2"><option value="0">Off</option><option value="0.6">Light</option><option value="1">Strong</option><option value="1.5">Very strong</option></select></label>
+ <label>Look sensitivity<input id="sn2" type="range" min="0.3" max="2.5" step="0.1"></label>
+ <label>Volume<input id="vl" type="range" min="0" max="1" step="0.05" value="1"></label>
+ <label>Screen shake<input id="sk" type="range" min="0" max="1" step="0.1" value="1"></label>
+ <button id="exit" class="big alt">Exit match</button></div></div>
+<div id="end"><div class="card"><div id="et"></div><br><button class="big" id="again">Play again</button><button class="big alt" id="tomenu">Main menu</button></div></div>
 <div id="hud"><div id="dm"></div><div id="di"></div><canvas id="rd" width="150" height="150"></canvas><div id="kf"></div><div id="ks"></div><div id="ob"></div><div id="ms"></div><div id="cx"></div><div id="hm"></div>
 <div id="bars"><span id="hn">Shield</span><div class="bar"><div id="sh"></div></div><div class="bar"><div id="hp"></div></div></div>
-<div id="hint">WASD move · Mouse look · Click shoot · V melee · R reload · G grenade · Space jump · Grab glowing pickups for power weapons · 3 kills = UAV (E)</div><div id="am"></div></div>
+<div id="hint">WASD move · Mouse look · Click shoot · V melee · R reload · G grenade · Space jump · Grab glowing pickups · 3 kills = UAV (E)</div><div id="am"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <script src="js/data.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/bots.js"></script>
@@ -28,4 +46,9 @@
 <script src="js/input.js"></script>
 <script src="js/juice.js"></script>
 <script src="js/features.js"></script>
-<script src="js/mastery.js"></script></body></html>
+<script src="js/vmp.js"></script>
+<script src="js/mastery.js"></script>
+<script src="js/deathcam.js"></script>
+<script src="js/net.js"></script>
+<script src="js/menu.js"></script>
+</body></html>
