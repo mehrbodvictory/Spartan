@@ -8,9 +8,9 @@ MG:{n:'Magnum',d:26,r:.3,m:8,sp:.005,rc:3,pel:1,au:0,rl:1.5,len:.3,col:0x666e74}
 MP:{n:'Machine Pistol',d:5.5,r:.07,m:24,sp:.03,rc:.6,pel:1,au:1,rl:1.4,len:.25,col:0x3a3a4a}};
 const PRI=['AR','SMG','BR','SG'],SEC=['MG','MP'];
 const A={'Extended Mag':{m:1.5,t:'+50% magazine'},'Compensator':{rc:.55,t:'Less kick'},'Laser Sight':{sp:.5,t:'Tighter spread'},'Long Barrel':{d:1.12,t:'+12% damage'},'Fast Hands':{rl:.65,t:'Faster reload'},'Hollow Point':{d:1.18,rc:1.25,t:'+18% damage, more kick'}};
-const K={'Marathon':'Move 15% faster','Overshield':'+50 shield','Scavenger':'Kills refill ammo','Spring Legs':'Jump higher'};
+const K={'Marathon':'Move 15% faster','Overshield':'+50 shield','Scavenger':'Kills refill ammo','Spring Legs':'Jump higher','Second Wind':'Shield recharges much faster','Hardline':'Killstreaks need 1 fewer kill'};
 const GR={'Frag':{fuse:1.8,R:7,d:110,imp:0,t:'Bounces, 1.8s fuse'},'Impact':{fuse:4,R:5,d:85,imp:1,t:'Explodes on contact'}};
-const MODES={'Slayer':'First to 20 kills. Bots respawn.','Survival':'One life. Endless waves.','Time Attack':'Most kills in 90 seconds.'};
+const MODES={'Slayer':'First to 20 kills. Bots respawn.','Survival':'One life. Endless waves.','Time Attack':'Most kills in 90 seconds.','Team Deathmatch':'5v5 with bot teammates. First team to 50 kills wins.'};
 const MAPS={
 'Blockfort':{d:'Walled fort with a raised centre',H:28,sky:0x86b6d8,gr:0x55654f,bc:0x8d99a3,b(){const a=[[-4.5,-7,5,1.2,3],[4.5,-7,5,1.2,3],[-4.5,7,5,1.2,3],[4.5,7,5,1.2,3],[-7,-4.5,1.2,5,3],[-7,4.5,1.2,5,3],[7,-4.5,1.2,5,3],[7,4.5,1.2,5,3],[0,0,5,5,1]];for(const s of[-1,1]){a.push([s*18,18,3,3,1.5],[s*18,-18,3,3,1.5],[s*21,0,2,7,1],[0,s*21,7,2,1]);}return a}},
 'Pillars':{d:'Open grid of tall cover',H:34,sky:0xc9a27a,gr:0x6b5a48,bc:0xb09878,b(){const a=[];for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++){if(i||j)a.push([i*11,j*11,2.2,2.2,5]);if(i<2&&j<2)a.push([i*11+5.5,j*11+5.5,3,1,1]);}return a}},
