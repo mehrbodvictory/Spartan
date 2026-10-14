@@ -10,9 +10,9 @@ $('#host').onclick=hostMatch;$('#join').onclick=joinMatch;$('#startnet').onclick
 /* pause */
 function showPause(){$('#aa2').value=String(AA);$('#sn2').value=sens;$('#pause').style.display='block'}
 function hidePause(){$('#pause').style.display='none';$('#pt').textContent='Paused'}
-$('#resume').onclick=()=>R.domElement.requestPointerLock();
-$('#aa2').onchange=e=>{AA=+e.target.value;$('#aa').value=e.target.value};$('#sn2').oninput=e=>{sens=+e.target.value;$('#sn').value=e.target.value};$('#vl').oninput=e=>vol=+e.target.value;$('#sk').oninput=e=>shk=+e.target.value;
-$('#exit').onclick=()=>{run=0;over=1;paused=0;document.exitPointerLock();hidePause();$('#hud').style.display=$('#end').style.display='none';endDeath();netClose();for(const b of bots)S.remove(b.m);bots=[];for(const g of grs)S.remove(g.m);grs=[];buildMap();$('#menu').style.display='block';showRank()};
+$('#resume').onclick=()=>lockPtr();
+$('#aa2').onchange=e=>{AA=+e.target.value;$('#aa').value=e.target.value;saveSet()};$('#sn2').oninput=e=>{sens=+e.target.value;$('#sn').value=e.target.value;saveSet()};$('#vl').oninput=e=>vol=+e.target.value;$('#sk').oninput=e=>shk=+e.target.value;
+$('#exit').onclick=()=>{run=0;over=1;paused=0;document.exitPointerLock&&document.exitPointerLock();hidePause();$('#hud').style.display=$('#end').style.display='none';endDeath();netClose();for(const b of bots)S.remove(b.m);bots=[];for(const g of grs)S.remove(g.m);grs=[];clearFlags();buildMap();$('#menu').style.display='block';showRank()};
 /* secret dev menu: click the bottom-left corner 5 times, then type "ohio" */
 let hc=0,arm=0,buf='';$('#hot').onclick=()=>{if(++hc>=5){arm=1;buf='';hc=0}};
 addEventListener('keydown',e=>{if(!arm||$('#menu').style.display=='none')return;buf=(buf+e.key).toLowerCase().slice(-4);if(buf=='ohio'){arm=0;$('#dev').style.display='flex'}});
@@ -20,3 +20,4 @@ $('#dev').onclick=e=>{const d=e.target.dataset.d;if(!d)return;
  if(d=='all')prof.all=1;else if(d=='lvl'){prof.lvl=55;prof.xp=0}else if(d=='master'){prof.pres=10;prof.master=1;prof.ml=1250;prof.xp=0}
  else if(d=='reset'){if(confirm('Delete ALL progress, camos and unlocks?')){try{localStorage.removeItem('sd-prof')}catch(x){}location.reload()}return}
  else{$('#dev').style.display='none';return}save();showRank()};
+$('#aa').onchange=saveSet;$('#sn').oninput=saveSet;

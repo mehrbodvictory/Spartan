@@ -17,4 +17,5 @@ Local test: `python3 -m http.server` in this folder, then open http://localhost:
 - `js/features.js` melee (V), radar, killstreaks (E), power-weapon and health/shield/ammo pickups, XP and ranks, kill feed
 - `js/mastery.js` levels 1-55, prestige 1-10, Prestige Master (to 1250), unlock list, weapon levels/prestige, camos (saved in your browser)
 - `js/vmp.js` the VMP weapon and its 3D model; `js/deathcam.js` third-person death cam and ragdoll; `js/net.js` private P2P matches (PeerJS); `js/menu.js` main/pause/dev menus
-- `js/pvp.js` bot-vs-bot combat, Team Deathmatch, level-up popups, killstreak panel; `js/nuketown.js` the Nuketown map
+- `js/pvp.js` bot-vs-bot combat, Team Deathmatch, level-up popups, killstreak panel; `js/boomtown.js` the Boomtown map
+- `js/touch.js` phone/tablet controls (left drag = look, right tap/hold = shoot, move stick, buttons), plus no-zoom and no-copy protections

@@ -1,5 +1,5 @@
 /* ---------- input ---------- */
-$('#go').onclick=startGame;$('#again').onclick=startGame;$('#tomenu').onclick=()=>{netClose();for(const b of bots)S.remove(b.m);bots=[];buildMap();showRank();$('#end').style.display=$('#hud').style.display='none';$('#menu').style.display='block'};
+$('#go').onclick=startGame;$('#again').onclick=startGame;$('#tomenu').onclick=()=>{netClose();for(const b of bots)S.remove(b.m);bots=[];clearFlags();buildMap();showRank();$('#end').style.display=$('#hud').style.display='none';$('#menu').style.display='block'};
 
 document.addEventListener('pointerlockchange',()=>{const l=document.pointerLockElement==R.domElement;if(run){paused=!l;(l?hidePause:showPause)()}});
 addEventListener('mousemove',e=>{if(!run||paused)return;const k=.0022*sens*fr;yaw-=e.movementX*k;pitch=cl(pitch-e.movementY*k,-1.45,1.45);sw.x=cl(sw.x-e.movementX*.0012,-.1,.1);sw.y=cl(sw.y-e.movementY*.0012,-.08,.08)});
