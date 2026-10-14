@@ -19,3 +19,9 @@ Local test: `python3 -m http.server` in this folder, then open http://localhost:
 - `js/vmp.js` the VMP weapon and its 3D model; `js/deathcam.js` third-person death cam and ragdoll; `js/net.js` private P2P matches (PeerJS); `js/menu.js` main/pause/dev menus
 - `js/pvp.js` bot-vs-bot combat, Team Deathmatch, level-up popups, killstreak panel; `js/boomtown.js` the Boomtown map
 - `js/touch.js` phone/tablet controls (left drag = look, right tap/hold = shoot, move stick, buttons), plus no-zoom and no-copy protections
+- `js/raygun.js` the RayGun secondary (red beam, splash, 20 rounds) and its blaster sound
+- `js/worldgun.js` weapons held by bots and other players: models, muzzle flashes, tracers from the barrel, shot sounds
+
+## Balance
+- Everyone (player, bots, other players) has 50 health + 50 recharging shield and uses the same weapon stats, so a standard weapon kills in 3-5 body shots (rifle/SMG time-to-kill about 0.2-0.25 s at 10 m). Damage falls off with range. Perks (Overshield etc.) are the only extra for players.
+- Each match is worth 1-3 player levels depending on performance.

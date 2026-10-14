@@ -1,11 +1,11 @@
 const $=q=>document.querySelector(q),V=(x,y,z)=>new THREE.Vector3(x,y,z),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
 /* ---------- data ---------- */
-const W={AR:{n:'KN-115',d:9,r:.09,m:32,sp:.012,rc:1,pel:1,au:1,rl:2,len:.55,col:0x3a4a52},
-SMG:{n:'SMG',d:6.5,r:.06,m:40,sp:.022,rc:.7,pel:1,au:1,rl:1.8,len:.4,col:0x5a4a40},
-BR:{n:'Battle Rifle',d:30,r:.26,m:12,sp:.004,rc:2.5,pel:1,au:0,rl:2.2,len:.65,col:0x2f4a3a},
-SG:{n:'Shotgun',d:11,r:.8,m:6,sp:.06,rc:6,pel:8,au:0,rl:2.8,len:.5,col:0x6a5a2a},
-MG:{n:'Magnum',d:26,r:.3,m:8,sp:.005,rc:3,pel:1,au:0,rl:1.5,len:.3,col:0x666e74},
-MP:{n:'Machine Pistol',d:5.5,r:.07,m:24,sp:.03,rc:.6,pel:1,au:1,rl:1.4,len:.25,col:0x3a3a4a}};
+const W={AR:{n:'KN-115',d:30,r:.075,m:32,sp:.012,rc:1,pel:1,au:1,rl:2,len:.55,col:0x3a4a52},
+SMG:{n:'SMG',d:22,r:.055,m:40,sp:.022,rc:.7,pel:1,au:1,rl:1.8,len:.4,col:0x5a4a40},
+BR:{n:'Battle Rifle',d:36,r:.24,m:12,sp:.004,rc:2.5,pel:1,au:0,rl:2.2,len:.65,col:0x2f4a3a},
+SG:{n:'Shotgun',d:14,r:.8,m:6,sp:.06,rc:6,pel:8,au:0,rl:2.8,len:.5,col:0x6a5a2a},
+MG:{n:'Magnum',d:36,r:.26,m:8,sp:.005,rc:3,pel:1,au:0,rl:1.5,len:.3,col:0x666e74},
+MP:{n:'Machine Pistol',d:24,r:.07,m:24,sp:.03,rc:.6,pel:1,au:1,rl:1.4,len:.25,col:0x3a3a4a}};
 const PRI=['AR','SMG','BR','SG'],SEC=['MG','MP'];
 const A={'Extended Mag':{m:1.5,t:'+50% magazine'},'Compensator':{rc:.55,t:'Less kick'},'Laser Sight':{sp:.5,t:'Tighter spread'},'Long Barrel':{d:1.12,t:'+12% damage'},'Fast Hands':{rl:.65,t:'Faster reload'},'Hollow Point':{d:1.18,rc:1.25,t:'+18% damage, more kick'}};
 const K={'Marathon':'Move 15% faster','Overshield':'+50 shield','Scavenger':'Kills refill ammo','Spring Legs':'Jump higher','Second Wind':'Shield recharges much faster','Hardline':'Killstreaks need 1 fewer kill'};

@@ -1,12 +1,13 @@
 /* ---------- main menu, pause menu, dev menu ---------- */
 let vol=1,shk=1,ma=0;const $$=q=>document.querySelectorAll(q);
+$('#pmode').innerHTML='<option value="Private">Free-for-all (players only)</option>'+Object.keys(MODES).map(k=>`<option>${k}</option>`).join('');
 for(const k in MAPS)$('#pm').insertAdjacentHTML('beforeend',`<option>${k}</option>`);
 $('#nm').value='Player'+(100+Math.random()*900|0);buildMap();
 $$('#nav button').forEach(b=>b.onclick=()=>{$$('#nav button').forEach(x=>x.classList.toggle('on',x==b));$$('.pn').forEach(p=>p.classList.toggle('on',p.id=='p-'+b.dataset.p))});$('#nav button').click();
 const _sr=showRank;showRank=function(){_sr();$('#xpf').style.width=(prof.master||prof.lvl>=55?100:prof.xp/need()*100)+'%'};showRank();
 function menuCam(dt){ma+=dt*.12;gun.visible=false;C.fov=70;C.updateProjectionMatrix();const r=H*.75;C.position.set(Math.cos(ma)*r,11,Math.sin(ma)*r);C.lookAt(0,1.5,0)}
 /* lobby */
-$('#host').onclick=hostMatch;$('#join').onclick=joinMatch;$('#startnet').onclick=()=>{if(conns.length<1)return lobby('Waiting for at least one friend to join');sel.map=$('#pm').value;netSend({t:'start',map:sel.map});startNet()};
+$('#host').onclick=hostMatch;$('#join').onclick=joinMatch;$('#startnet').onclick=()=>{if(conns.length<1)return lobby('Waiting for at least one friend to join');hostStart()};
 /* pause */
 function showPause(){$('#aa2').value=String(AA);$('#sn2').value=sens;$('#pause').style.display='block'}
 function hidePause(){$('#pause').style.display='none';$('#pt').textContent='Paused'}

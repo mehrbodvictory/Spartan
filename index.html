@@ -9,9 +9,9 @@
  <div id="prof"><p id="rank"></p><div id="xpb"><div id="xpf"></div></div><button id="prest" class="btn sm" style="display:none"></button></div>
  <main>
   <section id="p-play" class="pn"><h2>Game mode</h2><div class="row" id="md"></div><h2>Map</h2><div class="row" id="mp"></div><button id="go" class="big">Deploy</button></section>
-  <section id="p-priv" class="pn"><h2>Private match</h2><p class="sub">Play with friends directly, peer to peer. Host creates a code, friends type it in. Free-for-all, first to 15 kills. Uses your current loadout.</p>
+  <section id="p-priv" class="pn"><h2>Private match</h2><p class="sub">Play with friends directly, peer to peer. Host creates a code, friends type it in. Pick any game mode: bots and rules run on the host. Uses your current loadout.</p>
    <label>Your name<input id="nm" type="text" maxlength="12"></label>
-   <div class="two"><div class="card2"><h3>Host</h3><label>Map<select id="pm"></select></label><button id="host" class="big">Create match</button>
+   <div class="two"><div class="card2"><h3>Host</h3><label>Game mode<select id="pmode"></select></label><label>Map<select id="pm"></select></label><button id="host" class="big">Create match</button>
     <div id="hostbox" style="display:none"><div id="code"></div><button id="startnet" class="big">Start match</button></div></div>
    <div class="card2"><h3>Join</h3><label>Match code<input id="jc" type="text" maxlength="5" placeholder="ABCDE"></label><button id="join" class="big">Join match</button></div></div>
    <p id="lb"></p><ul id="plist"></ul></section>
@@ -48,6 +48,8 @@
 <script src="js/juice.js"></script>
 <script src="js/features.js"></script>
 <script src="js/vmp.js"></script>
+<script src="js/raygun.js"></script>
+<script src="js/worldgun.js"></script>
 <script src="js/pvp.js"></script>
 <script src="js/mastery.js"></script>
 <script src="js/deathcam.js"></script>
