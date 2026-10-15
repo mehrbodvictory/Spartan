@@ -94,3 +94,32 @@ body.touch #kf{top:62px;right:12px}body.touch #kst{width:128px;right:8px}body.to
  #prof{left:auto;right:12px;top:6px;bottom:auto;width:210px}#rank{font-size:13px;margin:0 0 3px}
  main{left:8px;right:8px;top:94px;bottom:8px}.pn{padding:12px 14px}.pn h2{font-size:24px}.c{min-width:140px;padding:6px 10px}.big{font-size:22px;padding:4px 22px}#go{font-size:30px;padding:6px 40px}.two{grid-template-columns:1fr}
  #pause,#end{padding-top:3vh;overflow:auto}.card{min-width:0;width:min(92vw,380px);max-height:94vh;overflow:auto;padding:16px 22px}}
+
+/* ===== match end: freeze, victory / defeat, leaderboard, podium ===== */
+#fin{position:fixed;inset:0;z-index:6;display:none;pointer-events:none;color:var(--ink)}#fin>*,#fpod>*{position:absolute}
+#fbl{inset:0;background:rgba(6,12,16,.42);backdrop-filter:blur(12px) saturate(.75);-webkit-backdrop-filter:blur(12px) saturate(.75);opacity:0;transition:opacity .7s}
+#fin.s-vic #fbl,#fin.s-board #fbl{opacity:1}
+#fvt{left:0;right:0;top:42%;transform:translateY(-50%);text-align:center;opacity:0;transition:opacity .45s,transform .45s}
+#fin.s-vic #fvt{opacity:1;animation:vpop .75s cubic-bezier(.2,1.5,.35,1)}#fin.s-board #fvt{transform:translateY(-50%) scale(1.08)}
+@keyframes vpop{from{transform:translateY(-50%) scale(3);opacity:0;filter:blur(14px)}}
+#fvt b{display:block;font:700 clamp(84px,20vw,240px)/.88 Teko,Impact,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#ffd24a;text-shadow:0 0 44px #ffb45488,0 7px 0 #7a5410}
+#fin.lose #fvt b{color:#ff5a3a;text-shadow:0 0 44px #ff5a3a77,0 7px 0 #6a1d10}
+#fvt span{display:block;margin-top:10px;font:600 clamp(16px,2.4vw,30px) Rajdhani,sans-serif;letter-spacing:.18em;color:#cfe0e3;text-shadow:0 2px 6px #000}
+#fvt:before{content:"";position:absolute;left:0;right:0;top:50%;height:62%;transform:translateY(-50%) scaleX(0);background:linear-gradient(90deg,transparent,#ffb45424 18%,#ffb45424 82%,transparent);z-index:-1;transition:transform .7s .1s}
+#fin.lose #fvt:before{background:linear-gradient(90deg,transparent,#ff5a3a22 18%,#ff5a3a22 82%,transparent)}#fin.s-vic #fvt:before{transform:translateY(-50%) scaleX(1)}
+#fbd{left:50%;top:50%;transform:translate(-50%,-47%);width:min(740px,94vw);max-height:90vh;overflow:auto;padding:22px 30px 26px;background:#0a141aee;border:1px solid #28404a;opacity:0;pointer-events:none;transition:opacity .5s .2s,transform .5s .2s;clip-path:polygon(0 0,calc(100% - 28px) 0,100% 28px,100% 100%,28px 100%,0 calc(100% - 28px))}
+#fin.s-board #fbd{opacity:1;transform:translate(-50%,-50%);pointer-events:auto}
+#fbd h2{margin:0;font-size:56px;line-height:1;color:#ffd24a}#fin.lose #fbd h2{color:#ff5a3a}
+#fbd table{width:100%;border-collapse:collapse;margin:10px 0 6px}#fbd th{text-align:left;color:var(--mu);font-weight:600;padding:4px 10px}
+#fbd td{padding:6px 10px;border-top:1px solid #28404a;font-size:20px}#fbd td:first-child{width:46px;border-left:4px solid transparent;color:var(--mu)}
+#fbd th:nth-child(n+3),#fbd td:nth-child(n+3){text-align:right;width:84px}#fbd tr.me td{background:#ffb45420;color:var(--am)}
+.fs{margin:6px 0;color:var(--mu);font-size:16px;line-height:1.5}#fcont{margin-top:14px}
+#fpod{inset:0;opacity:0;transition:opacity .45s}#fin.s-pod #fpod{opacity:1}#fnm{inset:0}
+#fcd{top:22px;left:0;right:0;margin:0;text-align:center;font:600 22px Rajdhani,sans-serif;letter-spacing:.12em;color:#cfe0e3;text-shadow:0 2px 6px #000}
+.pl{position:absolute;transform:translate(-50%,-100%);text-align:center;white-space:nowrap;text-shadow:0 2px 6px #000}.pl b{display:block;font:600 26px Teko,sans-serif;letter-spacing:1px;line-height:1}.pl i{font-style:normal;color:var(--mu);font-size:15px}.pl.me b{color:var(--am)}
+#fem{left:0;right:0;bottom:26px;display:flex;justify-content:center;gap:10px}
+#fem button{pointer-events:auto;cursor:pointer;background:#0b161ccc;color:#fff;border:1px solid #62e0f0aa;padding:6px 22px 6px 12px;font:600 24px Teko,sans-serif;letter-spacing:1px;clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%);transition:.1s}
+#fem button:hover{background:#ffb454;color:#1b1408;border-color:#ffb454}#fem kbd{margin-right:8px}body.touch #fem kbd{display:none}
+#ffd{inset:0;background:#000;opacity:0;transition:opacity .5s}#fin.blk #ffd{opacity:1}
+@media (max-width:900px),(max-height:520px){#fbd{padding:12px 14px 16px}#fbd h2{font-size:34px}#fbd td{font-size:16px;padding:4px 8px}.fs{font-size:13px}#fem{bottom:12px;gap:6px}#fem button{font-size:20px;padding:4px 14px 4px 8px}.pl b{font-size:20px}}
+@media (prefers-reduced-motion:reduce){#fin.s-vic #fvt{animation:none}}

@@ -14,7 +14,7 @@
    <div class="two"><div class="card2"><h3>Host</h3><label>Game mode<select id="pmode"></select></label><label>Map<select id="pm"></select></label><button id="host" class="big">Create match</button>
     <div id="hostbox" style="display:none"><div id="code"></div><button id="startnet" class="big">Start match</button></div></div>
    <div class="card2"><h3>Join</h3><label>Match code<input id="jc" type="text" maxlength="5" placeholder="ABCDE"></label><button id="join" class="big">Join match</button></div></div>
-   <p id="lb"></p><ul id="plist"></ul></section>
+   <p id="lb"></p><ul id="plist"></ul><button id="leave" class="big alt" style="display:none">Leave lobby</button></section>
   <section id="p-load" class="pn"><h2>Loadout <span id="pts"></span></h2><div id="ld"></div></section>
   <section id="p-mast" class="pn"><h2>Weapon mastery and camos</h2><div id="wm"></div></section>
   <section id="p-set" class="pn"><h2>Settings</h2>
@@ -35,28 +35,17 @@
  <label>Screen shake<input id="sk" type="range" min="0" max="1" step="0.1" value="1"></label>
  <button id="exit" class="big alt">Exit match</button></div></div>
 <div id="end"><div class="card"><div id="et"></div><br><button class="big" id="again">Play again</button><button class="big alt" id="tomenu">Main menu</button></div></div>
+<div id="fin"><div id="fbl"></div>
+ <div id="fvt"><b></b><span></span></div>
+ <section id="fbd"></section>
+ <div id="fpod"><p id="fcd"></p><div id="fnm"></div><div id="fem"><button data-e="0"><kbd>1</kbd>Wave</button><button data-e="1"><kbd>2</kbd>Cheer</button><button data-e="2"><kbd>3</kbd>Dance</button><button data-e="3"><kbd>4</kbd>Flex</button></div></div>
+ <div id="ffd"></div></div>
 <div id="hud"><div id="dm"></div><div id="di"></div><canvas id="rd" width="150" height="150"></canvas><div id="kf"></div><div id="ks"></div><div id="pops"></div><div id="kst"></div><div id="ob"></div><div id="ms"></div><div id="cx"></div><div id="hm"></div>
 <div id="bars"><span id="hn">Shield</span><div class="bar"><div id="sh"></div></div><div class="bar"><div id="hp"></div></div></div>
 <div id="hint">WASD move · Mouse look · Click shoot · V melee · R reload · G grenade · Space jump · Grab glowing pickups · 3 kills = UAV (E)</div><div id="am"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
-<script src="js/data.js"></script>
-<script src="js/boomtown.js"></script>
-<script src="js/engine.js"></script>
-<script src="js/bots.js"></script>
-<script src="js/weapons.js"></script>
-<script src="js/game.js"></script>
-<script src="js/input.js"></script>
-<script src="js/juice.js"></script>
-<script src="js/features.js"></script>
-<script src="js/vmp.js"></script>
-<script src="js/raygun.js"></script>
-<script src="js/worldgun.js"></script>
-<script src="js/anim.js"></script>
-<script src="js/pvp.js"></script>
-<script src="js/mastery.js"></script>
-<script src="js/deathcam.js"></script>
-<script src="js/net.js"></script>
-<script src="js/menu.js"></script>
-<script src="js/touch.js"></script>
+<script src="js/core.js"></script>
+<script src="js/systems.js"></script>
+<script src="js/interface.js"></script>
 </body></html>
