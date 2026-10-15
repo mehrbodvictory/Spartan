@@ -1,5 +1,5 @@
 /* ---------- main menu, pause menu, dev menu ---------- */
-let vol=1,shk=1,ma=0;const $$=q=>document.querySelectorAll(q);
+let vol=1,shk=1,ma=0,fovBase=80;const $$=q=>document.querySelectorAll(q);
 $('#pmode').innerHTML='<option value="Private">Free-for-all (players only)</option>'+Object.keys(MODES).map(k=>`<option>${k}</option>`).join('');
 for(const k in MAPS)$('#pm').insertAdjacentHTML('beforeend',`<option>${k}</option>`);
 $('#nm').value='Player'+(100+Math.random()*900|0);buildMap();
@@ -9,7 +9,7 @@ function menuCam(dt){ma+=dt*.12;gun.visible=false;C.fov=70;C.updateProjectionMat
 /* lobby */
 $('#host').onclick=hostMatch;$('#join').onclick=joinMatch;$('#startnet').onclick=()=>{if(conns.length<1)return lobby('Waiting for at least one friend to join');hostStart()};
 /* pause */
-function showPause(){$('#aa2').value=String(AA);$('#sn2').value=sens;$('#pause').style.display='block'}
+function showPause(){$('#aa2').value=String(AA);$('#sn2').value=sens;$('#fv2').value=fovBase;$('#pause').style.display='block'}
 function hidePause(){$('#pause').style.display='none';$('#pt').textContent='Paused'}
 $('#resume').onclick=()=>lockPtr();
 $('#aa2').onchange=e=>{AA=+e.target.value;$('#aa').value=e.target.value;saveSet()};$('#sn2').oninput=e=>{sens=+e.target.value;$('#sn').value=e.target.value;saveSet()};$('#vl').oninput=e=>vol=+e.target.value;$('#sk').oninput=e=>shk=+e.target.value;
@@ -22,3 +22,4 @@ $('#dev').onclick=e=>{const d=e.target.dataset.d;if(!d)return;
  else if(d=='reset'){if(confirm('Delete ALL progress, camos and unlocks?')){try{localStorage.removeItem('sd-prof')}catch(x){}location.reload()}return}
  else{$('#dev').style.display='none';return}save();showRank()};
 $('#aa').onchange=saveSet;$('#sn').oninput=saveSet;
+fovBase=+$('#fv').value||80;$('#fv').oninput=()=>{fovBase=+$('#fv').value;saveSet()};$('#fv2').oninput=e=>{fovBase=+e.target.value;$('#fv').value=e.target.value;saveSet()};

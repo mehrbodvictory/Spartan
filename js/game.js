@@ -1,6 +1,6 @@
 /* ---------- game flow ---------- */
 function startGame(){buildMap();for(const b of bots)S.remove(b.m);bots=[];for(const f of fx)S.remove(f.m);fx=[];for(const g of grs)S.remove(g.m);grs=[];
- sanitize();AA=+$('#aa').value;sens=+$('#sn').value;mode=sel.mode;if(!netOn)myTeam='A';kills=deaths=shots=hits=wave=0;tl=90;t0=0;nf=0;trig=0;fresh=0;hmT=0;msT=0;dmA=0;lastHit=-9;
+ sanitize();fovBase=+$('#fv').value||80;AA=+$('#aa').value;sens=+$('#sn').value;mode=sel.mode;if(!netOn)myTeam='A';kills=deaths=shots=hits=wave=0;tl=90;t0=0;nf=0;trig=0;fresh=0;hmT=0;msT=0;dmA=0;lastHit=-9;
  P={x:0,y:0,z:0,vy:0,hp:50,mhp:50,sh:50,msh:50+(L.pk.includes('Overshield')?50:0),dead:0,on:1};P.sh=P.msh;
  wp=[{k:L.p,...eff(L.p,L.pa)}];if(L.s)wp.push({k:L.s,...eff(L.s,L.sa)});for(const w of wp){w.mag=w.m;w.res=w.m*(w.rs==null?4:w.rs)}cur=0;rel=0;gc=L.g?2:0;setGun();
  const[x,z]=spawnPt(0,pTeam());P.x=x;P.z=z;yaw=pitch=kick=0;
@@ -13,17 +13,14 @@ function modeTick(dt){if(mode=='Private')return privTick();if(netOn&&!isHost){$(
   if(!live){bots=bots.filter(b=>{if(b.net)return true;S.remove(b.m);return false});wave++;const n=Math.min(12,2+wave*2);for(let i=0;i<n;i++)addBot(50+wave*6,1+wave*.07);msg('Wave '+wave,2.5);gc=Math.min(gc+1,3)}}}
 function upd(dt){t0+=dt;
  if(P.dead){P.rt-=dt;if(P.rt<=0&&mode!='Survival')respawn()}
- else{const f=(key.KeyW?1:0)-(key.KeyS?1:0),s=(key.KeyD?1:0)-(key.KeyA?1:0),n=Math.hypot(f,s)||1,spd=6*(key.ShiftLeft?1.45:1)*(L.pk.includes('Marathon')?1.15:1);
-  mv(P,(-Math.sin(yaw)*f+Math.cos(yaw)*s)/n*spd*dt,(-Math.cos(yaw)*f-Math.sin(yaw)*s)/n*spd*dt,.4);
-  if(key.Space&&P.on){P.vy=L.pk.includes('Spring Legs')?9.4:7.6;P.on=0}
-  P.vy-=20*dt;P.y+=P.vy*dt;const g=gnd(P);if(P.y<=g){P.y=g;P.vy=0;P.on=1}else P.on=0;
+ else{const f=(key.KeyW?1:0)-(key.KeyS?1:0),s=(key.KeyD?1:0)-(key.KeyA?1:0);phys(dt,f,s,9*(L.pk.includes('Marathon')?1.15:1));
   tg=findT();fr=tg?Math.max(.4,1-.4*AA):1;
   const w=cw();if(rel>0){rel-=dt;if(rel<=0){const tk=Math.min(w.m-w.mag,w.res);w.mag+=tk;w.res-=tk}}
   else if((trig||key.KeyF)&&(w.au||fresh)&&t0>=nf&&w.mag>0){shoot();fresh=0}else if(trig&&w.mag<=0)startRel();
   if(t0-lastHit>(L.pk.includes('Second Wind')?2:4))P.sh=Math.min(P.msh,P.sh+(L.pk.includes('Second Wind')?65:40)*dt)}
  kick*=Math.exp(-9*dt);if(P.dead)deathCam(dt);else{C.position.set(P.x,P.y+1.65,P.z);C.rotation.set(pitch+kick,yaw,0)}
- gun.position.x+=(.2-gun.position.x)*10*dt;gun.position.y=-.2+Math.sin(t0*9)*(P.on&&(key.KeyW||key.KeyS||key.KeyA||key.KeyD)?.008:0);gun.position.z+=(-.45-gun.position.z)*12*dt;gun.rotation.x+=((rel>0?-.7:0)-gun.rotation.x)*10*dt;
- juiceTick(dt);featTick(dt);updBots(dt);modeTick(dt);
+ gun.position.x+=(.2-gun.position.x)*10*dt;gun.position.y=-.2+Math.sin(t0*9)*(P.on&&(key.KeyW||key.KeyS||key.KeyA||key.KeyD)?.008:0)+rlY();gun.position.z+=(-.45-gun.position.z)*12*dt;gun.rotation.x=rlRot();
+ juiceTick(dt);featTick(dt);fpUpdate(dt);updBots(dt);for(const b of bots)if(b.al)animBot(b,dt);modeTick(dt);
  for(let i=grs.length-1;i>=0;i--){const g=grs[i];g.t-=dt;g.v.y-=18*dt;const np=g.p.clone().add(g.v.clone().multiplyScalar(dt));let ex=g.t<=0;
   if(np.y<.13){np.y=.13;g.v.y*=-.35;g.v.x*=.7;g.v.z*=.7;if(g.g.imp)ex=1}
   for(const b of bx)if(np.x>b.x0&&np.x<b.x1&&np.z>b.z0&&np.z<b.z1&&np.y<b.h&&np.y>(b.y0||0)){if(g.g.imp)ex=1;else{g.v.x*=-.3;g.v.z*=-.3;np.copy(g.p)}}

@@ -1,6 +1,6 @@
 /* ---------- engine ---------- */
 const R=new THREE.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,1.5));R.setSize(innerWidth,innerHeight);document.body.prepend(R.domElement);
-const S=new THREE.Scene(),C=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.1,200);C.rotation.order='YXZ';S.add(C);
+const S=new THREE.Scene(),C=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.03,200);C.rotation.order='YXZ';S.add(C);
 S.add(new THREE.HemisphereLight(0xffffff,0x445566,.85));const sun=new THREE.DirectionalLight(0xffffff,.7);sun.position.set(30,50,20);S.add(sun);
 addEventListener('resize',()=>{R.setSize(innerWidth,innerHeight);C.aspect=innerWidth/innerHeight;C.updateProjectionMatrix()});
 const sg=new THREE.SphereGeometry(1,12,8),bg=new THREE.BoxGeometry(1,1,1);

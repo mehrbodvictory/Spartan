@@ -25,3 +25,4 @@ Local test: `python3 -m http.server` in this folder, then open http://localhost:
 ## Balance
 - Everyone (player, bots, other players) has 50 health + 50 recharging shield and uses the same weapon stats, so a standard weapon kills in 3-5 body shots (rifle/SMG time-to-kill about 0.2-0.25 s at 10 m). Damage falls off with range. Perks (Overshield etc.) are the only extra for players.
 - Each match is worth 1-3 player levels depending on performance.
+- `js/anim.js` character model with IK arms, first-person hands, reload animations, walking (no sprint), mantling and wall jumps

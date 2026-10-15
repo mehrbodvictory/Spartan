@@ -1,7 +1,7 @@
 /* ---------- third-person death camera with ragdoll body ---------- */
 let rag=[],camA=0;const lastDir=V(0,0,0);
 function startDeath(){endDeath();camA=yaw;const c=V(P.x,P.y,P.z),cs=Math.cos(yaw),sn=Math.sin(yaw),dir=lastDir.lengthSq()>0?lastDir.clone():V(Math.random()-.5,0,Math.random()-.5).normalize();
- for(const[w,h,d,x,y,col]of[[.8,1.1,.5,0,.95,0x3d6ad6],[.4,.4,.4,0,1.75,0x2a2f35],[.25,.8,.25,-.55,1,0x3d6ad6],[.25,.8,.25,.55,1,0x3d6ad6],[.3,.8,.3,-.2,.4,0x2a2a3a],[.3,.8,.3,.2,.4,0x2a2a3a]]){
+ for(const[w,h,d,x,y,col]of[[.5,.56,.3,0,1.33,0x3d6ad6],[.26,.28,.28,0,1.78,0x4a4f57],[.11,.34,.11,-.38,1.4,0x3d6ad6],[.11,.34,.11,.38,1.4,0x3d6ad6],[.09,.32,.09,-.4,1.08,0x151515],[.09,.32,.09,.4,1.08,0x151515],[.19,.44,.21,-.12,.76,0x2a2f35],[.19,.44,.21,.12,.76,0x2a2f35],[.16,.44,.18,-.12,.3,0x2a2f35],[.16,.44,.18,.12,.3,0x2a2f35]]){
   const m=new THREE.Mesh(bg,new THREE.MeshLambertMaterial({color:col}));m.scale.set(w,h,d);m.position.set(c.x+x*cs,c.y+y,c.z-x*sn);m.rotation.y=yaw;S.add(m);
   rag.push({m,hh:Math.min(w,h,d)/2,v:dir.clone().multiplyScalar(4+Math.random()*3).add(V((Math.random()-.5)*2,4+Math.random()*3,(Math.random()-.5)*2)),av:V((Math.random()-.5)*9,(Math.random()-.5)*5,(Math.random()-.5)*9)})}}
 function endDeath(){for(const p of rag)S.remove(p.m);rag=[];gun.visible=true;lastDir.set(0,0,0)}

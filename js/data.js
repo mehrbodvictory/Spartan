@@ -42,6 +42,6 @@ document.addEventListener('click',e=>{const b=e.target.closest('.c');if(!b||b.cl
  else{const r=L[a],i=r.indexOf(v);if(i>=0)r.splice(i,1);else if(r.length<LIM[a])r.push(v)}
  if(cost()>10){L=JSON.parse(o);ui();$('#pts').classList.add('bad');$('#pts').textContent='10 / 10 points: remove something first';return}
  ui()});
-function saveSet(){try{localStorage.setItem('sd-load',JSON.stringify({L,sel,aa:$('#aa').value,sn:$('#sn').value}))}catch(e){}}
-try{const sv=JSON.parse(localStorage.getItem('sd-load'));if(sv){if(sv.L&&W[sv.L.p]&&Array.isArray(sv.L.pa)&&Array.isArray(sv.L.sa)&&Array.isArray(sv.L.pk))L=sv.L;if(sv.sel){if(MAPS[sv.sel.map])sel.map=sv.sel.map;if(MODES[sv.sel.mode])sel.mode=sv.sel.mode}if(sv.aa!=null)$('#aa').value=sv.aa;if(sv.sn!=null)$('#sn').value=sv.sn}}catch(e){}
+function saveSet(){try{localStorage.setItem('sd-load',JSON.stringify({L,sel,aa:$('#aa').value,sn:$('#sn').value,fv:$('#fv').value}))}catch(e){}}
+try{const sv=JSON.parse(localStorage.getItem('sd-load'));if(sv){if(sv.L&&W[sv.L.p]&&Array.isArray(sv.L.pa)&&Array.isArray(sv.L.sa)&&Array.isArray(sv.L.pk))L=sv.L;if(sv.sel){if(MAPS[sv.sel.map])sel.map=sv.sel.map;if(MODES[sv.sel.mode])sel.mode=sv.sel.mode}if(sv.aa!=null)$('#aa').value=sv.aa;if(sv.sn!=null)$('#sn').value=sv.sn;if(sv.fv!=null)$('#fv').value=sv.fv}}catch(e){}
 ui();
