@@ -10,12 +10,16 @@ Local test: run `python3 -m http.server` in this folder and open http://localhos
 - `style.css` all styling (including phone layout)
 - `js/core.js` data (weapons, perks, maps), Boomtown map, engine/collision, bots, weapons, game loop, keyboard and mouse input
 - `js/systems.js` juice (shake, particles, sounds), pickups and killstreaks, VMP-X, KN-115 and RayGun models, held weapons (visible magazines, pump shotgun), character rigs, reload animations, mantling and wall jumps, bot PvP, Team Deathmatch, Capture the Flag
-- `js/interface.js` levels, prestige and camos, death camera, private P2P matches, main/pause/dev menus, match-end sequence (victory/defeat, leaderboard, podium with emotes), touch controls
+- `js/interface.js` levels, prestige and the camo tracks (animated shader camos), death camera, private P2P matches and persistent lobbies, home screen and the Zombies / Multiplayer menus, pause/dev menus, match-end sequence (victory/defeat, leaderboard, podium with emotes), touch controls
+- `js/zombies.js` the Zombies mode: the Hollow Estate map, rounds and waves, zombie AI with flow-field pathfinding, points, doors, mystery boxes, Pack-a-Punch, soda perks and the co-op networking
 
-Each section inside the three JS files starts with a banner comment showing its original file name.
+Each section inside the JS files starts with a banner comment showing its original file name.
 
 ## Controls
-WASD move, mouse look, click or F shoot, R reload, G grenade, V melee, E killstreak, 1/2/3 or Q swap, Space jump (also mantles ledges and wall jumps), Esc pause. On the podium: 1 to 4 emote. Touch: drag left to look, tap/hold right to shoot, stick to move.
+WASD move, Shift sprint, mouse look, click or F shoot, R reload, G grenade, V melee, E killstreak (in Zombies: buy / interact, hold to revive a teammate), 1/2/3 or Q swap, Space jump (also mantles ledges and wall jumps), Esc pause. On the podium: 1 to 4 emote. Touch: drag left to look, tap/hold right to shoot, stick to move.
+
+## Home screen
+The game opens on a home screen with two choices. ZOMBIES opens the Zombies menu (Play, Co-op lobby, Camos, Settings). MULTIPLAYER opens the Multiplayer menu (Play, Private match, Loadout, Weapon mastery, Settings). Back returns to the home screen.
 
 ## Balance
 Everyone (player, bots, other players) has 50 health plus 50 recharging shield and uses the same weapon stats, so a standard weapon kills in 3 to 5 body shots. Each match is worth 1 to 3 player levels.
@@ -27,7 +31,7 @@ When a match ends the world freezes and blurs, VICTORY or DEFEAT pops up, then t
 Every weapon has its own reload and the part being loaded travels with the left hand: magazine weapons drop the old mag and seat a fresh one, the shotgun is loaded shell by shell and then pumped, the rocket launcher is loaded from the rear and the RayGun swaps its energy cell. Bots use the same animations.
 
 ## Movement
-Base walking speed is 13.5 (Marathon perk adds 15%).
+Walking speed is 7, hold Shift to sprint at 10.5 (forward only, the FOV widens slightly and the gun lowers). Movement accelerates and stops smoothly. The Marathon perk adds 15% to both. On touch, push the stick to its edge to sprint.
 
 ## Domination
 Two teams (you are Blue, 5v5 with bots), three zones (A, B, C) per map. Stand in a zone with no enemy inside to capture it; the more of your team inside, the faster it flips (up to 3 count). A contested zone does not move. Every 2 seconds each zone a team owns gives that team 1 point. First team to 350 wins. Zones show on the radar and in the top bar. Bots go for the nearest zone their team does not own, and defenders hold zones the team already has. Zone positions come from `zn` in each map (a default row is used if a map has none).
@@ -38,3 +42,31 @@ Blockfort, Pillars, Canyon, Boomtown and Suburbia (new): two crossing streets wi
 ## Random picks and private lobbies
 The Play screen has a Random mode card and a Random map card. Pick them and a new combination is rolled every time you press Deploy. The private match host also has Random mode and Random map in the dropdowns.
 Private lobbies are persistent: after a match everybody (host and guests) goes back to the Private match screen still connected to the same code. The host picks a mode and map again and presses Start match. Use Leave lobby to disconnect. Exit match from the pause menu leaves the lobby.
+
+## Zombies
+Survive endless rounds on the Hollow Estate map: four walled wings joined by four locked doors. You start in the first wing with a Magnum and 500 points.
+- Points: 10 per hit, 130 per kill, 200 per melee kill, 300 per brute kill. Melee kills zombies in one hit up to round 3; from round 4 melee does almost no damage.
+- Rounds and waves: each round has more zombies than the last and they spawn in waves from the wings you have opened. All ammo is restocked at the start of every round.
+- Zombies get stronger every round: more health (steeper after round 10), harder hits, faster attacks and faster movement. Runners appear from round 5 and everything runs from round 15. Every fifth round brings brutes (large, 4x health, heavy hits). Zombie colours shift from green to rotten purple to ember red as rounds go up.
+- Doors (1000, 1250, 1500, 2000) open new wings. Zombies path around walls and through doors you opened.
+- Mystery Box (950, two locations): a random weapon (KN-115, SMG, Battle Rifle, Shotgun, Magnum, Machine Pistol, VMP-X, Sniper, Rocket Launcher, Coyote). The RayGun is rare (3%) and one-shots every zombie.
+- Pack-a-Punch (5000 then 10000): upgrades the weapon you are holding (damage x2.2 then x3.6, bigger magazine, faster fire).
+- Perk machines (soda machines): red Vitality Cola +50 health (2500), green Quick Fizz reload twice as fast (3000), yellow Double Pop double damage with bullet weapons and faster fire (2000), blue Revive Soda self-revive once (500; the machine runs dry after 4 purchases), purple Stamin Fizz run 20% faster (2000), orange Mule Soda third weapon slot (4000).
+- Down: with Revive Soda you get back up by yourself after 4 seconds. In solo, going down otherwise ends the run.
+
+### Co-op (up to 4 players)
+In the Zombies menu choose Co-op lobby: the host creates a code, up to 3 friends join, the host presses Start match. The host simulates every zombie, round and door; guests see the zombies, their hits count, and the kill points come back to them. Points, perks and weapons belong to each player; doors, boxes and the Revive Soda stock are shared. Teammates cannot hurt each other.
+- When you are down a teammate can revive you: hold E next to them for 2 seconds (the reviver earns 100 points). You have 45 seconds.
+- Downed or bled-out players come back at the start of the next round with a pistol (points are kept).
+- The run ends when everybody is down at the same time.
+- The lobby stays connected after the run, like private matches.
+
+## Camos
+Two separate tracks, both usable in both modes. Multiplayer camos are earned with kills (Weapon mastery menu). Zombie camos are earned with zombie kills per weapon (Rotted 25, Bile 75, Bone 150, Blood 225, Rust 300, Toxic 375), three global camos for your best round (Graveyard round 10, Wasteland round 15, Hellscape round 20) and the three animated finishers (Inferno 500 zombie kills, Necrotic 500 zombie kills on every weapon of that type, Abyss 500 zombie kills on every weapon). Any unlocked camo from either track can be picked on any weapon from either menu.
+The final three of each track are live shaders that animate on the weapon: Gold (molten gold), Diamond (prismatic ice), Dark Matter (swirling nebula), Inferno (flames and lava cracks), Necrotic (toxic plasma), Abyss (a void with glowing rifts).
+
+## Weapons
+New: the Coyote, a 60 round LMG (unlocks at level 34), modelled on the reference picture with a drum magazine that really comes out when you reload.
+
+## Open maps
+Suburbia and Boomtown have no tall walls. The play area is fenced by parked cars and bollards with gaps too narrow to squeeze through, and the scenery (houses, trees, hills) continues beyond the barrier. Suburbia is larger now with an outer ring road and a ring of houses.

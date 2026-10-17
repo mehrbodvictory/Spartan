@@ -1,7 +1,7 @@
 /* ===================== mastery.js ===================== */
 /* ---------- Progression: levels 1-55, prestige 1-10, Prestige Master (to 1250), unlocks, weapon mastery, camos ---------- */
-const UNL={AR:1,MG:1,SMG:8,BR:16,MP:24,SG:32,'Extended Mag':2,'Compensator':6,'Laser Sight':12,'Fast Hands':18,'Long Barrel':28,'Hollow Point':40,Frag:1,Impact:22,Marathon:4,Scavenger:14,Overshield:26,'Spring Legs':36,'Second Wind':44,'Hardline':50,VMP:20,RG:30};
-const CATS={Rifles:['AR','BR'],'Close Quarters':['SMG','SG','VMP'],Sidearms:['MG','MP','RG'],'Power Weapons':['RL','SN']};
+const UNL={AR:1,MG:1,SMG:8,BR:16,MP:24,SG:32,'Extended Mag':2,'Compensator':6,'Laser Sight':12,'Fast Hands':18,'Long Barrel':28,'Hollow Point':40,Frag:1,Impact:22,Marathon:4,Scavenger:14,Overshield:26,'Spring Legs':36,'Second Wind':44,'Hardline':50,VMP:20,RG:30,CY:34};
+const CATS={Rifles:['AR','BR'],'Close Quarters':['SMG','SG','VMP'],Sidearms:['MG','MP','RG'],'Power Weapons':['RL','SN'],Support:['CY']};
 let srcK='',curCamo=null,prof=(()=>{try{const p=JSON.parse(localStorage.getItem('sd-prof'));if(p&&p.v==1)return p}catch(e){}return{v:1,lvl:1,xp:0,pres:0,master:0,ml:1,wk:{},camo:{}}})();
 const save=()=>{try{localStorage.setItem('sd-prof',JSON.stringify(prof))}catch(e){}},need=()=>prof.master?1500:1500+prof.lvl*10,nm=k=>W[k]?W[k].n:k,tx={};
 function unlocked(v){return !UNL[v]||prof.pres>0||prof.master||prof.all||prof.lvl>=UNL[v]}
@@ -14,28 +14,109 @@ function killXP(head){const x=Math.min(Math.round(mCost*(.06+(head?.03:0)+Math.m
 function bonusXP(f){const x=Math.min(Math.round(mCost*f),Math.max(0,3*mCost-mxp));mxp+=x;giveXP(x)}
 function awardXP(){let b=Math.min(Math.round(mCost*(.5+(won?.5:0))),Math.max(0,3*mCost-mxp));if(mxp+b<mCost)b=mCost-mxp;if(b>0){giveXP(b);mxp+=b}return `+${mxp} XP (${(mxp/mCost).toFixed(1)} levels) · ${rankTxt()}${mUps.length?'<br>Unlocked: '+mUps.join(', '):''}${prof.lvl>=55&&!prof.master?'<br>Open the menu to prestige!':''}`}
 function doPrestige(){if(prof.master||prof.lvl<55)return;if(!confirm(prof.pres<10?`Prestige ${prof.pres+1}? You go back to level 1 but keep all unlocks and camos.`:'Become Prestige Master? Levels now go up to 1250.'))return;if(prof.pres<10)prof.pres++;else{prof.master=1;prof.ml=1}prof.lvl=1;prof.xp=0;save();showRank()}
-function showRank(){$('#rank').textContent=rankTxt();const b=$('#prest');b.style.display=!prof.master&&prof.lvl>=55?'inline-block':'none';b.textContent=prof.pres<10?'Prestige '+(prof.pres+1):'Become Prestige Master';sanitize();ui();masteryUI()}
+function showRank(){$('#rank').textContent=rankTxt();homeStats();const b=$('#prest');b.style.display=!prof.master&&prof.lvl>=55?'inline-block':'none';b.textContent=prof.pres<10?'Prestige '+(prof.pres+1):'Become Prestige Master';sanitize();ui();masteryUI()}
 /* weapon mastery: level every 15 kills (max 20), then prestige the weapon (3 times) */
-const wd=k=>prof.wk[k]||(prof.wk[k]={k:0,c:0,p:0}),wlv=k=>Math.min(20,1+Math.floor(wd(k).c/15)),catOf=k=>Object.keys(CATS).find(c=>CATS[c].includes(k));
+const wd=k=>prof.wk[k]||(prof.wk[k]={k:0,c:0,p:0,z:0}),wlv=k=>Math.min(20,1+Math.floor(wd(k).c/15)),catOf=k=>Object.keys(CATS).find(c=>CATS[c].includes(k));
 function camos(k){const w=wd(k),kc=[['Sand','#c8b27a',25],['Moss','#4f7a45',75],['Cobalt','#3d6ad6',150],['Crimson','#c0392b',225],['Violet','#8e44ad',300],['Neon','#29f0a0',375]].map(([n,c,r])=>({n,c,ok:w.k>=r,rq:r+' kills'})),
  pc=[['Ember','#ff7a2a'],['Frost','#8ad8ff'],['Aurora','#7affc8']].map(([n,c],i)=>({n,c,ok:w.p>=i+1,rq:'weapon prestige '+(i+1),pr:1})),
  gold=kc.every(c=>c.ok)&&w.k>=500,dia=CATS[catOf(k)].every(x=>wd(x).k>=500),dm=Object.keys(W).every(x=>wd(x).k>=500);
- return[...kc,...pc,{n:'Gold',c:'#ffc83a',ok:gold,rq:'500 kills'},{n:'Diamond',c:'#bff4ff',ok:dia,rq:'Gold on every '+catOf(k)+' weapon'},{n:'Dark Matter',c:'#1a0a2a',ok:dm,rq:'Diamond on every weapon'}].map(c=>({...c,ok:c.ok||!!prof.all}))}
-const okSet=()=>{const s=new Set();for(const k in W)for(const c of camos(k))if(c.ok)s.add(k+':'+c.n);return s};
+ return[...kc,...pc,{n:'Gold',c:'#ffc83a',ok:gold,rq:'500 kills',anim:1},{n:'Diamond',c:'#bff4ff',ok:dia,rq:'Gold on every '+catOf(k)+' weapon',anim:1},{n:'Dark Matter',c:'#1a0a2a',ok:dm,rq:'Diamond on every weapon',anim:1}].map(c=>({...c,ok:c.ok||!!prof.all}))}
+/* zombies camo track: its own set of camos, earned with zombie kills (and best round). Both tracks can be equipped in either mode. */
+function zcamos(k){const w=wd(k),z=w.z||0,zb=prof.zbest||0,
+ kc=[['Rotted','#6b7a3a',25],['Bile','#9acd32',75],['Bone','#e3d8b8',150],['Blood','#8a1c1c',225],['Rust','#a5542a',300],['Toxic','#3cff7a',375]].map(([n,c,r])=>({n,c,ok:z>=r,rq:r+' zombie kills',s:'z'})),
+ rc=[['Graveyard','#4a5a6a',10],['Wasteland','#b08a4a',15],['Hellscape','#c0301a',20]].map(([n,c,r])=>({n,c,ok:zb>=r,rq:'reach round '+r,s:'z'})),
+ inf=kc.every(c=>c.ok)&&z>=500,nec=CATS[catOf(k)].every(x=>(wd(x).z||0)>=500),aby=Object.keys(W).every(x=>(wd(x).z||0)>=500);
+ return[...kc,...rc,{n:'Inferno',c:'#ff6a1a',ok:inf,rq:'500 zombie kills',anim:1},{n:'Necrotic',c:'#3cff9a',ok:nec,rq:'500 zombie kills on every '+catOf(k)+' weapon',anim:1},{n:'Abyss',c:'#14061e',ok:aby,rq:'500 zombie kills on every weapon',anim:1}].map(c=>({...c,ok:c.ok||!!prof.all}))}
+const allCamos=k=>[...camos(k),...zcamos(k)];
+const okSet=()=>{const s=new Set();for(const k in W)for(const c of allCamos(k))if(c.ok)s.add(k+':'+c.n);return s};
 function wkill(k){if(!k||!W[k])return;const w=wd(k),b=okSet(),l=wlv(k);w.k++;w.c++;for(const x of okSet())if(!b.has(x)){const[a,c]=x.split(':');popup('CAMO UNLOCKED',`${c} · ${nm(a)}`);feed(`Camo unlocked: ${c} (${nm(a)})`)}
  if(wlv(k)>l)popup('WEAPON LEVEL UP',`${nm(k)} · Level ${wlv(k)}`+(wlv(k)==20?' · Prestige it in the menu':''));save()}
+function wzkill(k){if(!k||!W[k])return;const w=wd(k),b=okSet();w.z=(w.z||0)+1;for(const x of okSet())if(!b.has(x)){const[a,c]=x.split(':');popup('CAMO UNLOCKED',`${c} · ${nm(a)}`);feed(`Camo unlocked: ${c} (${nm(a)})`)}save()}
+function zRoundDone(r){if(r<=(prof.zbest||0))return;const b=okSet();prof.zbest=r;const n=new Set();for(const x of okSet())if(!b.has(x))n.add(x.split(':')[1]);for(const c of n){popup('CAMO UNLOCKED',c+' · all weapons');feed('Camo unlocked: '+c)}save()}
 function wpres(k){const w=wd(k);if(wlv(k)<20||w.p>=3)return;w.p++;w.c=0;popup('WEAPON PRESTIGE',`${nm(k)} · Prestige ${w.p}`);prof.camo[k]=['Ember','Frost','Aurora'][w.p-1];save();masteryUI()}
-function camoTex(col){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');g.fillStyle=col;g.fillRect(0,0,64,64);for(let i=0;i<16;i++){g.fillStyle=`rgba(${i%2?'0,0,0':'255,255,255'},.22)`;g.beginPath();g.ellipse(Math.random()*64,Math.random()*64,5+Math.random()*10,3+Math.random()*7,Math.random()*3,0,7);g.fill()}return new THREE.CanvasTexture(c)}
-const SPECIAL={Gold:[0xffc83a,1,.16],Diamond:[0xbff4ff,.85,.08],'Dark Matter':[0x2a1448,.9,.28]},rfm={};let envT=null;
-function envTex(){if(envT)return envT;const mk=(spot)=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d'),gr=g.createLinearGradient(0,0,0,64);gr.addColorStop(0,'#8fc0ff');gr.addColorStop(.48,'#ffffff');gr.addColorStop(.52,'#6a5a48');gr.addColorStop(1,'#15100c');g.fillStyle=gr;g.fillRect(0,0,64,64);if(spot){g.fillStyle='#fffbe8';g.fillRect(12,8,34,12)}return c},sky=document.createElement('canvas'),gd=document.createElement('canvas');sky.width=sky.height=gd.width=gd.height=64;let g=sky.getContext('2d');g.fillStyle='#cfe6ff';g.fillRect(0,0,64,64);g.fillStyle='#fff';g.fillRect(20,20,24,24);g=gd.getContext('2d');g.fillStyle='#1a1410';g.fillRect(0,0,64,64);
- envT=new THREE.CubeTexture([mk(1),mk(0),sky,gd,mk(1),mk(0)]);envT.needsUpdate=true;return envT}
-function rfMat(n){return rfm[n]||(rfm[n]=new THREE.MeshStandardMaterial({color:SPECIAL[n][0],metalness:SPECIAL[n][1],roughness:SPECIAL[n][2],envMap:envTex(),envMapIntensity:1.7}))}
+function camoTex(col,st){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');g.fillStyle=col;g.fillRect(0,0,64,64);
+ if(st=='z'){for(let k=0;k<10;k++){g.fillStyle=`rgba(0,0,0,${.18+Math.random()*.2})`;g.beginPath();g.arc(Math.random()*64,Math.random()*64,3+Math.random()*9,0,7);g.fill()}for(let k=0;k<7;k++){const x=Math.random()*64;g.fillStyle='rgba(255,255,255,.2)';g.fillRect(x,Math.random()*30,1+Math.random()*2,10+Math.random()*30)}for(let k=0;k<30;k++){g.fillStyle='rgba(255,255,255,.28)';g.fillRect(Math.random()*64,Math.random()*64,1.5,1.5)}}
+ else for(let k=0;k<16;k++){g.fillStyle=`rgba(${k%2?'0,0,0':'255,255,255'},.22)`;g.beginPath();g.ellipse(Math.random()*64,Math.random()*64,5+Math.random()*10,3+Math.random()*7,Math.random()*3,0,7);g.fill()}return new THREE.CanvasTexture(c)}
+/* the final three camos of each track are live shaders: Gold (molten gold), Diamond (prismatic ice), Dark Matter (swirling nebula),
+   Inferno (flames and lava cracks), Necrotic (toxic plasma arcs), Abyss (a void with glowing rifts). All are driven by one time uniform. */
+const ANIM={Gold:0,Diamond:1,'Dark Matter':2,Inferno:3,Necrotic:4,Abyss:5},rfm={};
+const CAMO_VS=`varying vec3 vN;varying vec3 vV;varying vec3 vP;
+void main(){vec4 mv=modelViewMatrix*vec4(position,1.0);vN=normalize(normalMatrix*normal);vV=-mv.xyz;vP=(modelMatrix*vec4(position,1.0)).xyz-(modelMatrix*vec4(0.0,0.0,0.0,1.0)).xyz;gl_Position=projectionMatrix*mv;}`;
+const CAMO_FS=`uniform float t;uniform float k;varying vec3 vN;varying vec3 vV;varying vec3 vP;
+float hash(vec3 p){p=fract(p*0.3183099+vec3(0.1,0.2,0.3));p*=17.0;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}
+float noise(vec3 x){vec3 i=floor(x);vec3 f=fract(x);f=f*f*(3.0-2.0*f);
+ return mix(mix(mix(hash(i),hash(i+vec3(1.0,0.0,0.0)),f.x),mix(hash(i+vec3(0.0,1.0,0.0)),hash(i+vec3(1.0,1.0,0.0)),f.x),f.y),
+ mix(mix(hash(i+vec3(0.0,0.0,1.0)),hash(i+vec3(1.0,0.0,1.0)),f.x),mix(hash(i+vec3(0.0,1.0,1.0)),hash(i+vec3(1.0,1.0,1.0)),f.x),f.y),f.z);}
+float fbm(vec3 p){float a=0.5;float s=0.0;for(int i=0;i<4;i++){s+=a*noise(p);p=p*2.03+vec3(1.7,9.2,3.1);a*=0.5;}return s;}
+vec3 hsv(float h,float s,float v){vec3 c=clamp(abs(mod(h*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0);return v*mix(vec3(1.0),c,s);}
+void main(){
+ vec3 N=normalize(vN);vec3 V=normalize(vV);
+ float nl=0.45+0.55*max(dot(N,normalize(vec3(0.3,0.8,0.6))),0.0);
+ float fr=pow(1.0-max(dot(N,V),0.0),3.0);
+ vec3 p=vP*7.0;vec3 col=vec3(0.0);
+ if(k<0.5){
+  float n=fbm(p*1.3+vec3(0.0,t*0.35,0.0));
+  float vein=pow(abs(sin(n*9.0+t*1.2)),10.0);
+  float band=smoothstep(0.82,1.0,sin((p.x+p.y*0.7+p.z)*2.2-t*2.4));
+  float sp=pow(hash(floor(p*26.0)+floor(t*5.0)),24.0);
+  col=mix(vec3(0.55,0.32,0.05),vec3(1.0,0.78,0.22),n)*nl;
+  col+=vec3(1.0,0.9,0.5)*(vein*0.55+band*0.7)+vec3(1.0)*sp*1.5+vec3(1.0,0.75,0.2)*fr*0.6;
+ }else if(k<1.5){
+  float n=fbm(p*0.9+vec3(t*0.1,t*0.07,0.0));
+  float ch=hash(floor(p*2.2));
+  float facet=0.5+0.5*sin(ch*6.28+t*1.6);
+  vec3 rb=hsv(fract(n*1.3+p.x*0.25+p.y*0.2+t*0.12),0.55,1.0);
+  col=mix(vec3(0.62,0.86,1.0),rb,0.55)*(0.55+0.45*facet)*nl;
+  float sp=pow(hash(floor(p*22.0)+floor(t*4.0)),26.0);
+  float glint=smoothstep(0.9,1.0,sin((p.x-p.y)*3.0+t*2.0+ch*4.0));
+  col+=vec3(1.0)*(sp*1.6+glint*0.6)+vec3(0.6,0.9,1.0)*fr*0.8;
+ }else if(k<2.5){
+  vec3 q=p*0.9;
+  float sw=fbm(q+vec3(cos(t*0.2),sin(t*0.17),t*0.12));
+  float sw2=fbm(q*1.8+sw*2.0-vec3(0.0,t*0.25,0.0));
+  col=mix(vec3(0.02,0.0,0.06),vec3(0.38,0.08,0.75),pow(sw2,1.6));
+  col=mix(col,vec3(0.0,0.9,1.0),pow(sw,5.0)*0.55);
+  float arc=pow(max(0.0,sin(sw2*18.0-t*3.0)),14.0);col+=vec3(0.8,0.3,1.0)*arc*0.5;
+  float hs=hash(floor(p*30.0));float st=pow(hs,32.0)*(0.5+0.5*sin(t*3.0+hs*6.0));col+=vec3(1.0)*st*1.8;
+  col*=0.7+0.3*nl;col+=vec3(0.5,0.1,0.9)*fr*0.9;
+ }else if(k<3.5){
+  float f=fbm(vec3(p.x*1.4,p.y*1.4-t*1.1,p.z*1.4+t*0.25));
+  float f2=fbm(vec3(p.x*2.8,p.y*2.8-t*1.9,p.z*2.8));
+  float h=clamp(f*1.2+f2*0.5-0.2,0.0,1.0);
+  col=mix(vec3(0.03,0.01,0.01),vec3(0.8,0.1,0.02),smoothstep(0.1,0.5,h));
+  col=mix(col,vec3(1.0,0.6,0.1),smoothstep(0.45,0.8,h));
+  col=mix(col,vec3(1.0,0.95,0.6),smoothstep(0.8,1.0,h));
+  float crack=pow(1.0-abs(noise(p*1.7+vec3(0.0,t*0.2,0.0))*2.0-1.0),8.0);col+=vec3(1.0,0.4,0.05)*crack*0.8;
+  float em=pow(hash(floor(vec3(p.x*20.0,p.y*20.0-t*6.0,p.z*20.0))),30.0);col+=vec3(1.0,0.7,0.2)*em*2.0;
+  col*=0.65+0.35*nl;col+=vec3(1.0,0.35,0.05)*fr*0.7;
+ }else if(k<4.5){
+  float pl=sin(p.x*3.0+t*1.4)+sin(p.y*3.2-t*1.1)+sin((p.x+p.z)*2.4+t*0.8)+sin(length(p.xy+vec2(sin(t*0.4),cos(t*0.3)))*4.0-t*2.0);
+  float n=fbm(p*1.2+vec3(0.0,0.0,t*0.3));
+  col=mix(vec3(0.0,0.06,0.03),vec3(0.1,0.7,0.35),n);
+  float arc=pow(1.0-abs(sin(pl*1.6+n*4.0)),10.0);col+=vec3(0.6,1.0,0.8)*arc*0.9;
+  float bub=pow(hash(floor(p*14.0+vec3(0.0,t*1.5,0.0))),22.0);col+=vec3(0.7,1.0,0.7)*bub*1.5;
+  col*=0.6+0.4*nl;col+=vec3(0.2,1.0,0.5)*fr*0.9;
+ }else{
+  float a=fbm(p*0.8+vec3(t*0.05,0.0,t*0.04));
+  float rift=abs(fbm(p*1.1+a*2.0+vec3(0.0,t*0.2,0.0))-0.5);
+  col=vec3(0.01,0.01,0.03)+vec3(0.02,0.04,0.12)*a;
+  float glow=0.012/(rift+0.02);col+=vec3(1.0,0.12,0.08)*glow*0.35+vec3(1.0,0.8,0.6)*pow(glow,2.0)*0.02;
+  float pulse=0.5+0.5*sin(t*1.5+a*6.0);col+=vec3(0.5,0.0,0.1)*pulse*pow(a,3.0)*0.6;
+  float st=pow(hash(floor(p*34.0)),34.0);col+=vec3(0.7,0.8,1.0)*st*1.5;
+  col*=0.7+0.3*nl;col+=vec3(0.9,0.1,0.15)*fr*0.8;
+ }
+ gl_FragColor=vec4(clamp(col,0.0,1.0),1.0);
+}`;
+function rfMat(n){return rfm[n]||(rfm[n]=new THREE.ShaderMaterial({uniforms:{t:{value:0},k:{value:ANIM[n]}},vertexShader:CAMO_VS,fragmentShader:CAMO_FS}))}
 function paintAll(m){for(const g of[gb,vmpG,knG,rgG,fpG])for(const p of g===gb?[gb]:g.children){if(p.userData.glow)continue;if(!p.userData.m0)p.userData.m0=p.material;p.material=m||p.userData.m0}}
-function applyCamo(k){const n=prof.camo[k],c=n&&camos(k).find(x=>x.n==n&&x.ok);curCamo=c||null;paintAll(c&&SPECIAL[c.n]?rfMat(c.n):null);const m=gb.userData.m0;m.emissive.setHex(0);
- if(!c||SPECIAL[c.n]){m.map=null;m.color.setHex(W[k].col)}else{m.map=tx[c.n]||(tx[c.n]=camoTex(c.c));m.color.setHex(0xffffff)}m.needsUpdate=true}
-function camoFx(){if(curCamo&&(curCamo.n=='Diamond'||curCamo.n=='Dark Matter'))gb.material.emissive.setHSL(curCamo.n=='Diamond'?.5:.75,.9,.12+.1*Math.sin(t0*3))}
-function masteryUI(){$('#wm').innerHTML=Object.keys(W).map(k=>{const w=wd(k),cs=camos(k),nx=cs.find(c=>!c.ok&&!c.pr);return `<div class="wr"><span><b>${nm(k)}</b> Lv ${wlv(k)}${w.p?' ★'+w.p:''} · ${w.k} kills</span><span><select data-w="${k}"><option value="">Default camo</option>${cs.filter(c=>c.ok).map(c=>`<option ${prof.camo[k]==c.n?'selected':''}>${c.n}</option>`).join('')}</select>${wlv(k)==20&&w.p<3?`<button class="btn sm" data-pw="${k}">Prestige weapon</button>`:''}</span><i>${nx?'Next camo: '+nx.n+' ('+nx.rq+')':'All camos unlocked'} · Weapon prestige ${w.p}/3</i></div>`}).join('')}
-$('#wm').onchange=e=>{const k=e.target.dataset.w;if(k){prof.camo[k]=e.target.value;save()}};$('#wm').onclick=e=>{const k=e.target.dataset.pw;if(k)wpres(k)};$('#prest').onclick=doPrestige;showRank();
+function applyCamo(k){const n=prof.camo[k],c=n&&allCamos(k).find(x=>x.n==n&&x.ok);curCamo=c||null;paintAll(c&&c.anim?rfMat(c.n):null);const m=gb.userData.m0;m.emissive.setHex(0);
+ if(!c||c.anim){m.map=null;m.color.setHex(W[k].col)}else{m.map=tx[c.n]||(tx[c.n]=camoTex(c.c,c.s));m.color.setHex(0xffffff)}m.needsUpdate=true}
+function camoFx(){for(const n in rfm)rfm[n].uniforms.t.value=performance.now()/1000}
+const camoSel=k=>{const o=c=>`<option value="${c.n}" ${prof.camo[k]==c.n?'selected':''}>${c.n}${c.anim?' ✦':''}</option>`,mp=camos(k).filter(c=>c.ok),zm=zcamos(k).filter(c=>c.ok);return `<select data-w="${k}"><option value="">Default camo</option>${mp.length?`<optgroup label="Multiplayer camos">${mp.map(o).join('')}</optgroup>`:''}${zm.length?`<optgroup label="Zombies camos">${zm.map(o).join('')}</optgroup>`:''}</select>`};
+function masteryUI(){$('#wm').innerHTML=Object.keys(W).map(k=>{const w=wd(k),nx=camos(k).find(c=>!c.ok&&!c.pr);return `<div class="wr"><span><b>${nm(k)}</b> Lv ${wlv(k)}${w.p?' ★'+w.p:''} · ${w.k} kills</span><span>${camoSel(k)}${wlv(k)==20&&w.p<3?`<button class="btn sm" data-pw="${k}">Prestige weapon</button>`:''}</span><i>${nx?'Next camo: '+nx.n+' ('+nx.rq+')':'All camos unlocked'} · Weapon prestige ${w.p}/3</i></div>`}).join('');zmasteryUI()}
+function zmasteryUI(){const e=$('#zwm');if(!e)return;e.innerHTML=Object.keys(W).map(k=>{const w=wd(k),nx=zcamos(k).find(c=>!c.ok);return `<div class="wr"><span><b>${nm(k)}</b> · ${w.z||0} zombie kills</span><span>${camoSel(k)}</span><i>${nx?'Next camo: '+nx.n+' ('+nx.rq+')':'All zombie camos unlocked'}</i></div>`}).join('')}
+$('#wm').onchange=$('#zwm').onchange=e=>{const k=e.target.dataset.w;if(k){prof.camo[k]=e.target.value;save()}};$('#wm').onclick=e=>{const k=e.target.dataset.pw;if(k)wpres(k)};
+$('#prest').onclick=doPrestige;showRank();
 
 /* ===================== deathcam.js ===================== */
 /* ---------- third-person death camera with ragdoll body ---------- */
@@ -51,7 +132,7 @@ function deathCam(dt){gun.visible=false;for(const p of rag){p.v.y-=20*dt;p.m.pos
 
 /* ===================== net.js ===================== */
 /* ---------- private matches: peer-to-peer (PeerJS). The host runs the bots and game rules; friends join with a 5-letter code. All modes supported. ---------- */
-let net=null,myId='',myName='',conns=[],isHost=0,netOn=0,scores={},names={},lastAtk='',nacc=0,bacc=0,oacc=0,pn=0,soloMode=null;
+let net=null,myId='',myName='',conns=[],isHost=0,netOn=0,scores={},names={},lastAtk='',nacc=0,bacc=0,oacc=0,pn=0,soloMode=null,maxP=0;
 const CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',lobby=t=>$('#lb').textContent=t;
 function lobbyList(){$('#plist').innerHTML=Object.entries(names).map(([i,n])=>`<li>${esc(n)}${i==myId?' (you)':''}</li>`).join('');$('#leave').style.display=net?'inline-block':'none'}
 function netSend(m){m.id=myId;for(const c of conns)if(c.open)c.send(m)}
@@ -59,12 +140,12 @@ function fwd(d,from){for(const c of conns)if(c!==from&&c.open)c.send(d)}
 function netClose(){for(const c of conns)try{c.close()}catch(e){}conns=[];if(net)try{net.destroy()}catch(e){}net=null;netOn=0;isHost=0;names={};scores={};document.body.classList.remove('net');$('#hostbox').style.display='none';lobbyList();if(soloMode!=null){sel.mode=soloMode;soloMode=null;ui()}}
 /* a match ended: everybody stays connected and returns to the same lobby; only leaving the lobby disconnects */
 function netEnd(){netOn=0;scores={};pn=0;document.body.classList.remove('net');if(soloMode!=null){sel.mode=soloMode;soloMode=null;ui()}lobbyList();lobby(isHost?'Match over. Everyone is still here. Pick a mode and map, then press Start match.':'Match over. Waiting for the host to start the next one…')}
-function hostMatch(){netClose();myName=$('#nm').value||'Host';let c='';for(let i=0;i<5;i++)c+=CH[Math.random()*CH.length|0];lobby('Connecting…');
+function hostMatch(){netClose();maxP=app=='zm'?4:0;myName=$('#nm').value||'Host';let c='';for(let i=0;i<5;i++)c+=CH[Math.random()*CH.length|0];lobby('Connecting…');
  net=new Peer('sdrill-'+c);net.on('open',id=>{myId=id;isHost=1;names[id]=myName;$('#code').textContent=c;$('#hostbox').style.display='block';lobby('Share this code. Press Start when everyone has joined.');lobbyList()});
  net.on('connection',cn=>reg(cn));net.on('error',e=>lobby('Network error: '+e.type+(e.type=='unavailable-id'?' (try again)':'')))}
 function joinMatch(){const c=$('#jc').value.trim().toUpperCase();if(c.length<5)return lobby('Enter the 5-letter code');netClose();myName=$('#nm').value||'Guest';lobby('Connecting…');
  net=new Peer();net.on('open',id=>{myId=id;names[id]=myName;reg(net.connect('sdrill-'+c,{reliable:true}))});net.on('error',e=>lobby(e.type=='peer-unavailable'?'No match found with that code':'Network error: '+e.type))}
-function reg(cn){cn.on('open',()=>{conns.push(cn);cn.send({t:'hi',id:myId,n:myName});lobby(isHost?'Player joined':'Connected. Waiting for the host to start…')});
+function reg(cn){cn.on('open',()=>{if(isHost&&maxP&&conns.length>=maxP-1){cn.send({t:'full'});setTimeout(()=>{try{cn.close()}catch(e){}},400);return}conns.push(cn);cn.send({t:'hi',id:myId,n:myName});lobby(isHost?'Player joined':'Connected. Waiting for the host to start…')});
  cn.on('data',d=>onMsg(d,cn));cn.on('close',()=>{conns=conns.filter(x=>x!==cn);dropPeer(cn.peer);if(!isHost&&!conns.length)lobby('The host closed the lobby')})}
 function dropPeer(id){const i=bots.findIndex(b=>b.net&&b.id==id);if(i>=0){S.remove(bots[i].m);bots.splice(i,1)}if(names[id]&&run)feed(names[id]+' left');delete names[id];lobbyList()}
 const nmOf=k=>names[k]||(bots.find(b=>(b.hb||!b.net)&&('b'+b.i)==k)||{}).nm||'?';
@@ -78,8 +159,9 @@ function onMsg(d,cn){if(isHost&&d.t!='hi'&&d.t!='roster')fwd(d,cn);
  switch(d.t){
  case'hi':names[d.id]=d.n;if(isHost){cn.send({t:'roster',r:{...names}});fwd(d,cn)}lobbyList();break;
  case'roster':Object.assign(names,d.r);lobbyList();break;
+ case'full':lobby('That lobby is full (4 players)');netClose();break;
  case'start':beginNet(d.map,d.mode,d.teams);break;
- case's':{const b=bots.find(b=>b.net&&b.id==d.id);if(b){b.tx=d.x;b.ty=d.y;b.tz=d.z;b.yaw=d.yaw;if(d.w)setHeld(b,d.w);b.rlOn=!!d.r;if(b.al&&!d.al)burst(V(b.x,1,b.z),16,0x3d6ad6,6,.8,.15);b.al=d.al}break}
+ case's':{const b=bots.find(b=>b.net&&b.id==d.id);if(b){b.tx=d.x;b.ty=d.y;b.tz=d.z;b.yaw=d.yaw;if(d.w)setHeld(b,d.w);b.rlOn=!!d.r;b.zpts=d.p;b.dn=d.dn;if(b.al&&!d.al)burst(V(b.x,1,b.z),16,0x3d6ad6,6,.8,.15);b.al=d.al}break}
  case'hit':if(d.to==myId&&run&&!P.dead){lastAtk=d.bot!=null?'b'+d.bot:d.id;hurt(d.d,bots.find(b=>b.net&&b.id==lastAtk))}break;
  case'bh':if(isHost&&mode!='Private'){const t=bots.find(b=>!b.net&&b.i==d.i&&b.al),by=bots.find(b=>b.net&&b.id==d.id);if(t&&by)botHit(t,d.d,by)}break;
  case'dead':{const by=d.by;if(by!=myId)feed(by?`${nmOf(by)} ▸ ${nmOf(d.v)}`:nmOf(d.v)+' died');
@@ -93,18 +175,20 @@ function onMsg(d,cn){if(isHost&&d.t!='hi'&&d.t!='roster')fwd(d,cn);
  case'f':if(!isHost){d.f.forEach((a,i)=>{const f=flags[i];if(!f)return;if(a[3]==myId&&f.byk!=myId)msg('You have the flag! Bring it home',2.5);f.st=a[0];f.x=a[1];f.z=a[2];f.byk=a[3]});if(d.cs)cs=d.cs}break;
  case'feed':if(!isHost)feed(d.s);break;
  case'pop':if(!isHost)popup(d.a,d.b);break;
- case'end':if(!isHost){let w=d.w;if(teamMode())w=(w=='Victory')==(myTeam==d.ht)?'Victory':'Defeat';else if(w=='Victory')w=(names[d.id]||'Host')+' wins';netBd=d.bd||null;netSc=d.sc||null;endGame(w)}break}}
+ case'end':if(!isHost){let w=d.w;if(teamMode())w=(w=='Victory')==(myTeam==d.ht)?'Victory':'Defeat';else if(w=='Victory')w=(names[d.id]||'Host')+' wins';netBd=d.bd||null;netSc=d.sc||null;endGame(w)}break;default:if(d.t&&d.t.length>1&&d.t[0]=='z')zNet(d,cn)}}
 function addNetBot(id,team){const b=addBot(1e9,1);b.net=1;b.id=id;b.al=0;b.m.visible=false;b.tx=b.ty=b.tz=b.x=b.z=b.yaw=0;b.team=team||id;b.nm=names[id]||'Player';b.k=0;
  b.m.children[0].material.color.setHex(b.team=='A'?0x3d6ad6:b.team=='B'?0xb5452e:new THREE.Color().setHSL((++pn*.17)%1,.6,.45).getHex())}
-function hostStart(){let m=$('#pmode').value,map=$('#pm').value;const pick=a=>a[Math.random()*a.length|0];if(m=='?')m=pick(['Private',...Object.keys(MODES)]);if(map=='?')map=pick(Object.keys(MAPS));
- const tm=m=='Team Deathmatch'||m=='Capture the Flag'||m=='Domination',teams={};Object.keys(names).forEach((id,k)=>teams[id]=tm?(k%2?'B':'A'):id);netSend({t:'start',map,mode:m,teams});beginNet(map,m,teams)}
+function hostStart(){let m=$('#pmode').value,map=$('#pm').value;const pick=a=>a[Math.random()*a.length|0];
+ if(m=='Zombies'){if(Object.keys(names).length>4)return lobby('Zombies supports up to 4 players');map=Object.keys(MAPS).find(k=>MAPS[k].zm)}
+ else{if(m=='?')m=pick(['Private',...Object.keys(MODES).filter(k=>k!='Zombies')]);if(map=='?'||MAPS[map].zm)map=pick(Object.keys(MAPS).filter(k=>!MAPS[k].zm))}
+ const tm=m=='Team Deathmatch'||m=='Capture the Flag'||m=='Domination',teams={};Object.keys(names).forEach((id,k)=>teams[id]=m=='Zombies'?'A':tm?(k%2?'B':'A'):id);netSend({t:'start',map,mode:m,teams});beginNet(map,m,teams)}
 function beginNet(map,m,teams){if(soloMode==null)soloMode=sel.mode;sel.map=map;sel.mode=m;mpTeams=teams;myTeam=teams[myId]||'A';netOn=1;scores={};pn=0;document.body.classList.add('net');startGame();for(const id in names)if(id!=myId)addNetBot(id,teams[id]);
  if(!isHost){paused=1;$('#pt').textContent='Match ready';$('#pause').style.display='block'}}
 function netShot(k,o,d,len){netSend({t:'sh',w:k,x:+(o.x+d.x*len).toFixed(1),y:+(o.y+d.y*len).toFixed(1),z:+(o.z+d.z*len).toFixed(1)})}
 function mpEnd(t){netSend({t:'end',w:t,ht:myTeam,bd:board().map(r=>[r.id,r.nm,r.k,r.d,r.tm]),sc:teamMode()?(mode=='Capture the Flag'?cs:mode=='Domination'?ds:{A:ts.A||0,B:ts.B||0}):null})}
-function netTick(dt){if(!run)return;nacc+=dt;if(nacc>.066){nacc=0;netSend({t:'s',x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),yaw:+yaw.toFixed(2),al:P.dead?0:1,w:cw().k,r:rel>0?1:0})}
- if(isHost&&mode!='Private'){bacc+=dt;if(bacc>.1){bacc=0;netSend({t:'b',l:bots.filter(b=>!b.net).map(b=>[b.i,b.team,b.al?1:0,+b.x.toFixed(1),+b.z.toFixed(1),b.nm,b.wk,b.rl>0?1:0])})}oacc+=dt;if(oacc>.25){oacc=0;netSend({t:'ob',s:$('#ob').textContent})}}
- const k=Math.min(1,dt*12);for(const b of bots)if(b.net){b.x+=(b.tx-b.x)*k;b.y+=(b.ty-b.y)*k;b.z+=(b.tz-b.z)*k;b.m.position.set(b.x,b.y,b.z);b.m.rotation.y=b.yaw+Math.PI;b.m.visible=!!b.al;b.hp=1e9}
+function netTick(dt){if(!run)return;nacc+=dt;if(nacc>.066){nacc=0;netSend({t:'s',x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),yaw:+yaw.toFixed(2),al:P.dead?0:1,w:cw().k,r:rel>0?1:0,p:zq?zq.pts:0,dn:zq&&zq.down?1:0})}
+ if(isHost&&mode!='Private'){bacc+=dt;if(bacc>.1){bacc=0;if(mode!='Zombies')netSend({t:'b',l:bots.filter(b=>!b.net).map(b=>[b.i,b.team,b.al?1:0,+b.x.toFixed(1),+b.z.toFixed(1),b.nm,b.wk,b.rl>0?1:0])})}oacc+=dt;if(oacc>.25){oacc=0;netSend({t:'ob',s:$('#ob').textContent})}}
+ const k=Math.min(1,dt*12);for(const b of bots)if(b.net){b.x+=(b.tx-b.x)*k;b.y+=(b.ty-b.y)*k;b.z+=(b.tz-b.z)*k;b.m.position.set(b.x,b.y,b.z);b.m.rotation.order='YXZ';b.m.rotation.y=b.yaw+Math.PI;const lie=mode=='Zombies'&&!b.al&&b.dn;b.m.rotation.x=lie?-1.4:0;b.m.visible=!!b.al||!!lie;b.hp=1e9}
  if(!isHost&&mode=='Domination')for(const z of zones)zoneVis(z);
  if(!isHost&&mode=='Capture the Flag')for(const f of flags){f.m.position.set(f.x,0,f.z);f.m.visible=f.byk!=myId}}
 function privTick(){const top=Math.max(0,...Object.values(scores));$('#ob').textContent=`Players only · You ${scores[myId]||0} · Top ${top} / 15`;for(const id in scores)if(scores[id]>=15){endGame(id==myId?'Victory':(names[id]||'A player')+' wins');return}}
@@ -112,10 +196,21 @@ function privTick(){const top=Math.max(0,...Object.values(scores));$('#ob').text
 /* ===================== menu.js ===================== */
 /* ---------- main menu, pause menu, dev menu ---------- */
 let vol=1,shk=1,ma=0,fovBase=80;const $$=q=>document.querySelectorAll(q);
-$('#pmode').innerHTML='<option value="Private">Free-for-all (players only)</option>'+Object.keys(MODES).map(k=>`<option>${k}</option>`).join('')+'<option value="?">Random mode</option>';
-for(const k in MAPS)$('#pm').insertAdjacentHTML('beforeend',`<option>${k}</option>`);$('#pm').insertAdjacentHTML('beforeend','<option value="?">Random map</option>');
+$('#pmode').innerHTML='<option value="Private">Free-for-all (players only)</option>'+Object.keys(MODES).filter(k=>k!='Zombies').map(k=>`<option>${k}</option>`).join('')+'<option value="?">Random mode</option>';
+for(const k in MAPS)if(!MAPS[k].zm)$('#pm').insertAdjacentHTML('beforeend',`<option>${k}</option>`);$('#pm').insertAdjacentHTML('beforeend','<option value="?">Random map</option>');
 $('#nm').value='Player'+(100+Math.random()*900|0);buildMap();
-$$('#nav button').forEach(b=>b.onclick=()=>{$$('#nav button').forEach(x=>x.classList.toggle('on',x==b));$$('.pn').forEach(p=>p.classList.toggle('on',p.id=='p-'+b.dataset.p))});$('#nav button').click();
+$$('#nav button[data-p]').forEach(b=>b.onclick=()=>{$$('#nav button').forEach(x=>x.classList.toggle('on',x==b));$$('.pn').forEach(p=>p.classList.toggle('on',p.id=='p-'+b.dataset.p))});$('#nav button').click();
+/* two apps: the home screen leads to the Zombies menu or the Multiplayer menu */
+let app='mp';
+function homeStats(){$('#zbest').textContent='Best round: '+(prof.zbest||0);$('#hzs').textContent='Best round '+(prof.zbest||0);$('#hms').textContent=rankTxt()}
+function fillPriv(a){const zm=a=='zm';$('#pmode').innerHTML=zm?'<option value="Zombies">Zombies co-op</option>':('<option value="Private">Free-for-all (players only)</option>'+Object.keys(MODES).filter(k=>k!='Zombies').map(k=>`<option>${k}</option>`).join('')+'<option value="?">Random mode</option>');
+ $('#pm').innerHTML=zm?`<option>${Object.keys(MAPS).find(k=>MAPS[k].zm)}</option>`:(Object.keys(MAPS).filter(k=>!MAPS[k].zm).map(k=>`<option>${k}</option>`).join('')+'<option value="?">Random map</option>');
+ $('#pmodeL').style.display=$('#pmL').style.display=zm?'none':'block';$('#p-priv h2').textContent=zm?'Zombies co-op (up to 4 players)':'Private match'}
+function setApp(a){app=a;fillPriv(a);const m=$('#menu');m.className=a;$('#home').style.display='none';m.style.display='block';
+ if(a=='zm'){if(!selKeep)selKeep={mode:sel.mode,map:sel.map,rm:sel.rm,rp:sel.rp};sel.mode='Zombies';sel.rm=sel.rp=0;fixZM()}else restoreSel();
+ buildMap();ui();showRank();$('#nav button.'+a).click()}
+function goHome(){restoreSel();buildMap();ui();$('#menu').style.display='none';$('#home').style.display='block';showRank()}
+$('#hz').onclick=()=>setApp('zm');$('#hmp').onclick=()=>setApp('mp');$('#back').onclick=goHome;$('#zgo').onclick=()=>{sel.mode='Zombies';fixZM();startGame()};goHome();
 const _sr=showRank;showRank=function(){_sr();$('#xpf').style.width=(prof.master||prof.lvl>=55?100:prof.xp/need()*100)+'%'};showRank();
 function menuCam(dt){if(fin){finTick(dt);return}hideFP();ma+=dt*.12;gun.visible=false;C.fov=70;C.updateProjectionMatrix();const r=H*.75;C.position.set(Math.cos(ma)*r,11,Math.sin(ma)*r);C.lookAt(0,1.5,0)}
 /* lobby */
@@ -143,7 +238,7 @@ let fin=0,fs='',ft=0,fe=0,podG=null,figs=[],conf=[],fLab=[],netBd=null,netSc=nul
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),EMD=[2.4,2.6,3,2.6],TEAMC={A:'#62a8ff',B:'#ff5a3a'};
 /* one row per player: the host's numbers are used by everyone in a networked match */
 function board(){const rows=[{id:myId||'me',nm:hname(),k:mode=='Private'?(scores[myId]||0):kills,d:deaths,tm:teamMode()?myTeam:'',me:1}];
- for(const b of bots){if(b.nm=='Grunt')continue;rows.push({id:b.net?b.id:'b'+b.i,nm:b.nm||'Player',k:mode=='Private'?(scores[b.id]||0):(b.k||0),d:b.net?null:(b.dc||0),tm:teamMode()?b.team:'',me:0})}return rows}
+ for(const b of bots){if(b.nm=='Grunt'||b.zom)continue;rows.push({id:b.net?b.id:'b'+b.i,nm:b.nm||'Player',k:mode=='Private'?(scores[b.id]||0):(b.k||0),d:b.net?null:(b.dc||0),tm:teamMode()?b.team:'',me:0})}return rows}
 function finRows(){const r=netOn&&!isHost&&netBd?netBd.map(([id,nm,k,d,tm])=>({id,nm,k,d,tm,me:id==myId})):board();return r.sort((a,b)=>b.k-a.k||(a.d==null?9e3:a.d)-(b.d==null?9e3:b.d)).slice(0,12)}
 function teamTxt(){if(!teamMode())return'';const t=netOn&&!isHost&&netSc?netSc:mode=='Capture the Flag'?cs:mode=='Domination'?ds:{A:ts.A||0,B:ts.B||0};return `Blue ${t.A||0} – ${t.B||0} Red`}
 function finStart(t,sc,nb,xp){podClear();fin=1;fs='vic';ft=0;fe=0;const w=t=='Victory',rows=finRows();finInfo={w,rows};
@@ -207,7 +302,7 @@ function podClear(){if(podG){S.remove(podG);podG=null}figs=[];conf=[];fLab=[];$(
 function finStop(){podClear();fin=0;fs='';netBd=netSc=null;const F=$('#fin');F.style.display='none';F.className=''}
 /* podium done: back to the main menu (fades from black) */
 function toMenu(){podClear();fin=0;fs='';netBd=netSc=null;if(net&&(isHost||conns.length))netEnd();else netClose();for(const b of bots)S.remove(b.m);bots=[];for(const g of grs)S.remove(g.m);grs=[];clearFlags();endDeath();buildMap();hideFP();showRank();
- $('#hud').style.display=$('#end').style.display='none';$('#menu').style.display='block';if(net)$('#nav button[data-p="priv"]').click();const F=$('#fin');F.className='blk';void F.offsetWidth;F.className='';setTimeout(()=>{if(!fin)F.style.display='none'},600)}
+ $('#hud').style.display=$('#end').style.display='none';$('#menu').style.display='block';if(net)$('#nav button.'+app+'[data-p="priv"]').click();const F=$('#fin');F.className='blk';void F.offsetWidth;F.className='';setTimeout(()=>{if(!fin)F.style.display='none'},600)}
 
 /* ===================== touch.js ===================== */
 /* ---------- mobile touch controls + no-zoom / no-copy protections ---------- */
@@ -218,11 +313,11 @@ const st={id:null},lk={id:null,x:0,y:0},fi={id:null,x:0,y:0},bt={};
 function enableTouch(){if(isTouch)return;isTouch=true;document.body.classList.add('touch');$('#hint').textContent='Left side: look · Right side: shoot · Stick: move · Buttons: jump, reload, grenade, melee'}
 if(matchMedia('(pointer:coarse)').matches)enableTouch();
 function lockPtr(){if(noLock){paused=0;hidePause();try{const d=document.documentElement;d.requestFullscreen&&d.requestFullscreen().catch(()=>{});screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}else R.domElement.requestPointerLock()}
-function stickMove(t){const r=$('#stick').getBoundingClientRect(),R0=r.width/2;let dx=t.clientX-(r.left+R0),dy=t.clientY-(r.top+R0);const m=Math.hypot(dx,dy);if(m>R0){dx*=R0/m;dy*=R0/m}const nx=dx/R0,ny=dy/R0;$('#stick i').style.transform=`translate(${dx}px,${dy}px)`;key.KeyW=ny<-.3;key.KeyS=ny>.3;key.KeyA=nx<-.3;key.KeyD=nx>.3;0}
+function stickMove(t){const r=$('#stick').getBoundingClientRect(),R0=r.width/2;let dx=t.clientX-(r.left+R0),dy=t.clientY-(r.top+R0);const m=Math.hypot(dx,dy);if(m>R0){dx*=R0/m;dy*=R0/m}const nx=dx/R0,ny=dy/R0;$('#stick i').style.transform=`translate(${dx}px,${dy}px)`;key.KeyW=ny<-.3;key.KeyS=ny>.3;key.KeyA=nx<-.3;key.KeyD=nx>.3;key.ShiftLeft=ny<-.5&&Math.hypot(nx,ny)>.97;0}
 function stickEnd(){st.id=null;$('#stick i').style.transform='';key.KeyW=key.KeyS=key.KeyA=key.KeyD=key.ShiftLeft=false}
 function look(t,o){const k=.0042*sens*fr;yaw-=(t.clientX-o.x)*k;pitch=cl(pitch-(t.clientY-o.y)*k,-1.45,1.45);o.x=t.clientX;o.y=t.clientY}
 function tbDown(k){if(k=='jump')key.Space=1;else if(k=='reload')startRel();else if(k=='nade')throwG();else if(k=='melee')melee();else if(k=='swap')swap((cur+1)%wp.length);else if(k=='ks')useStreak();else if(k=='pause'&&run&&!paused&&!over){paused=1;trig=0;stickEnd();showPause()}}
-const live=e=>run&&!paused&&!over&&!(e.target.closest&&e.target.closest('#pause,#end,#menu,#dev'));
+const live=e=>run&&!paused&&!over&&!(e.target.closest&&e.target.closest('#pause,#end,#menu,#dev,#home'));
 addEventListener('touchstart',e=>{enableTouch();if(!live(e))return;e.preventDefault();
  for(const t of e.changedTouches){const el=t.target,b=el.closest&&el.closest('.tb');
   if(b){bt[t.identifier]=b;b.classList.add('on');tbDown(b.dataset.b)}

@@ -123,3 +123,25 @@ body.touch #kf{top:62px;right:12px}body.touch #kst{width:128px;right:8px}body.to
 #ffd{inset:0;background:#000;opacity:0;transition:opacity .5s}#fin.blk #ffd{opacity:1}
 @media (max-width:900px),(max-height:520px){#fbd{padding:12px 14px 16px}#fbd h2{font-size:34px}#fbd td{font-size:16px;padding:4px 8px}.fs{font-size:13px}#fem{bottom:12px;gap:6px}#fem button{font-size:20px;padding:4px 14px 4px 8px}.pl b{font-size:20px}}
 @media (prefers-reduced-motion:reduce){#fin.s-vic #fvt{animation:none}}
+
+/* ===== zombies HUD ===== */
+#zh{display:none;position:absolute;left:24px;bottom:84px}
+#zr{font:700 96px/.9 Teko,Impact,sans-serif;color:#b3261e;text-shadow:0 0 18px #ff2a2a66,0 3px 0 #2a0a08;letter-spacing:2px}
+#zpt{font:600 36px Teko,sans-serif;color:#ffd24a;text-shadow:0 2px 4px #000;letter-spacing:1px}
+#zpk{display:flex;gap:5px;margin-top:6px}#zpk i{display:block;width:26px;height:26px;border:1px solid #0008;border-radius:4px;font:700 17px/26px Teko,sans-serif;font-style:normal;text-align:center;color:#fff;text-shadow:0 1px 2px #000}
+#zp{position:absolute;left:0;right:0;bottom:150px;text-align:center;font:600 24px Rajdhani,sans-serif;color:#fff;text-shadow:0 2px 6px #000}#zp.bad{color:#ff8a6a}
+body.touch #zh{bottom:auto;top:230px}body.touch #zr{font-size:60px}body.touch #zp{bottom:100px}
+body.zom #kst{display:none}
+
+/* ===== home screen (Zombies / Multiplayer) and per-app menus ===== */
+#home{position:fixed;inset:0;z-index:5;display:none;background:radial-gradient(ellipse at 50% 35%,#060c10b0,#060c10f2)}
+#home header{position:absolute;left:0;right:0;top:8vh;text-align:center}#home h1{margin:0;font-size:clamp(56px,11vw,128px);line-height:.85;letter-spacing:6px;text-shadow:0 0 30px #62e0f044}#home h1 b{color:var(--am)}
+#home header p{margin:12px 0 0;color:var(--mu);letter-spacing:6px;text-transform:uppercase;font-size:14px}
+#hbtns{position:absolute;left:50%;top:50%;transform:translate(-50%,-22%);display:flex;gap:28px;width:min(920px,92vw)}
+.hb{flex:1;min-height:230px;text-align:left;padding:26px 30px;color:var(--ink);cursor:pointer;border:1px solid #28404a;background:linear-gradient(160deg,#112028f0,#0a141aea);clip-path:polygon(0 0,calc(100% - 28px) 0,100% 28px,100% 100%,28px 100%,0 calc(100% - 28px));transition:transform .14s,box-shadow .14s,border-color .14s;font:inherit}
+.hb b{display:block;font:700 clamp(40px,6vw,76px)/.9 Teko,Impact,sans-serif;letter-spacing:3px;text-transform:uppercase}.hb span{display:block;margin-top:12px;color:var(--mu);font-size:18px;max-width:32ch}.hb i{display:block;margin-top:16px;font-style:normal;color:var(--am);font-size:17px}
+#hz b{color:#ff6a4a}#hz:hover{border-color:#ff5a3a;transform:translateY(-4px);box-shadow:0 0 44px #ff5a3a44}#hmp b{color:var(--cy)}#hmp:hover{border-color:var(--cy);transform:translateY(-4px);box-shadow:0 0 44px #62e0f044}
+#menu.zm #nav .mp,#menu.mp #nav .zm{display:none}#back{margin-top:10px;font-size:22px!important;opacity:.8}
+.zl{color:var(--mu);line-height:1.6;margin:8px 0 12px;padding-left:20px}.zl li{margin-bottom:4px}
+@media (max-width:900px),(max-height:520px){#home header{top:4vh}#hbtns{flex-direction:column;top:46%;transform:translate(-50%,-30%);gap:14px}.hb{min-height:120px;padding:14px 20px}.hb span{font-size:15px;margin-top:6px}.hb i{margin-top:6px}#back{margin-top:0}}
+#zt{margin-top:8px;font:600 18px Rajdhani,sans-serif;color:#cfe0e3;text-shadow:0 1px 3px #000;line-height:1.25}
