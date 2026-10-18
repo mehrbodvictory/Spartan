@@ -145,3 +145,4 @@ body.zom #kst{display:none}
 .zl{color:var(--mu);line-height:1.6;margin:8px 0 12px;padding-left:20px}.zl li{margin-bottom:4px}
 @media (max-width:900px),(max-height:520px){#home header{top:4vh}#hbtns{flex-direction:column;top:46%;transform:translate(-50%,-30%);gap:14px}.hb{min-height:120px;padding:14px 20px}.hb span{font-size:15px;margin-top:6px}.hb i{margin-top:6px}#back{margin-top:0}}
 #zt{margin-top:8px;font:600 18px Rajdhani,sans-serif;color:#cfe0e3;text-shadow:0 1px 3px #000;line-height:1.25}
+#prof #nm{width:100%;margin-bottom:6px;font:600 18px Rajdhani,sans-serif;background:#0b161ccc;border-color:#3b5963}

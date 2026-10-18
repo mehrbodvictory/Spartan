@@ -8,19 +8,22 @@ let zq=null,zG=null,zi=[],zdoors=[],zboxes=[],zgr=null,zfls={},zdead=[],zhc='',z
 const PERKS={vit:{n:'Vitality Cola',c:0xd8332a,cost:2500,t:'+50 max health'},spd:{n:'Quick Fizz',c:0x39c85a,cost:3000,t:'Reload twice as fast'},dbl:{n:'Double Pop',c:0xf0c21e,cost:2000,t:'Double damage, faster fire'},rev:{n:'Revive Soda',c:0x2f7de0,cost:500,t:'Revive yourself once'},stam:{n:'Stamin Fizz',c:0xa04ad8,cost:2000,t:'Run 20% faster'},mule:{n:'Mule Soda',c:0xf08a2a,cost:4000,t:'Carry a third weapon'}};
 /* perk hooks used by the weapon code (all neutral outside Zombies) */
 const zrl=()=>zq&&mode=='Zombies'&&zq.perks.spd?0.5:1,zfr=()=>zq&&mode=='Zombies'&&zq.perks.dbl?0.75:1,zsm=()=>zq&&mode=='Zombies'&&zq.perks.stam?1.2:1,
- zmul=w=>mode=='Zombies'&&zq?(w.pm||1)*(zq.perks.dbl&&!w.ex&&w.k!='RG'?2:1):1;
-const zHp=r=>Math.round((100+(r-1)*45+(r-1)*(r-1)*6)*(r>10?Math.pow(1.12,r-10):1)),zDm=r=>Math.min(75,22+r*2.2),zAc=r=>Math.max(.6,1.05-r*.02),zTot=r=>Math.min(70,Math.round(5+r*3.4)),FACE={s:0,n:Math.PI,e:Math.PI/2,w:-Math.PI/2};
+ zmul=w=>mode=='Zombies'&&zq?ZW*(w.pm||1)*(zq.perks.dbl&&!w.ex&&w.k!='RG'?2:1):1;
+const zHp=r=>{const bs=n=>100+30*(n-1)+5*n*(n-1);return Math.round(r<=10?bs(r):bs(10)*Math.pow(1.07,r-10))},zDm=r=>Math.min(55,18+r*1.3),zAc=r=>Math.max(.7,1.1-r*.015),zTot=r=>Math.min(56,Math.round(5+r*2.4)),ZW=2.2,ZE=3,RGB=3000,FACE={s:0,n:Math.PI,e:Math.PI/2,w:-Math.PI/2};
 const zMe=()=>netOn?myId:'solo',zCli=()=>netOn&&!isHost;
 
 /* ---------- the zombie map: four walled wings joined by four locked doors ---------- */
-MAPS['Hollow Estate']={d:'Zombies map: four walled wings, locked doors, perk machines, mystery boxes and Pack-a-Punch',zm:1,H:44,sky:0x141a24,gr:0x2c302a,bc:0x7a7468,ps:[-22,28],
+MAPS['Hollow Estate']={d:'Zombies map: four walled wings, locked doors, perk machines, mystery boxes and Pack-a-Punch',zm:1,H:44,sky:0x141a24,gr:0x2c302a,bc:0x7a7468,ps:[-22,28],skyk:'night',hemi:.55,hemiC:0x8aa0d0,hemiG:0x1a2030,sunI:.25,sunC:0x9fb4ff,fogF:80,gt:'concrete',
+ lights:[[-22,3.8,22,0xffc890,1.5,34],[22,3.8,22,0xffb070,1.4,34],[-22,3.8,-22,0x9aff9a,1.4,34],[22,3.8,-22,0x9ad0ff,1.6,34],[-3,3.8,3,0xff9a6a,1,26],[3,3.8,-3,0xffe0a0,1,26]],
  zs:[[-40,40,0],[-8,40,0],[-40,6,0],[40,40,1],[8,40,1],[40,6,1],[-40,-40,2],[-8,-40,2],[-40,-6,2],[40,-40,3],[8,-40,3],[40,-6,3]],
  dr:[{x:0,z:22,w:1.2,d:5,c:1000,a:0,b:1,n:'Garage'},{x:-22,z:0,w:5,d:1.2,c:1250,a:0,b:2,n:'Greenhouse'},{x:22,z:0,w:5,d:1.2,c:1500,a:1,b:3,n:'Laboratory'},{x:0,z:-22,w:1.2,d:5,c:2000,a:2,b:3,n:'Laboratory'}],
  mc:[{t:'vit',x:-14,z:42,f:'n'},{t:'rev',x:-42,z:22,f:'e'},{t:'dbl',x:42,z:14,f:'w'},{t:'mule',x:14,z:42,f:'n'},{t:'spd',x:-42,z:-14,f:'e'},{t:'stam',x:-14,z:-42,f:'s'},{t:'pap',x:30,z:-42,f:'s'},{t:'box',x:-32,z:4,f:'s'},{t:'box',x:8,z:-4,f:'n'}],
- b(){const a=[],B=(x,z,w,d,h,y0,c)=>a.push([x,z,w,d,h,y0||0,c]),wc=0x6e675c;
-  B(0,-34.25,1.2,19.5,4.5,0,wc);B(0,0,1.2,39,4.5,0,wc);B(0,34.25,1.2,19.5,4.5,0,wc);B(-34.25,0,19.5,1.2,4.5,0,wc);B(0,0,39,1.2,4.5,0,wc);B(34.25,0,19.5,1.2,4.5,0,wc);
-  for(const[x,z,c]of[[-22,22,0x6a5238],[22,22,0x55585c],[-22,-22,0x3f6a38],[22,-22,0x566a78]])B(x,z,43,43,.05,0,c);
-  for(const[cx,cz]of[[-22,22],[22,22],[-22,-22],[22,-22]]){B(cx,cz,4,4,1,0,0x59483a);for(const sx of[-1,1])for(const sz of[-1,1])B(cx+sx*9,cz+sz*9,1.6,1.6,4.5,0,0x5a554c);B(cx-15,cz,2,5,1.2,0,0x6a5a45);B(cx+15,cz,2,5,1.2,0,0x6a5a45)}
+ b(){const a=[],vv=MAPS['Hollow Estate']._v||(MAPS['Hollow Estate']._v=[]),B=(x,z,w,d,h,y0,c,k)=>a.push([x,z,w,d,h,y0||0,c,k]),V=(x,z,w,d,h,y0,c,s,t)=>vv.push([x,z,w,d,h,y0||0,c,s,t]),wc=0x6e675c;let sd=5;const r=()=>(sd=(sd*16807)%2147483647)/2147483647;
+  B(0,-34.25,1.2,19.5,4.5,0,wc,'brick');B(0,0,1.2,39,4.5,0,wc,'brick');B(0,34.25,1.2,19.5,4.5,0,wc,'brick');B(-34.25,0,19.5,1.2,4.5,0,wc,'brick');B(0,0,39,1.2,4.5,0,wc,'brick');B(34.25,0,19.5,1.2,4.5,0,wc,'brick');
+  for(const[x,z,c,k]of[[-22,22,0x6a5238,'plank'],[22,22,0x55585c,'concrete'],[-22,-22,0x3f6a38,'grass'],[22,-22,0x566a78,'tile']])B(x,z,43,43,.05,0,c,k);
+  for(const[cx,cz]of[[-22,22],[22,22],[-22,-22],[22,-22]]){B(cx,cz,4,4,1,0,0x59483a,'plank');for(const sx of[-1,1])for(const sz of[-1,1]){B(cx+sx*9,cz+sz*9,1.6,1.6,4.5,0,0x5a554c,'concrete');V(cx+sx*9,cz+sz*9,1.9,1.9,.35,4.5,0x3a3832,'b','concrete')}B(cx-15,cz,2,5,1.2,0,0x6a5a45,'plank');B(cx+15,cz,2,5,1.2,0,0x6a5a45,'plank');V(cx,cz,.7,.7,3.9,3.7,0xffe4b0,'e')}
+  for(let k=0;k<80;k++){const x=(r()*2-1)*41,z=(r()*2-1)*41;if(Math.abs(x)<2.5||Math.abs(z)<2.5)continue;V(x,z,.5+r()*1.3,.5+r()*1.3,.1,.05,0x4a0b0b,'b','concrete')}
+  for(let k=0;k<40;k++){const x=(r()*2-1)*41,z=(r()*2-1)*41;if(Math.abs(x)<2.5||Math.abs(z)<2.5)continue;V(x,z,.3+r()*.5,.3+r()*.5,.15+r()*.3,.05,[0x5a554c,0x4a4640,0x6a5a45][k%3],'b')}
   return a}};
 
 /* ---------- small helpers ---------- */
@@ -35,7 +38,7 @@ function zUnsolid(b){const i=bx.indexOf(b);if(i>=0)bx.splice(i,1);zGrid()}
 function zGunObj(k){const w={k,...eff(k,[])};w.mag=w.m;w.rs=k=='RG'?3:(w.rs==null?4:w.rs);w.res=w.m*w.rs;return w}
 function zGive(k){const w=zGunObj(k),i=wp.findIndex(x=>x.k==k);if(i>=0){wp[i]=w;cur=i}else if(wp.length<zq.cap){wp.push(w);cur=wp.length-1}else wp[cur]=w;rel=0;setGun();msg(W[k].n,1.5)}
 function zPick(by){const own=by==zMe()?wp.map(w=>w.k):[];if(Math.random()<.03&&!own.includes('RG'))return 'RG';const pool=['AR','SMG','BR','SG','MP','VMP','SN','RL','CY','MG'].filter(k=>!own.includes(k));return pool.length?pool[Math.random()*pool.length|0]:'SMG'}
-function zPap(w){const B=W[w.k],t=(w.pap||0)+1;w.pap=t;w.pm=t==1?2.2:3.6;w.m=Math.round(B.m*(t==1?1.5:2));w.r=B.r*(t==1?.9:.8);w.pn=B.n+(t==1?' PaP':' PaP II');w.mag=w.m;w.res=w.m*w.rs;rel=0;setGun()}
+function zPap(w){const B=W[w.k],t=(w.pap||0)+1;w.pap=t;w.pm=t==1?2.2:3.6;if(w.k=='RG')w.pm=t==1?3:6;w.m=Math.round(B.m*(t==1?1.5:2));w.r=B.r*(t==1?.9:.8);w.pn=B.n+(t==1?' PaP':' PaP II');w.mag=w.m;w.res=w.m*w.rs;rel=0;setGun()}
 const _zsg=setGun;setGun=function(){_zsg();gf.material.color.setHex(mode=='Zombies'&&cw().pap?0xc080ff:0xffdd66)};
 
 /* ---------- building the level objects: doors, machines, boxes ---------- */
@@ -96,17 +99,18 @@ function zSteer(b,pl,fl){const dx=pl.x-b.x,dz=pl.z-b.z,D=Math.hypot(dx,dz);let t
 function zPlayers(){const a=[];if(!P.dead)a.push({id:zMe(),x:P.x,z:P.z,y:P.y,me:1});if(netOn)for(const b of bots)if(b.net&&!b.hb&&b.al)a.push({id:b.id,x:b.x,z:b.z,y:b.y||0});return a}
 
 /* ---------- zombies ---------- */
-function zModel(r,big){const m=new THREE.Group(),rig=mkHuman(m);m.rotation.order='YXZ';S.add(m);const t=Math.min(3,r/5|0);
- m.children[0].material.color.setHex(big?0x6a1f18:[0x55703f,0x6f7a3a,0x5a4a6a,0x7a2e22][t]);m.children[4].material.color.setHex([0x9bb57a,0xb0b070,0x9a8aa8,0xb06a50][t]);m.children[6].material.color.setHex(r>=15?0xff9a2a:0xff2a2a);m.children[5].visible=false;if(big)m.scale.setScalar(1.35);return{m,rig}}
-function mkZombie(x,z,big){const r=zq.r,{m,rig}=zModel(r,big),hp=Math.round(zHp(r)*(big?4:1)),run=r>=15||(r>=5&&Math.random()<Math.min(.9,(r-4)*.1)),
- b={i:botId++,m,rig,x,z,y:0,hp,mhp:hp,sh:0,msh:0,lh:-9,al:1,team:'z',zom:1,big:!!big,nm:big?'Brute':'Zombie',cd:.5,k:0,df:1,dm:Math.min(zDm(r)*(big?1.6:1),big?85:75),ac:zAc(r),sp:(Math.min(5.2,1.8+r*.28+Math.random()*.6)+(run?1.3:0))*(big?.75:1)};
+function zModel(r,big){const m=new THREE.Group(),t=Math.min(3,r/5|0),pk=a=>a[Math.random()*a.length|0],
+ rig=mkHuman(m,{zombie:1,skin:[0xa9b98a,0xb3b58a,0xa89aa8,0xb27a62][t],shirt:big?0x5a1a14:pk([0x5a6a7a,0x6a5a4a,0x4a5a46,0x7a6a5a,0x3a3a44,0x6a4a4a]),pants:pk([0x2f3340,0x3a3a30,0x4a3f35,0x26282c]),hair:pk([0x1a1410,0x2a2018,0x3a342a]),eye:r>=15?0xff9a2a:0xff2a2a});
+ S.add(m);if(big)m.scale.setScalar(1.35);return{m,rig}}
+function mkZombie(x,z,big){const r=zq.r,{m,rig}=zModel(r,big),hp=Math.round(zHp(r)*(big?3:1)),run=r>=25||(r>=6&&Math.random()<Math.min(.6,(r-5)*.06)),
+ b={i:botId++,m,rig,x,z,y:0,hp,mhp:hp,sh:0,msh:0,lh:-9,al:1,team:'z',zom:1,big:!!big,nm:big?'Brute':'Zombie',cd:.5,k:0,df:1,dm:Math.min(zDm(r)*(big?1.5:1),big?70:55),ac:zAc(r),sp:(Math.min(4.2,1.6+r*.11+Math.random()*.5)+(run?1:0))*(big?.75:1)};
  m.position.set(x,0,z);bots.push(b);burst(V(x,1,z),big?30:14,big?0xaa3a2a:0x6a9a4a,5,.7,.14);return b}
 function zPuppet(i,x,z,big,r){const{m,rig}=zModel(r,big),b={i,m,rig,x,z,tx:x,tz:z,y:0,hp:1e9,mhp:1e9,sh:0,msh:0,lh:-9,al:1,team:'z',zom:1,zp:1,big:!!big,nm:big?'Brute':'Zombie',df:1,k:0};m.position.set(x,0,z);bots.push(b);return b}
 function zSpawn(M,big){const open=M.zs.filter(s=>zq.open[s[2]]),pl=zPlayers(),far=open.filter(s=>pl.every(p=>Math.hypot(s[0]-p.x,s[1]-p.z)>16)),s=(far.length?far:open)[Math.random()*(far.length||open.length)|0];mkZombie(s[0]+(Math.random()-.5)*3,s[1]+(Math.random()-.5)*3,big)}
 /* damage to a zombie: 10 points per hit, 130 for a kill, 200 for a melee kill, 300 for a brute; the RayGun kills anything.
    Guests send their hits to the host (zqh) and get the kill points back (zk). */
 const _zhb=hitBot;hitBot=function(b,d,head){if(b.zom)return zHit(b,d,head);if(mode=='Zombies')return;_zhb(b,d,head)};
-function zHit(b,d,head){if(!b.al)return;const w=wp.find(x=>x.k==srcK);if(srcK=='RG')d=1e6;else if(w&&w.ex)d*=(w.pm||1);
+function zHit(b,d,head){if(!b.al)return;const w=wp.find(x=>x.k==srcK);if(srcK=='RG')d=RGB*(w&&w.pm?w.pm:1)*(b.big?2:1);else if(w&&w.ex)d*=ZE*(w.pm||1);else if(!srcK&&src!='Melee')d*=ZE;
  if(b.zp){hits++;juiceHit(b,Math.min(d,9999),head);$('#hm').className='on'+(head?' hd':'');hmT=.12;beep(head?900:600,.05,'square',.04);if(src!='Melee')zq.pts+=10;netSend({t:'zqh',i:b.i,d,h:head?1:0,k:srcK,m:src=='Melee'?1:0});return}
  zDamage(b,d,head,zMe(),srcK,src=='Melee')}
 function zDamage(b,d,head,by,k,mel){if(!b.al)return;b.hp-=d;b.lh=t0;const mine=by==zMe();
@@ -117,7 +121,7 @@ function zDamage(b,d,head,by,k,mel){if(!b.al)return;b.hp-=d;b.lh=t0;const mine=b
  else{const nb=bots.find(x=>x.net&&x.id==by);if(nb)nb.k=(nb.k||0)+1;netSend({t:'zk',to:by,pts:pt,k,h:head?1:0})}}
 function zMove(dt){const zs=bots.filter(b=>b.zom&&b.al),pls=zPlayers();
  for(const b of zs){let pl=null,bd=1e9;for(const p of pls){const d=Math.hypot(p.x-b.x,p.z-b.z);if(d<bd){bd=d;pl=p}}if(!pl)continue;
-  const[tx,tz,D]=zSteer(b,pl,zfls[pl.id]),ang=Math.atan2(tx-b.x,tz-b.z);mv(b,Math.sin(ang)*b.sp*dt,Math.cos(ang)*b.sp*dt,.45);b.m.position.set(b.x,0,b.z);b.m.rotation.y=D<4?Math.atan2(pl.x-b.x,pl.z-b.z):ang;
+  const[tx,tz,D]=zSteer(b,pl,zfls[pl.id]),ang=Math.atan2(tx-b.x,tz-b.z);mv(b,Math.sin(ang)*b.sp*dt,Math.cos(ang)*b.sp*dt,.45);b.m.position.set(b.x,0,b.z);b.tyaw=D<4?Math.atan2(pl.x-b.x,pl.z-b.z):ang;
   b.cd-=dt;if(D<1.5*(b.big?1.3:1)&&Math.abs(pl.y)<1.4){if(b.cd<=0){b.cd=b.ac;b.lunge=.3;if(pl.me)hurt(b.dm,b);else netSend({t:'hit',to:pl.id,d:b.dm,bot:b.i})}}else b.cd=Math.max(b.cd,.35)}
  for(let i=0;i<zs.length;i++)for(let j=i+1;j<zs.length;j++){const a=zs[i],c=zs[j],dx=c.x-a.x,dz=c.z-a.z,d=Math.hypot(dx,dz);if(d<.8&&d>.001){const p=(.8-d)*.5/d;mv(a,-dx*p,-dz*p,.45);mv(c,dx*p,dz*p,.45)}}
  zq.gn-=dt;if(zq.gn<=0&&zs.length){zq.gn=2+Math.random()*2;const b=zs[Math.random()*zs.length|0],d=Math.hypot(b.x-P.x,b.z-P.z);if(d<25)beep(70+Math.random()*50,.4,'sawtooth',Math.max(.01,.05-d*.002))}}
@@ -135,7 +139,7 @@ function zRoundSync(d){const z=zq;if(d.r>z.r){z.r=d.r;z.brutes=d.br||0;zRoundFx(
 function zCommon(dt){const z=zq;if(!P.dead&&t0-lastHit>6&&P.hp<P.mhp)P.hp=Math.min(P.mhp,P.hp+12*dt);
  if(z.down){z.dnT-=dt;if(z.dnT<=0){z.down=0;z.out=1;msg('You bled out. You return next round',3)}}
  if(z.cur&&z.cur.rv&&key.KeyE&&!P.dead){z.rvT+=dt;$('#zp').textContent=`Reviving ${z.cur.rv.nm}… ${Math.min(100,Math.round(z.rvT/2*100))}%`;if(z.rvT>=2){z.rvT=0;netSend({t:'zqv',to:z.cur.rv.id});z.pts+=100;feed('You revived '+z.cur.rv.nm)}}else z.rvT=0;
- zAnim(dt);zInteract()}
+ zAnim(dt);zInteract();zMarkers()}
 function zomTick(dt){const z=zq;if(!z||mode!='Zombies')return;const M=MAPS[sel.map];
  let alive=0;for(const b of bots)if(b.zom&&b.al)alive++;
  if(z.st=='prep'){z.tm-=dt;if(z.tm<=0)zNewRound()}
@@ -149,20 +153,26 @@ function zomTick(dt){const z=zq;if(!z||mode!='Zombies')return;const M=MAPS[sel.m
  $('#ob').textContent=z.st=='prep'?(z.r?`Round ${z.r} survived  ·  next round in ${Math.ceil(z.tm)}`:`Get ready  ·  first round in ${Math.ceil(z.tm)}`):`Round ${z.r}  ·  Zombies left ${z.toSpawn+alive}`;zHud()}
 /* guests: the host runs the world, guests move the puppets and handle their own interactions */
 function zcTick(dt){const z=zq;if(!z||mode!='Zombies')return;const k=Math.min(1,dt*10);
- for(const b of bots)if(b.zp&&b.al){const ox=b.x,oz=b.z;b.x+=(b.tx-b.x)*k;b.z+=(b.tz-b.z)*k;b.m.position.set(b.x,0,b.z);if(Math.hypot(b.tx-ox,b.tz-oz)>.02)b.m.rotation.y=Math.atan2(b.tx-ox,b.tz-oz)}
+ for(const b of bots)if(b.zp&&b.al){const ox=b.x,oz=b.z;b.x+=(b.tx-b.x)*k;b.z+=(b.tz-b.z)*k;b.m.position.set(b.x,0,b.z);if(Math.hypot(b.tx-ox,b.tz-oz)>.02)b.tyaw=Math.atan2(b.tx-ox,b.tz-oz)}
  zCommon(dt);zboxes.forEach((o,i)=>zBoxTick(o,i,dt,0));zHud()}
 function zSync(d){const seen=new Set();for(const[i,x,z,big]of d.l){seen.add(i);let b=bots.find(q=>q.zp&&q.i==i);if(!b)b=zPuppet(i,x,z,big,d.r);b.tx=x;b.tz=z}
  for(const b of bots)if(b.zp&&b.al&&!seen.has(b.i)){b.al=0;zdead.push({b,t:0})}}
 function zInteract(){const z=zq;let best=null,bd=1e9;if(!P.dead){for(const it of zi){const d=Math.hypot(P.x-it.x,P.z-it.z);if(d<it.r&&d<bd&&it.txt()){bd=d;best=it}}
   if(netOn)for(const b of bots)if(b.net&&!b.hb&&!b.al&&b.dn){const d=Math.hypot(P.x-b.x,P.z-b.z);if(d<2.6&&d<bd){bd=d;best={rv:b,txt:()=>'Hold E to revive '+b.nm,cost:()=>0,act:()=>{}}}}}
- z.cur=best;const e=$('#zp');if(best){const c=best.cost();e.textContent=best.rv?best.txt():`[E] ${best.txt()}${c?'  ['+c+']':''}`;e.className=c>z.pts?'bad':''}else{e.textContent='';e.className=''}}
+ z.cur=best;const e=$('#zp');if(P.dead&&z.down){e.textContent=`DOWN · bleeding out in ${Math.ceil(z.dnT)}s · a teammate can revive you`;e.className='bad';return}if(best){const c=best.cost();e.textContent=best.rv?best.txt():`[E] ${best.txt()}${c?'  ['+c+']':''}`;e.className=c>z.pts?'bad':''}else{e.textContent='';e.className=''}}
 function zUse(){if(!zq||P.dead||over)return;if(zq.cur)zq.cur.act()}
 function zHud(){const z=zq,ic=Object.keys(z.perks).filter(k=>z.perks[k]).map(k=>`<i style="background:${hex(PERKS[k].c)}">${PERKS[k].n[0]}</i>`).join(''),tm=netOn?bots.filter(b=>b.net&&!b.hb).map(b=>`${esc(b.nm)} ${b.zpts|0}${b.al?'':b.dn?' ✚':' ✖'}`).join('<br>'):'',k=z.r+'|'+z.pts+'|'+ic+'|'+tm+'|'+(z.down?1:0);if(k==zhc)return;zhc=k;$('#zr').textContent=z.r||'';$('#zpt').textContent=z.pts+(z.down?' · DOWN':'');$('#zpk').innerHTML=ic;$('#zt').innerHTML=tm}
 /* downed: Revive Soda brings you back by yourself, a teammate can revive you (co-op), otherwise the run ends */
-function zDown(){const z=zq;if(!z)return;P.rt=1e9;
- if(z.perks.rev){z.perks.rev=0;msg('Reviving in 4…',3);setTimeout(()=>{if(run&&mode=='Zombies'&&!over&&P.dead&&!z.out)zRevive()},4000)}
- else if(netOn){z.down=1;z.dnT=45;msg('You are down. Hold on until a teammate revives you',3)}
+function zDown(){const z=zq;if(!z)return;P.rt=1e9;const rev=z.perks.rev;z.perks={};P.mhp=50;z.cap=2;if(wp.length>2){wp.length=2;if(cur>1){cur=1;setGun()}}gun.visible=false;
+ if(rev){msg('Reviving in 4…',3);setTimeout(()=>{if(run&&mode=='Zombies'&&!over&&P.dead&&!z.out)zRevive()},4000)}
+ else if(netOn){z.down=1;z.dnT=45;msg('You are down. Hold on until a teammate revives you',3);netSend({t:'zdn'})}
  else setTimeout(()=>{if(mode=='Zombies')endGame('You reached round '+z.r)},2600)}
+/* knocked: you lie on the floor (low camera, slow crawl) instead of ragdolling */
+function zDownCam(dt){const f=(key.KeyW?1:0)-(key.KeyS?1:0),s=(key.KeyD?1:0)-(key.KeyA?1:0);if((f||s)&&zq&&!over){const sy=Math.sin(yaw),cy=Math.cos(yaw),n=Math.hypot(f,s)||1;mv(P,(-sy*f+cy*s)/n*1.5*dt,(-cy*f-sy*s)/n*1.5*dt,.4)}
+ C.position.set(P.x,.42+Math.sin(t0*2)*.01,P.z);C.rotation.set(Math.max(-.6,Math.min(.4,pitch*.5))-.1,yaw,.18)}
+/* every player on their feet sees a marker over a downed teammate */
+function zMarkers(){if(!netOn)return;for(const b of bots){if(!b.net||b.hb)continue;const need=!b.al&&b.dn&&!P.dead;if(need&&!b.zmk){b.zmk=zSprite('','#ff5a3a',.8,0);S.add(b.zmk);b.zmt=0}if(!need&&b.zmk){S.remove(b.zmk);b.zmk=null}
+  if(b.zmk){b.zmk.position.set(b.x,2.3,b.z);if(t0>b.zmt){b.zmt=t0+.4;zSet(b.zmk,'✚ '+b.nm+' '+Math.round(Math.hypot(P.x-b.x,P.z-b.z))+'m','#ff5a3a')}}}}
 function zRevive(){endDeath();P.dead=0;P.hp=P.mhp*.6;P.sh=P.msh;gun.visible=true;rel=0;zq.down=zq.out=0;if(isHost||!netOn)for(const b of bots)if(b.zom&&b.al){const dx=b.x-P.x,dz=b.z-P.z,d=Math.hypot(dx,dz);if(d<7&&d>.01)mv(b,dx/d*(7-d),dz/d*(7-d),.45)}msg('Revived!',2);beep(660,.2,'triangle',.1)}
 /* a downed or bled-out player returns at the start of the next round with a pistol (points are kept) */
 function zRespawn(){const z=zq,ps=MAPS[sel.map].ps;endDeath();P.dead=0;z.down=z.out=0;z.perks={};z.cap=2;P.mhp=50;P.hp=50;P.sh=P.msh;wp=[zGunObj('MG')];cur=0;rel=0;setGun();P.x=ps[0];P.z=ps[1];P.y=0;gun.visible=true;msg('Back in the fight',2)}
@@ -177,6 +187,7 @@ function zNet(d){const z=zq;if(!z||mode!='Zombies')return;
  case'zqv':if(d.to==myId&&P.dead&&z.down)zRevive();break;
  case'zd':if(!isHost){if(d.by==myId&&zdoors[d.i])z.pts-=zdoors[d.i].d.c;zOpenDoor(d.i,d.by)}break;
  case'zbs':if(!isHost){const o=zboxes[d.i];if(!o)break;if(d.st==1){if(d.by==myId)z.pts-=950;o.st=1;o.t=0;o.cy=0;o.by=d.by}else if(d.st==2){o.item=d.item;o.st=2;o.t=0;o.by=d.by;o.beam.visible=o.lab.visible=true;zSet(o.lab,W[d.item].n,d.item=='RG'?'#ff4a4a':'#7bf08a')}else{o.st=0;o.beam.visible=o.lab.visible=false}}break;
+ case'zdn':if(d.id!=myId){const nm=names[d.id]||'A teammate';popup('PLAYER DOWN',nm+' needs a revive!');feed(nm+' is down');beep(260,.25,'sawtooth',.1);setTimeout(()=>beep(200,.3,'sawtooth',.1),220)}break;
  case'zrev':if(!isHost)zRevCount(d.n);break;
  case'zk':if(!isHost&&d.to==myId){z.pts+=d.pts;kills++;wzkill(d.k);killXP(d.h);beep(900,.06,'square',.05)}break;
  case'zb':if(!isHost)zSync(d);break;

@@ -11,6 +11,7 @@ Local test: run `python3 -m http.server` in this folder and open http://localhos
 - `js/core.js` data (weapons, perks, maps), Boomtown map, engine/collision, bots, weapons, game loop, keyboard and mouse input
 - `js/systems.js` juice (shake, particles, sounds), pickups and killstreaks, VMP-X, KN-115 and RayGun models, held weapons (visible magazines, pump shotgun), character rigs, reload animations, mantling and wall jumps, bot PvP, Team Deathmatch, Capture the Flag
 - `js/interface.js` levels, prestige and the camo tracks (animated shader camos), death camera, private P2P matches and persistent lobbies, home screen and the Zombies / Multiplayer menus, pause/dev menus, match-end sequence (victory/defeat, leaderboard, podium with emotes), touch controls
+- `js/gfx.js` graphics: procedurally textured and merged level geometry, real-time shadows, sky dome (day and night), window facades, flickering lights
 - `js/zombies.js` the Zombies mode: the Hollow Estate map, rounds and waves, zombie AI with flow-field pathfinding, points, doors, mystery boxes, Pack-a-Punch, soda perks and the co-op networking
 
 Each section inside the JS files starts with a banner comment showing its original file name.
@@ -47,16 +48,16 @@ Private lobbies are persistent: after a match everybody (host and guests) goes b
 Survive endless rounds on the Hollow Estate map: four walled wings joined by four locked doors. You start in the first wing with a Magnum and 500 points.
 - Points: 10 per hit, 130 per kill, 200 per melee kill, 300 per brute kill. Melee kills zombies in one hit up to round 3; from round 4 melee does almost no damage.
 - Rounds and waves: each round has more zombies than the last and they spawn in waves from the wings you have opened. All ammo is restocked at the start of every round.
-- Zombies get stronger every round: more health (steeper after round 10), harder hits, faster attacks and faster movement. Runners appear from round 5 and everything runs from round 15. Every fifth round brings brutes (large, 4x health, heavy hits). Zombie colours shift from green to rotten purple to ember red as rounds go up.
+- Zombies get stronger every round: more health (steady growth, then 7% per round after round 10), harder hits (up to 55), faster attacks and movement. Runners appear from round 6 and everything runs from round 25. Weapons do 2.2x damage to zombies (explosives 3x) so the arsenal keeps up. Every fifth round brings brutes (large, 4x health, heavy hits). Zombie colours shift from green to rotten purple to ember red as rounds go up.
 - Doors (1000, 1250, 1500, 2000) open new wings. Zombies path around walls and through doors you opened.
-- Mystery Box (950, two locations): a random weapon (KN-115, SMG, Battle Rifle, Shotgun, Magnum, Machine Pistol, VMP-X, Sniper, Rocket Launcher, Coyote). The RayGun is rare (3%) and one-shots every zombie.
+- Mystery Box (950, two locations): a random weapon (KN-115, SMG, Battle Rifle, Shotgun, Magnum, Machine Pistol, VMP-X, Sniper, Rocket Launcher, Coyote). The RayGun is rare (3%) and one-shots every normal zombie up to round 29; from round 30 a base RayGun no longer kills in one shot, but a Pack-a-Punched RayGun still does (until round ~49, and PaP II beyond).
 - Pack-a-Punch (5000 then 10000): upgrades the weapon you are holding (damage x2.2 then x3.6, bigger magazine, faster fire).
 - Perk machines (soda machines): red Vitality Cola +50 health (2500), green Quick Fizz reload twice as fast (3000), yellow Double Pop double damage with bullet weapons and faster fire (2000), blue Revive Soda self-revive once (500; the machine runs dry after 4 purchases), purple Stamin Fizz run 20% faster (2000), orange Mule Soda third weapon slot (4000).
-- Down: with Revive Soda you get back up by yourself after 4 seconds. In solo, going down otherwise ends the run.
+- Down: you lie on the floor (low camera, slow crawl; no ragdoll) and you lose all your perks and any third weapon. With Revive Soda you get back up by yourself after 4 seconds. In solo, going down otherwise ends the run.
 
 ### Co-op (up to 4 players)
 In the Zombies menu choose Co-op lobby: the host creates a code, up to 3 friends join, the host presses Start match. The host simulates every zombie, round and door; guests see the zombies, their hits count, and the kill points come back to them. Points, perks and weapons belong to each player; doors, boxes and the Revive Soda stock are shared. Teammates cannot hurt each other.
-- When you are down a teammate can revive you: hold E next to them for 2 seconds (the reviver earns 100 points). You have 45 seconds.
+- When a player goes down everyone else gets a PLAYER DOWN alert with a sound, a kill-feed line and a red marker with distance over the body. A teammate can revive you: hold E next to them for 2 seconds (the reviver earns 100 points). You have 45 seconds.
 - Downed or bled-out players come back at the start of the next round with a pistol (points are kept).
 - The run ends when everybody is down at the same time.
 - The lobby stays connected after the run, like private matches.
@@ -70,3 +71,12 @@ New: the Coyote, a 60 round LMG (unlocks at level 34), modelled on the reference
 
 ## Open maps
 Suburbia and Boomtown have no tall walls. The play area is fenced by parked cars and bollards with gaps too narrow to squeeze through, and the scenery (houses, trees, hills) continues beyond the barrier. Suburbia is larger now with an outer ring road and a ring of houses.
+
+## Characters and animation
+Players and bots are now real humans: head with face, ears and hair or a combat helmet, neck, oval torso, tactical vest, tapered jointed arms and legs, boots. Zombies are rotting undead: pale or sickly skin, glowing eyes, hanging jaw, wounds, ragged clothes in random colours, a hunched lurching gait with one dragging leg and reaching arms. Skin and clothes darken as rounds climb. Bots fall over when killed. Animation is procedural: smooth turning, stride and arm counter-swing, torso twist and lean, breathing and idle weight shift, hit flinches. First person has a proper sprint pose, head bob, strafe roll and a landing dip (the sprint shake is fixed: the bob uses an accumulated phase).
+
+## Graphics
+Level geometry is merged into a few textured meshes (brick, stucco, wood planks, concrete, asphalt, grass, shingles, tile, metal) with real-time shadows, a sky dome with sun and clouds (or a night sky with moon and stars in the zombie estate), window facades, street furniture, car wheels and lights, rounded trees and bushes. The zombie estate has flickering warm and cold lights, blood and debris. Settings has a Graphics option: High (shadows) or Low (faster, default on phones).
+
+## Player name
+The name box lives in the profile area of both menus and is saved in the browser, so it is still there after closing the tab.
