@@ -19,7 +19,7 @@ Local test: run `python3 -m http.server` in this folder and open http://localhos
 Each section inside the JS files starts with a banner comment showing its original file name.
 
 ## Controls
-WASD move, Shift sprint, mouse look, click or F shoot, R reload, G grenade, V melee, E killstreak (in Zombies: buy / interact, hold to revive a teammate), 1/2/3 or Q swap, Space jump (also mantles ledges and wall jumps), Esc pause. On the podium: 1 to 4 emote. Touch: drag left to look, tap/hold right to shoot, stick to move.
+WASD move, Shift sprint, mouse look, click or F shoot, R reload, V katana, E frag, Q flashbang, F interact (in Zombies: buy / interact, hold to revive a teammate), 3 to 6 killstreak slots, 1 / 2 or the mouse wheel to change weapon, Space jump (also mantles ledges and wall jumps), Esc pause. On the podium: 1 to 4 emote. Touch: drag left to look, tap/hold right to shoot, stick to move.
 
 ## Home screen
 The game opens on a home screen with two choices. ZOMBIES opens the Zombies menu (Play, Co-op lobby, Camos, Settings). MULTIPLAYER opens the Multiplayer menu (Play, Private match, Loadout, Weapon mastery, Settings). Back returns to the home screen.
@@ -106,3 +106,27 @@ Players, bots and zombies that die are thrown by the hit, tumble, bounce off wal
 ## Controller and VR
 - **Controller** (any standard gamepad, plug in and press a button): left stick move, right stick look, RT shoot, A jump, X reload, B or R3 knife, Y or D-pad swap, LB or LT grenade, RB use / killstreak (hold to revive), L3 toggles sprint (releasing the stick cancels it), Start pause. In menus the D-pad or left stick moves the focus, A presses, B goes back or resumes, left/right changes drop-downs and sliders. Note: browsers may refuse pointer lock without a mouse click; the game plays fine without it.
 - **VR** (WebXR, e.g. Quest browser or desktop Chrome/Edge with a headset): Settings > VR headset mode > On, then Deploy / Start survival; the match opens in the headset. The right controller aims and holds the gun (shots go where it points), trigger shoots, left stick moves in the aim direction, right stick snap-turns 30 degrees, A jump, B swap, X use, left trigger grenade, left grip reload, right grip knife, stick click sprint, Y leaves VR and opens the pause menu (Resume goes back into VR). Health, shield, ammo and round/points are on a panel on your left wrist. Shadows are turned off while in VR. Match end also returns you to the screen. Not tested on real hardware: please report anything that feels off.
+
+## Controls overhaul
+**Keyboard and mouse:** WASD move, Space jump / stand / mantle, Shift sprint (double press = tactical sprint, a short faster sprint with a cooldown), C crouch / slide (while sprinting), Ctrl prone / dive (while sprinting), Alt walk, H auto run, LMB fire, RMB aim down sights, R reload, V or Mouse 4 katana, E lethal (frag), Q tactical (flashbang), F interact / buy / revive, T or Mouse 5 weapon mount (while aiming), B fire mode (single / auto), X field upgrade, G armor plate, 1 or wheel down next weapon, 2 or wheel up previous weapon, 3 to 6 killstreak slots 1 to 4, Tab scoreboard (hold), M or Caps Lock map, middle mouse ping, N night vision, Esc / F1 / F3 / F6 menu. In menus F1 is home, F3 settings, F6 loadout, O private match. Voice and text chat are not included.
+
+**Controller:** the table in Settings. Menus are fully usable with a pad (D-pad or left stick moves focus spatially, A presses, B goes back, an on-screen keyboard opens for the name and match code boxes).
+
+**New systems:** aim down sights with real iron sights on every weapon (thin rear aperture or notch and a front post or blade, per weapon; the sniper uses a scope overlay), stances (crouch, slide, prone, dive; crouching and lying down also reduce incoming damage a little), walk, auto run, tactical sprint, flashbang (stuns bots and zombies, blinds you if you look at it), field upgrade (Adrenaline: shield refill and faster for 6 seconds, 45 second cooldown), 3 armor plates per life (+50 shield, +15 health), fire mode toggle, weapon mount and steady aim (less spread and recoil), world pings, night vision, scoreboard and a full map overlay.
+
+**Katana:** the melee weapon (V). Detailed model: curved single-edged blade with a ridge line, fuller grooves, a wavy temper line and a pointed tip, gold collar and washers, iron guard with gold studs, cord-wrapped grip with diamond wrap, ornaments, pommel cap and a red tassel. One slash can hit up to 3 targets (reach 3.1). In Zombies it kills in one hit up to round 2 and then needs more swings every round.
+
+## Hardpoint (new mode)
+Capture and hold the active Hardpoint to earn points for your team. Only one teammate is required inside it to score and you only score while nobody from the other team is inside. The Hardpoint rotates to the next location every 60 seconds. First team to 250 points wins. It is marked by a visible perimeter (ring, wall and beam: white when empty, blue / red when held, yellow when contested), and shows on the radar and map. Locations come from `zn` in each map. Bots play it too, and it works in private matches.
+
+## Radar and map
+The radar now draws walls and objects around you (not only dots). The M map overlay shows every wall and object, objectives, your allies, and enemies while a UAV is up.
+
+## Navigation (zombies and bots)
+`js/nav.js`: 1 unit grid of the whole map with every cell near a wall blocked (inflated by the agent radius so nobody clips corners). Zombies follow one Dijkstra flow field per player with look-ahead and line-of-sight smoothing; Multiplayer bots use A* with string pulling toward their target or objective whenever they are far away or have no clear line to the enemy. Everyone has stuck detection: after a stall they side-step, re-plan, and as a last resort snap to the nearest free cell.
+
+## Decay (new map)
+A ruined city block: two crossing streets, four gutted buildings (doorways, window sills you can vault), a crater plaza with a fountain ruin, a toppled bus, wrecked cars, barricades and rubble. This is a first layout built without the reference images; five Hardpoint locations. Send the reference images and layout again and I will rebuild it to match.
+
+## VR
+Menus work inside the headset (the DOM menus are mirrored onto a panel you point at), the Quest browser shows an Enter VR splash and the whole site runs in VR after one trigger pull (browsers only allow starting VR from a user gesture). Fix: in VR the shot origin used the headset-relative camera position, which is why shots came from the middle of the map; shots now leave from the right controller and the real eye position is restored after every render.

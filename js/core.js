@@ -11,7 +11,7 @@ const PRI=['AR','SMG','BR','SG'],SEC=['MG','MP'];
 const A={'Extended Mag':{m:1.5,t:'+50% magazine'},'Compensator':{rc:.55,t:'Less kick'},'Laser Sight':{sp:.5,t:'Tighter spread'},'Long Barrel':{d:1.12,t:'+12% damage'},'Fast Hands':{rl:.65,t:'Faster reload'},'Hollow Point':{d:1.18,rc:1.25,t:'+18% damage, more kick'}};
 const K={'Marathon':'Move 15% faster','Overshield':'+50 shield','Scavenger':'Kills refill ammo','Spring Legs':'Jump higher','Second Wind':'Shield recharges much faster','Hardline':'Killstreaks need 1 fewer kill','Run & Gun':'Shoot while sprinting'};
 const GR={'Frag':{fuse:1.8,R:7,d:110,imp:0,t:'Bounces, 1.8s fuse'},'Impact':{fuse:4,R:5,d:85,imp:1,t:'Explodes on contact'}};
-const MODES={'Slayer':'First to 20 kills. Bots respawn.','Survival':'One life. Endless waves.','Time Attack':'Most kills in 90 seconds.','Team Deathmatch':'5v5 with bot teammates. First team to 50 kills wins.','Capture the Flag':'5v5 with bot teams. Steal the red flag, bring it to your base. First to 3 captures.','Domination':'5v5 with bot teams. Hold the three zones: every owned zone earns points. First team to 350 wins.','Zombies':'Survive endless rounds of the undead. Earn points, open doors, use the mystery box, Pack-a-Punch and perks. Solo.'};
+const MODES={'Slayer':'First to 20 kills. Bots respawn.','Survival':'One life. Endless waves.','Time Attack':'Most kills in 90 seconds.','Team Deathmatch':'5v5 with bot teammates. First team to 50 kills wins.','Capture the Flag':'5v5 with bot teams. Steal the red flag, bring it to your base. First to 3 captures.','Hardpoint':'QUICK INTEL: Capture and hold the active Hardpoint to earn points for your team. Only one teammate is required inside the Hardpoint to score. Hardpoints rotate to a new location every minute. The first team to 250 points wins. Both teams race to control one scoring zone marked by a visible perimeter; you only score while your team holds it uncontested.','Domination':'5v5 with bot teams. Hold the three zones: every owned zone earns points. First team to 350 wins.','Zombies':'Survive endless rounds of the undead. Earn points, open doors, use the mystery box, Pack-a-Punch and perks. Solo.'};
 /* open maps have no tall walls: the play area is enclosed by one continuous fence (with an invisible tall collision wall above it) */
 function barrierLine(a,x0,z0,x1,z1,seed){const hz=Math.abs(x1-x0)>=Math.abs(z1-z0),L=hz?Math.abs(x1-x0):Math.abs(z1-z0),cx=(x0+x1)/2,cz=(z0+z1)/2;
  /* one continuous painted fence with a top rail, plus an invisible tall collision wall above it so nobody can mantle, wall jump or squeeze over */
@@ -165,31 +165,31 @@ function takeDmg(b,d){b.lh=t0;if(b.sh>0){const a=Math.min(b.sh,d);b.sh-=a;d-=a}b
 function hitBot(b,d,head){takeDmg(b,d);hits++;juiceHit(b,d,head);if(b.net){netSend(b.hb?{t:'bh',i:b.i,d}:{t:'hit',to:b.id,d});return}$('#hm').className='on'+(head?' hd':'');hmT=.12;beep(head?900:600,.05,'square',.04);if(b.hp<=0){b.al=0;b.dc=(b.dc||0)+1;bodyFall(b);b.rt=2.5;kills++;ts[pTeam()]=(ts[pTeam()]||0)+1;announce(b,P);juiceKill(b,head);featKill(b,head);if(L.pk.includes('Scavenger')){for(const w of wp)w.res=Math.min(w.res+Math.ceil(w.m*.4),w.m*(w.rs==null?4:w.rs))}}}
 function hurt(d,b){if(P.dead)return;lastBot=b||null;if(b)dirInd(b);lastHit=t0;dmA=.6;shake=Math.max(shake,.3);if(P.sh>0){const a=Math.min(P.sh,d);P.sh-=a;d-=a}P.hp-=d;beep(120,.1,'sawtooth',.06);if(P.hp<=0)die()}
 function die(){P.dead=1;deaths++;ks=0;q.length=0;if(mode!='Zombies')startDeath();const by=lastAtk||(lastBot&&!lastBot.net?'b'+lastBot.i:'');botScoreOnMe();if(netOn){if(isHost&&mode!='Private'&&lastAtk)credit(lastAtk);netSend({t:'dead',v:myId,by})}lastAtk='';P.rt=2.5;if(mode=='Survival'&&!netOn)setTimeout(()=>endGame('You were eliminated'),2600);if(mode=='Zombies')zDown()}
-function respawn(){endDeath();const[x,z]=spawnPt(20,pTeam());P.x=x;P.z=z;P.y=0;P.vy=0;P.mx=P.mz=0;P.hp=P.mhp;P.sh=P.msh;P.dead=0;for(const w of wp){w.mag=w.m;w.res=w.m*(w.rs==null?4:w.rs)}rel=0}
+function respawn(){endDeath();ctlReset();const[x,z]=spawnPt(20,pTeam());P.x=x;P.z=z;P.y=0;P.vy=0;P.mx=P.mz=0;P.hp=P.mhp;P.sh=P.msh;P.dead=0;for(const w of wp){w.mag=w.m;w.res=w.m*(w.rs==null?4:w.rs)}rel=0}
 
 /* ===================== weapons.js ===================== */
 /* ---------- weapons ---------- */
 const cw=()=>wp[cur];
 function setGun(){const w=cw();applyCamo(w.k);gb.scale.set(.07,.09,w.len);gb.position.z=-w.len/2;gf.position.z=-w.len-.05;gun.position.set(.2,-.2,-.45)}
-function shoot(){const w=cw();src=W[w.k].n;srcK=w.k;w.mag--;shots++;nf=t0+w.r*zfr();const o=C.position.clone(),base=aimDir();let d0=base;const T=findT();
+function shoot(){const w=cw();src=W[w.k].n;srcK=w.k;w.mag--;shots++;nf=t0+w.r*zfr();const o=(typeof vrOrg=='function'&&vrOrg())||C.position.clone(),base=aimDir();let d0=base;const T=findT();
  if(T)d0=base.clone().lerp(T.v,Math.min(.7,.55*AA*(1-T.a/T.cone*.5))).normalize();
- const mvg=(key.KeyW||key.KeyA||key.KeyS||key.KeyD)?1.6:1;
+ const mvg=((key.KeyW||key.KeyA||key.KeyS||key.KeyD||ST.auto)?1.6:1)*(1-.65*ST.ads)*(ST.mount?.5:1)*(ST.steady>0?.6:1)*(ST.crouch?.8:1)*(ST.prone?.65:1);
  for(let i=0;i<w.pel;i++){const d=d0.clone().add(V(Math.random()-.5,Math.random()-.5,Math.random()-.5).multiplyScalar(2*w.sp*mvg)).normalize();let tw=castW(o,d,120),bt=1e9,bb=null,hd=0;
   for(const b of bots){if(!b.al||ally(b))continue;const th=rs(o,d,V(b.x,b.y+1.75,b.z),.3),tb=rs(o,d,V(b.x,b.y+.95,b.z),.65),t=Math.min(th,tb);if(t<bt){bt=t;bb=b;hd=th<tb}}
   if(w.k=='SN'){let any=0;for(const b of bots.slice()){if(!b.al||ally(b))continue;const th=rs(o,d,V(b.x,b.y+1.75,b.z),.3),tb=rs(o,d,V(b.x,b.y+.95,b.z),.65),t=Math.min(th,tb);if(t<tw){any=1;hitBot(b,w.d*zmul(w)*(th<tb?2:1)*falloff(w,t),th<tb)}}if(!any&&tw<119&&i<2)burst(o.clone().add(d.clone().multiplyScalar(tw-.05)),4,0xffd27a,3,.35,.06)}
   else if(bb&&bt<tw){tw=bt;hitBot(bb,w.d*zmul(w)*(hd&&w.k!='RG'?2:1)*falloff(w,bt),hd)}else if(tw<119&&i<2)burst(o.clone().add(d.clone().multiplyScalar(tw-.05)),4,0xffd27a,3,.35,.06);
   if(i==0&&netOn)netShot(w.k,o,d,Math.min(tw,120));if(w.ex)boom(o.clone().add(d.clone().multiplyScalar(Math.max(0,Math.min(tw,120)-.3))),w.ex);if(w.k=='RG')rgBeam(o,d,Math.min(tw,120));else if(i==0||w.pel>1&&i<3)tr(o,d,Math.min(tw,w.pw?150:80),w.ex?0xff8040:0xfff0a0)}
- kick+=w.rc*.004;gun.position.z+=.05;gf.visible=true;setTimeout(()=>gf.visible=false,45);gunSnd(w);shake=Math.max(shake,w.rc*.014);flashL=1;fk=Math.max(fk,.6);if(w.mag<=0)startRel()}
+ kick+=w.rc*.004*(1-.4*ST.ads)*(ST.mount?.4:1);gun.position.z+=.05;gf.visible=true;setTimeout(()=>gf.visible=false,45);gunSnd(w);shake=Math.max(shake,w.rc*.014);flashL=1;fk=Math.max(fk,.6);if(w.mag<=0)startRel()}
 function startRel(){const w=cw();if(rel>0||w.mag>=w.m||w.res<=0)return;rel=relT=w.rl*zrl()}
 function swap(i){if(i<0||i>=wp.length||i==cur)return;cur=i;rel=0;setGun()}
-function boom(p,g){if(g.w){src=W[g.w].n;srcK=g.w}else{src='Explosive';srcK=''}const m=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:g.c||0xffa040,transparent:true,opacity:.6}));m.position.copy(p);m.scale.setScalar(.5);S.add(m);fx.push({m,l:.35,grow:g.R*3,sph:1});beep(70,.4,'sawtooth',.12);noise(.5,900,.6);burst(p,40,g.c||0xffa040,9,.7,.18);shake=Math.max(shake,Math.min(1.2,14/(1+p.distanceTo(C.position))));flashL=2;
+function boom(p,g){if(g.tac)return flashBoom(p);if(g.w){src=W[g.w].n;srcK=g.w}else{src='Explosive';srcK=''}const m=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:g.c||0xffa040,transparent:true,opacity:.6}));m.position.copy(p);m.scale.setScalar(.5);S.add(m);fx.push({m,l:.35,grow:g.R*3,sph:1});beep(70,.4,'sawtooth',.12);noise(.5,900,.6);burst(p,40,g.c||0xffa040,9,.7,.18);shake=Math.max(shake,Math.min(1.2,14/(1+p.distanceTo(C.position))));flashL=2;
  for(const b of bots){if(!b.al||ally(b))continue;const D=Math.hypot(b.x-p.x,1-p.y,b.z-p.z);if(D<g.R)hitBot(b,g.d*(1-D/g.R),0)}
  const D=Math.hypot(P.x-p.x,P.y+1-p.y,P.z-p.z);if(D<g.R*.8)hurt(g.d*.4*(1-D/g.R))}
 function throwG(){if(!L.g||gc<=0||P.dead)return;gc--;const d=aimDir(),m=new THREE.Mesh(sg,new THREE.MeshLambertMaterial({color:L.g=='Frag'?0x4a7a3a:0x62e0f0}));m.scale.setScalar(.13);S.add(m);grs.push({m,p:C.position.clone(),v:d.multiplyScalar(15).add(V(0,3,0)),t:GR[L.g].fuse,g:GR[L.g]})}
 
 /* ===================== game.js ===================== */
 /* ---------- game flow ---------- */
-function startGame(){fixZM();buildMap();for(const b of bots)S.remove(b.m);bots=[];for(const f of fx)S.remove(f.m);fx=[];for(const g of grs)S.remove(g.m);grs=[];
+function startGame(){fixZM();buildMap();ctlReset();for(const b of bots)S.remove(b.m);bots=[];for(const f of fx)S.remove(f.m);fx=[];for(const g of grs)S.remove(g.m);grs=[];
  sanitize();fovBase=+$('#fv').value||80;AA=+$('#aa').value;sens=+$('#sn').value;mode=sel.mode;if(!netOn)myTeam='A';kills=deaths=shots=hits=wave=0;tl=90;t0=0;nf=0;trig=0;fresh=0;hmT=0;msT=0;dmA=0;lastHit=-9;
  P={x:0,y:0,z:0,vy:0,hp:50,mhp:50,sh:50,msh:50+(L.pk.includes('Overshield')?50:0),dead:0,on:1};P.sh=P.msh;
  wp=[{k:L.p,...eff(L.p,L.pa)}];if(L.s)wp.push({k:L.s,...eff(L.s,L.sa)});for(const w of wp){w.mag=w.m;w.res=w.m*(w.rs==null?4:w.rs)}cur=0;rel=0;gc=L.g?2:0;setGun();
@@ -203,16 +203,16 @@ function modeTick(dt){if(mode=='Private')return privTick();if(netOn&&!isHost){$(
  else{const live=bots.filter(b=>b.al&&!b.net).length;$('#ob').textContent=`Wave ${wave}  ·  Kills ${kills}  ·  Enemies ${live}`;if(netOn&&P.dead&&!bots.some(b=>b.net&&b.al))return endGame('You were eliminated');
   if(!live){bots=bots.filter(b=>{if(b.net)return true;S.remove(b.m);return false});wave++;const n=Math.min(12,2+wave*2);for(let i=0;i<n;i++)addBot(50+wave*6,1+wave*.07);msg('Wave '+wave,2.5);gc=Math.min(gc+1,3)}}}
 const rng=()=>L.pk.includes('Run & Gun')||(mode=='Zombies'&&zq&&zq.perks.stam);
-function upd(dt){t0+=dt;
+function upd(dt){t0+=dt;ctlTick(dt);
  if(P.dead){P.rt-=dt;if(P.rt<=0&&mode!='Survival'&&mode!='Zombies')respawn()}
- else{const f=(key.KeyW?1:0)-(key.KeyS?1:0),s=(key.KeyD?1:0)-(key.KeyA?1:0);const spt=(key.ShiftLeft||key.ShiftRight)&&f>0;phys(dt,f,s,(spt?9:7)*(L.pk.includes('Marathon')?1.15:1)*zsm());P.spr=(P.spr||0)+((spt?1:0)-(P.spr||0))*Math.min(1,dt*8);
-  tg=findT();fr=tg?Math.max(.4,1-.4*AA):1;
+ else{const mi=moveCalc(dt),f=mi.f,s=mi.s,spt=mi.spt;phys(dt,f,s,mi.spd*(L.pk.includes('Marathon')?1.15:1)*zsm());P.spr=(P.spr||0)+((spt?1:0)-(P.spr||0))*Math.min(1,dt*8);
+  tg=findT();fr=(tg?Math.max(.4,1-.4*AA):1)*(1-.45*ST.ads);
   const w=cw();if(rel>0){rel-=dt;if(rel<=0){const tk=Math.min(w.m-w.mag,w.res);w.mag+=tk;w.res-=tk}}
-  else if((trig||key.KeyF)&&(w.au||fresh)&&t0>=nf&&w.mag>0&&(!spt||rng())){shoot();fresh=0}else if(trig&&w.mag<=0)startRel();
+  else if(trig&&((w.au&&!ST.fm[w.k])||fresh)&&t0>=nf&&w.mag>0&&(!spt||rng())){shoot();fresh=0}else if(trig&&w.mag<=0)startRel();
   if(t0-lastHit>(L.pk.includes('Second Wind')?2:4))P.sh=Math.min(P.msh,P.sh+(L.pk.includes('Second Wind')?65:40)*dt)}
  kick*=Math.exp(-9*dt);const mvs=Math.hypot(P.mx||0,P.mz||0),f_=P.dead?0:Math.min(1,mvs/7),spr=P.spr||0;bobP+=dt*(6.5+spr*3.5)*f_;if(P.on&&!wasOn)landD=.09;wasOn=P.on;landD*=Math.exp(-9*dt);cRoll+=(-((key.KeyD?1:0)-(key.KeyA?1:0))*.02*(P.on?1:.4)*(P.dead?0:1)-cRoll)*Math.min(1,dt*8);
- if(P.dead){if(mode=='Zombies')zDownCam(dt);else deathCam(dt)}else{C.position.set(P.x,P.y+1.65+Math.sin(bobP*2)*.014*f_*(1+spr)-landD,P.z);C.rotation.set(pitch+kick,yaw,cRoll)}
- gun.position.x+=(.2-rlX()-spr*.07+Math.cos(bobP)*(.006+.03*spr)*f_-gun.position.x)*10*dt;gun.position.y=-.2+Math.sin(bobP*2)*(.006+.03*spr)*f_-spr*.1+rlY();gun.position.z+=(-.45+spr*(.04+.06*Math.sin(bobP*2+1))-gun.position.z)*12*dt;gun.rotation.x=rlRot()-spr*(.62+.1*Math.sin(bobP*2));
+ if(P.dead){if(mode=='Zombies')zDownCam(dt);else deathCam(dt)}else{C.position.set(P.x,P.y+ST.eye+Math.sin(bobP*2)*.014*f_*(1+spr)-landD,P.z);C.rotation.set(pitch+kick,yaw,cRoll)}
+ gun.position.x+=(.2*(1-ST.ads)+ST.ax*ST.ads-rlX()-spr*.07+Math.cos(bobP)*(.006+.03*spr)*f_-gun.position.x)*10*dt;gun.position.y=-.2*(1-ST.ads)+ST.ay*ST.ads+Math.sin(bobP*2)*(.006+.03*spr)*(1-ST.ads*.8)*f_-spr*.1+rlY();gun.position.z+=(-.45*(1-ST.ads)+ST.az*ST.ads+spr*(.04+.06*Math.sin(bobP*2+1))-gun.position.z)*12*dt;gun.rotation.x=rlRot()-spr*(.62+.1*Math.sin(bobP*2));
  juiceTick(dt);gun.rotation.z-=spr*(.3+.07*Math.cos(bobP));gun.rotation.y+=spr*(.42+.05*Math.sin(bobP));featTick(dt);fpUpdate(dt);updBots(dt);for(const b of bots)if(b.al)animBot(b,dt);fallTick(dt);gfxTick(dt);modeTick(dt);
  for(let i=grs.length-1;i>=0;i--){const g=grs[i];g.t-=dt;g.v.y-=18*dt;const np=g.p.clone().add(g.v.clone().multiplyScalar(dt));let ex=g.t<=0;
   if(np.y<.13){np.y=.13;g.v.y*=-.35;g.v.x*=.7;g.v.z*=.7;if(g.g.imp)ex=1}
@@ -221,10 +221,10 @@ function upd(dt){t0+=dt;
   g.p.copy(np);g.m.position.copy(np);if(ex){boom(np,g.g);S.remove(g.m);grs.splice(i,1)}}
  for(let i=fx.length-1;i>=0;i--){const f=fx[i];f.l-=dt;if(f.grow)f.m.scale.addScalar(f.grow*dt);if(f.sph)f.m.material.opacity=Math.max(0,f.l*1.7);if(f.fade){f.m.material.opacity=f.fade*Math.min(1,f.l/.1);f.m.scale.x=f.m.scale.z=f.r*(.5+f.l/.16)}if(f.l<=0){S.remove(f.m);if(f.fade)f.m.material.dispose();if(f.line)f.m.geometry.dispose();fx.splice(i,1)}}
  hmT-=dt;if(hmT<=0)$('#hm').className='';msT-=dt;if(msT<=0)$('#ms').textContent='';dmA=Math.max(0,dmA-dt*.8);$('#dm').style.opacity=dmA;
- $('#cx').className=tg?'t':'';$('#sh').style.width=P.sh/P.msh*100+'%';$('#hp').style.width=Math.max(0,P.hp/P.mhp*100)+'%';
+ $('#cx').className=(tg?'t':'')+(ST.ads>.4?' h':'');$('#sh').style.width=P.sh/P.msh*100+'%';$('#hp').style.width=Math.max(0,P.hp/P.mhp*100)+'%';
  $('#am').innerHTML=P.dead?(mode=='Zombies'?'Downed':'Respawning…'):`${cw().mag}<small>${rel>0?'Reloading…':'/ '+cw().res} · ${cw().pn||W[cw().k].n}${L.g?' · Grenades '+gc:''}</small>`}
 const clk=new THREE.Clock();
-function gameFrame(){const dt=Math.min(clk.getDelta(),.05);if(typeof inputTick=='function')inputTick(dt);if(run&&(!paused||(typeof netOn!='undefined'&&netOn)))upd(dt);else if(!run&&typeof menuCam=='function')menuCam(dt);if(typeof netOn!='undefined'&&netOn)netTick(dt);if(typeof vrPost=='function')vrPost(dt);R.render(S,C)}
+function gameFrame(){const dt=Math.min(clk.getDelta(),.05);if(typeof inputTick=='function')inputTick(dt);if(run&&(!paused||(typeof netOn!='undefined'&&netOn)))upd(dt);else if(!run&&typeof menuCam=='function')menuCam(dt);if(typeof netOn!='undefined'&&netOn)netTick(dt);if(typeof vrPost=='function')vrPost(dt);R.render(S,C);if(typeof vrAfter=='function')vrAfter()}
 (function loop(){requestAnimationFrame(loop);if(!(R.xr&&R.xr.isPresenting))gameFrame()})();
 
 /* ===================== input.js ===================== */
@@ -235,6 +235,33 @@ document.addEventListener('pointerlockchange',()=>{const l=document.pointerLockE
 addEventListener('mousemove',e=>{if(!run||paused)return;const k=.0022*sens*fr;yaw-=e.movementX*k;pitch=cl(pitch-e.movementY*k,-1.45,1.45);sw.x=cl(sw.x-e.movementX*.0012,-.1,.1);sw.y=cl(sw.y-e.movementY*.0012,-.08,.08)});
 addEventListener('mousedown',e=>{if(e.button==0&&run&&!paused){trig=1;fresh=1}});addEventListener('mouseup',e=>{if(e.button==0)trig=0});
 addEventListener('contextmenu',e=>e.preventDefault());
-addEventListener('keydown',e=>{if(!run||paused)return;if(e.code=='Space')e.preventDefault();if(!key[e.code]){if(e.code=='KeyF')fresh=1;if(e.code=='KeyR')startRel();if(e.code=='KeyG')throwG();if(e.code=='Digit1')swap(0);if(e.code=='Digit2')swap(1);if(e.code=='Digit3')swap(mode=='Zombies'?2:wp.findIndex(w=>w.pw));if(e.code=='KeyV')melee();if(e.code=='KeyE')useStreak();if(e.code=='KeyQ')swap((cur+1)%wp.length)}key[e.code]=1});
+addEventListener('keydown',e=>{if(!run||paused)return;if(typeof kbDown=='function')return kbDown(e);if(e.code=='Space')e.preventDefault();if(!key[e.code]){if(e.code=='KeyF')fresh=1;if(e.code=='KeyR')startRel();if(e.code=='KeyG')throwG();if(e.code=='Digit1')swap(0);if(e.code=='Digit2')swap(1);if(e.code=='Digit3')swap(mode=='Zombies'?2:wp.findIndex(w=>w.pw));if(e.code=='KeyV')melee();if(e.code=='KeyE')useStreak();if(e.code=='KeyQ')swap((cur+1)%wp.length)}key[e.code]=1});
 addEventListener('keyup',e=>key[e.code]=0);addEventListener('blur',()=>{for(const k in key)key[k]=0;trig=0});
 
+
+/* ---------- Decay: a ruined city block. Two crossing streets, four gutted buildings (doorways, window sills you can vault, collapsed rooms), a crater plaza with a fountain ruin and a toppled bus,
+   wrecked cars, barricades and rubble. NOTE: first layout, built without the reference images; the Hardpoint spots are in `zn`. ---------- */
+MAPS.Decay={d:'Ruined city block: gutted buildings, wrecked cars, barricaded streets and a crater plaza',H:40,sky:0x7d8a90,gr:0x3b3e3a,bc:0x6b665c,gt:'concrete',hemi:.85,sunI:.55,
+ zn:[[0,0],[-23,-23],[23,-23],[-23,23],[23,23]],
+ b(){const a=[],B=(x,z,w,d,h,y0,c,k)=>a.push([x,z,w,d,h,y0||0,c,k]);let sd=41;const r=()=>(sd=(sd*16807)%2147483647)/2147483647,ri=(l,h)=>l+r()*(h-l);
+  B(0,0,80,8,.04,0,0x2c2e30,'asphalt');B(0,0,8,80,.04,0,0x2c2e30,'asphalt');
+  const wall=(x0,z0,x1,z1,h,gaps,col)=>{const hz=Math.abs(z1-z0)<.01,L=hz?Math.abs(x1-x0):Math.abs(z1-z0),o=hz?Math.min(x0,x1):Math.min(z0,z1),segs=[];let p=0;for(const[g0,g1]of gaps.sort((q,w)=>q[0]-w[0])){if(g0>p)segs.push([p,g0]);p=g1}if(p<L)segs.push([p,L]);
+   for(const[s0,s1]of segs){const len=s1-s0,mid=o+(s0+s1)/2,hh=h*(r()<.3?ri(.45,.8):1),px=hz?mid:x0,pz=hz?z0:mid,w=hz?len:.8,d=hz?.8:len;
+    if(len>6&&r()<.7){const wx=ri(.3,.6)*len,ww=2.2;/* window: low sill + upper wall */const a0=-len/2+wx,a1=a0+ww;if(hz){B(px-len/2+(a0+len/2)/2,pz,a0+len/2,d,hh,0,col);B(px+(a0+a1)/2,pz,ww,d,1.1,0,col);B(px+(a0+a1)/2,pz,ww,d,hh,2.5,col);B(px+(a1+len/2)/2,pz,len/2-a1,d,hh,0,col)}else{B(px,pz-len/2+(a0+len/2)/2,w,a0+len/2,hh,0,col);B(px,pz+(a0+a1)/2,w,ww,1.1,0,col);B(px,pz+(a0+a1)/2,w,ww,hh,2.5,col);B(px,pz+(a1+len/2)/2,w,len/2-a1,hh,0,col)}}
+    else B(px,pz,w,d,hh,0,col)}};
+  const cols=[0x7a7468,0x6a6a66,0x80756a,0x5f625f];let ci=0;
+  for(const[sx,sz]of[[-1,-1],[1,-1],[-1,1],[1,1]]){const cx=sx*23,cz=sz*23,x0=cx-10,x1=cx+10,z0=cz-10,z1=cz+10,c=cols[ci++%4];
+   wall(x0,z0,x1,z0,7,[[7,12]],c);wall(x0,z1,x1,z1,7,[[6,11]],c);wall(x0,z0,x0,z1,7,[[8,13]],c);wall(x1,z0,x1,z1,7,[[5,10]],c);
+   wall(x0+3,cz+(sz>0?-2:2),cx+2,cz+(sz>0?-2:2),5,[[6,9.5]],c);wall(cx+2,z0+3,cx+2,cz-3,6,[[2,5]],c);
+   B(cx-5,cz+5,1.4,1.4,7,0,c);B(cx+6,cz-6,1.4,1.4,5.5,0,c);
+   for(let i=0;i<5;i++)B(cx+ri(-8,8),cz+ri(-8,8),ri(1.5,3),ri(1.5,3),ri(.7,1.3),0,0x6a665e,'concrete');B(cx+sx*-3,cz+sz*-3,4,2.4,.9,0,0x4a4038,'plank')}
+  /* crater plaza: fountain ruin and a ring of rubble with gaps */
+  B(0,0,5,5,1.1,0,0x7a7a74,'concrete');B(0,0,2,2,2.4,0,0x6a6a64,'concrete');
+  for(let i=0;i<10;i++){if(i%3==1)continue;const ag=i/10*6.283;B(Math.cos(ag)*9.5,Math.sin(ag)*9.5,ri(2,3.4),ri(2,3.4),ri(.8,1.5),0,0x6a665e,'concrete')}
+  /* toppled bus, wrecked cars, barricades */
+  B(-14,3,9,2.8,2.6,0,0xc9a42a,'metal');B(-14,3.2,8.6,2.2,.3,2.6,0x8a7a2a,'metal');
+  const car=(x,z,rot)=>{const w=rot?4.2:1.9,d=rot?1.9:4.2,c=[0x7a2a2a,0x2a4a6a,0x5a5a5a,0x8a8a7a][r()*4|0];B(x,z,w,d,1.4,0,c,'metal')};
+  for(const[x,z,ro]of[[-6,-3,1],[8,2.5,1],[18,-2.5,1],[-27,2,1],[30,-3,1],[3,-12,0],[-2.5,14,0],[2.5,-27,0],[-3,26,0],[3.5,33,0]])car(x,z,ro);
+  for(const[x,z,w,d]of[[-34,0,.9,6],[34,0,.9,6],[0,-34,6,.9],[0,34,6,.9],[10,6,3,.8],[-9,-7,.8,3]])B(x,z,w,d,1.1,0,0x9a9a92,'concrete');
+  for(let i=0;i<14;i++){const x=ri(-36,36),z=ri(-36,36);if((Math.abs(x)<5&&Math.abs(z)<12)||(Math.abs(z)<5&&Math.abs(x)<12))continue;B(x,z,ri(1.2,2.6),ri(1.2,2.6),ri(.7,1.4),0,0x6a665e,'concrete')}
+  return a}};

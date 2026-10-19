@@ -118,14 +118,8 @@ function zBoxTick(o,i,dt,auth){if(o.st==1){o.t+=dt;o.cy-=dt;o.beam.visible=o.lab
  else if(o.st==2&&auth){o.t+=dt;if(o.t>9)zBoxEnd(o,i)}}
 
 /* ---------- navigation: a coarse grid and a breadth-first flow field towards each player ---------- */
-function zGrid(){const n=Math.ceil(H),b=new Uint8Array(n*n);for(let j=0;j<n;j++)for(let i=0;i<n;i++){const x=-H+i*2+1,z=-H+j*2+1;for(const k of bx)if(k.h>.5&&(k.y0||0)<2&&x>k.x0-.6&&x<k.x1+.6&&z>k.z0-.6&&z<k.z1+.6){b[j*n+i]=1;break}}zgr={n,b}}
-function zFlow(pl){const g=zgr,n=g.n,d=new Int16Array(n*n).fill(-1),ci=v=>cl(Math.floor((v+H)/2),0,n-1),s=ci(pl.z)*n+ci(pl.x),qu=[s];d[s]=0;
- for(let h=0;h<qu.length;h++){const c=qu[h],x0=c%n,y0=(c/n)|0;for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const x=x0+dx,y=y0+dz;if(x<0||y<0||x>=n||y>=n)continue;const k=y*n+x;if(d[k]>=0||g.b[k])continue;if(dx&&dz&&(g.b[y0*n+x]||g.b[y*n+x0]))continue;d[k]=d[c]+1;qu.push(k)}}return d}
-function zSteer(b,pl,fl){const dx=pl.x-b.x,dz=pl.z-b.z,D=Math.hypot(dx,dz);let tx=pl.x,tz=pl.z;
- if(D>1.6&&fl&&!(D<12&&castW(V(b.x,1.2,b.z),V(dx/D,0,dz/D),D)>=D-.3)){const n=zgr.n,ci=v=>cl(Math.floor((v+H)/2),0,n-1),i=ci(b.x),j=ci(b.z);let best=fl[j*n+i]<0?1e9:fl[j*n+i],bi=-1,bj=-1;
-  for(let a=-1;a<=1;a++)for(let c=-1;c<=1;c++){if(!a&&!c)continue;const x=i+a,y=j+c;if(x<0||y<0||x>=n||y>=n)continue;const v=fl[y*n+x];if(v>=0&&v<best){if(a&&c&&(zgr.b[j*n+x]||zgr.b[y*n+i]))continue;best=v;bi=x;bj=y}}
-  if(bi>=0){tx=-H+bi*2+1;tz=-H+bj*2+1}}
- return[tx,tz,D]}
+function zGrid(){navBuild();zgr=NAV}
+function zFlow(pl){return navFlow(pl.x,pl.z)}
 /* everyone the zombies can attack: the host and every connected player who is on their feet */
 function zPlayers(){const a=[];if(!P.dead)a.push({id:zMe(),x:P.x,z:P.z,y:P.y,me:1});if(netOn)for(const b of bots)if(b.net&&!b.hb&&b.al)a.push({id:b.id,x:b.x,z:b.z,y:b.y||0});return a}
 
@@ -152,7 +146,7 @@ function zDamage(b,d,head,by,k,mel){if(!b.al)return;b.hp-=d;b.lh=t0;const mine=b
  else{const nb=bots.find(x=>x.net&&x.id==by);if(nb)nb.k=(nb.k||0)+1;netSend({t:'zk',to:by,pts:pt,k,h:head?1:0})}}
 function zMove(dt){const zs=bots.filter(b=>b.zom&&b.al),pls=zPlayers();
  for(const b of zs){let pl=null,bd=1e9;for(const p of pls){const d=Math.hypot(p.x-b.x,p.z-b.z);if(d<bd){bd=d;pl=p}}if(!pl)continue;
-  const[tx,tz,D]=zSteer(b,pl,zfls[pl.id]),ang=Math.atan2(tx-b.x,tz-b.z);mv(b,Math.sin(ang)*b.sp*dt,Math.cos(ang)*b.sp*dt,.45);b.m.position.set(b.x,0,b.z);b.tyaw=D<4?Math.atan2(pl.x-b.x,pl.z-b.z):ang;
+  let sps=b.sp;if(b.stun>0){b.stun-=dt;sps*=.15}const D=navMove(b,dt,pl.x,pl.z,sps,zfls[pl.id]);b.m.position.set(b.x,0,b.z);b.tyaw=D<4?Math.atan2(pl.x-b.x,pl.z-b.z):(b.mva==null?b.m.rotation.y:b.mva);
   b.cd-=dt;if(D<1.5*(b.big?1.3:1)&&Math.abs(pl.y)<1.4){if(b.cd<=0){b.cd=b.ac;b.lunge=.3;if(pl.me)hurt(b.dm,b);else netSend({t:'hit',to:pl.id,d:b.dm,bot:b.i})}}else b.cd=Math.max(b.cd,.35)}
  for(let i=0;i<zs.length;i++)for(let j=i+1;j<zs.length;j++){const a=zs[i],c=zs[j],dx=c.x-a.x,dz=c.z-a.z,d=Math.hypot(dx,dz);if(d<.8&&d>.001){const p=(.8-d)*.5/d;mv(a,-dx*p,-dz*p,.45);mv(c,dx*p,dz*p,.45)}}
  zq.gn-=dt;if(zq.gn<=0&&zs.length){zq.gn=2+Math.random()*2;const b=zs[Math.random()*zs.length|0],d=Math.hypot(b.x-P.x,b.z-P.z);if(d<25)beep(70+Math.random()*50,.4,'sawtooth',Math.max(.01,.05-d*.002))}}
@@ -169,7 +163,7 @@ function zRoundSync(d){const z=zq;if(d.r>z.r){z.r=d.r;z.brutes=d.br||0;zRoundFx(
 /* per-frame work shared by the host and by guests */
 function zCommon(dt){const z=zq;if(!P.dead&&t0-lastHit>6&&P.hp<P.mhp)P.hp=Math.min(P.mhp,P.hp+12*dt);
  if(z.down){z.dnT-=dt;if(z.dnT<=0){z.down=0;z.out=1;msg('You bled out. You return next round',3)}}
- if(z.cur&&z.cur.rv&&key.KeyE&&!P.dead){z.rvT+=dt;$('#zp').textContent=`Reviving ${z.cur.rv.nm}… ${Math.min(100,Math.round(z.rvT/2*100))}%`;if(z.rvT>=2){z.rvT=0;netSend({t:'zqv',to:z.cur.rv.id});z.pts+=100;feed('You revived '+z.cur.rv.nm)}}else z.rvT=0;
+ if(z.cur&&z.cur.rv&&key.KeyF&&!P.dead){z.rvT+=dt;$('#zp').textContent=`Reviving ${z.cur.rv.nm}… ${Math.min(100,Math.round(z.rvT/2*100))}%`;if(z.rvT>=2){z.rvT=0;netSend({t:'zqv',to:z.cur.rv.id});z.pts+=100;feed('You revived '+z.cur.rv.nm)}}else z.rvT=0;
  zAnim(dt);zInteract();zMarkers()}
 function zomTick(dt){const z=zq;if(!z||mode!='Zombies')return;const M=MAPS[sel.map];
  let alive=0;for(const b of bots)if(b.zom&&b.al)alive++;
@@ -189,8 +183,8 @@ function zcTick(dt){const z=zq;if(!z||mode!='Zombies')return;const k=Math.min(1,
 function zSync(d){const seen=new Set();for(const[i,x,z,big]of d.l){seen.add(i);let b=bots.find(q=>q.zp&&q.i==i);if(!b)b=zPuppet(i,x,z,big,d.r);b.tx=x;b.tz=z}
  for(const b of bots)if(b.zp&&b.al&&!seen.has(b.i)){b.al=0;zdead.push({b,t:0});ragStart(b,b.x-P.x,b.z-P.z,3)}}
 function zInteract(){const z=zq;let best=null,bd=1e9;if(!P.dead){for(const it of zi){const d=Math.hypot(P.x-it.x,P.z-it.z);if(d<it.r&&d<bd&&it.txt()){bd=d;best=it}}
-  if(netOn)for(const b of bots)if(b.net&&!b.hb&&!b.al&&b.dn){const d=Math.hypot(P.x-b.x,P.z-b.z);if(d<2.6&&d<bd){bd=d;best={rv:b,txt:()=>'Hold E to revive '+b.nm,cost:()=>0,act:()=>{}}}}}
- z.cur=best;const e=$('#zp');if(P.dead&&z.down){e.textContent=`DOWN · bleeding out in ${Math.ceil(z.dnT)}s · a teammate can revive you`;e.className='bad';return}if(best){const c=best.cost();e.textContent=best.rv?best.txt():`[E] ${best.txt()}${c?'  ['+c+']':''}`;e.className=c>z.pts?'bad':''}else{e.textContent='';e.className=''}}
+  if(netOn)for(const b of bots)if(b.net&&!b.hb&&!b.al&&b.dn){const d=Math.hypot(P.x-b.x,P.z-b.z);if(d<2.6&&d<bd){bd=d;best={rv:b,txt:()=>'Hold F to revive '+b.nm,cost:()=>0,act:()=>{}}}}}
+ z.cur=best;const e=$('#zp');if(P.dead&&z.down){e.textContent=`DOWN · bleeding out in ${Math.ceil(z.dnT)}s · a teammate can revive you`;e.className='bad';return}if(best){const c=best.cost();e.textContent=best.rv?best.txt():`[F] ${best.txt()}${c?'  ['+c+']':''}`;e.className=c>z.pts?'bad':''}else{e.textContent='';e.className=''}}
 function zUse(){if(!zq||P.dead||over)return;if(zq.cur)zq.cur.act()}
 function zHud(){const z=zq,ic=Object.keys(z.perks).filter(k=>z.perks[k]).map(k=>`<i style="background:${hex(PERKS[k].c)}">${PERKS[k].n[0]}</i>`).join(''),tm=netOn?bots.filter(b=>b.net&&!b.hb).map(b=>`${esc(b.nm)} ${b.zpts|0}${b.al?'':b.dn?' ✚':' ✖'}`).join('<br>'):'',k=z.r+'|'+z.pts+'|'+ic+'|'+tm+'|'+(z.down?1:0);if(k==zhc)return;zhc=k;$('#zr').textContent=z.r||'';$('#zpt').textContent=z.pts+(z.down?' · DOWN':'');$('#zpk').innerHTML=ic;$('#zt').innerHTML=tm}
 /* downed: Revive Soda brings you back by yourself, a teammate can revive you (co-op), otherwise the run ends */

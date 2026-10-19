@@ -148,3 +148,18 @@ body.zom #kst{display:none}
 #prof #nm{width:100%;margin-bottom:6px;font:600 18px Rajdhani,sans-serif;background:#0b161ccc;border-color:#3b5963}
 
 button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #62e0f0;outline-offset:2px}
+
+#cx.h{opacity:0}
+#scope{position:fixed;inset:0;z-index:12;display:none;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent 0,transparent 31%,#000 32.5%);}
+#scope::before,#scope::after{content:'';position:absolute;background:#000b}#scope::before{left:0;right:0;top:50%;height:1px}#scope::after{top:0;bottom:0;left:50%;width:1px}
+#flash{position:fixed;inset:0;z-index:30;background:#fff;opacity:0;pointer-events:none}
+#nvo{position:fixed;inset:0;z-index:11;display:none;pointer-events:none;background:radial-gradient(circle,transparent 45%,#001a00dd 100%)}
+#sbd{position:fixed;left:50%;top:12%;transform:translateX(-50%);z-index:20;display:none;min-width:360px;background:#08121cdd;border:1px solid #62e0f066;border-radius:10px;padding:14px 22px;color:#e8f4f8;font-family:Rajdhani,sans-serif}
+#sbd h3{margin:0 0 8px;font-family:Teko,sans-serif;font-size:28px;letter-spacing:2px}#sbd table{width:100%;border-collapse:collapse}#sbd td{padding:3px 8px}#sbd tr.me{color:#62e0f0;font-weight:700}
+#mapv{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:20;display:none;background:#08121cee;border:1px solid #62e0f066;border-radius:10px;padding:10px;text-align:center;color:#9bb}
+#mapv canvas{width:min(80vh,92vw);height:min(80vh,92vw)}
+#osk{position:fixed;left:50%;bottom:4%;transform:translateX(-50%);z-index:60;display:none;background:#08121cf0;border:1px solid #62e0f088;border-radius:12px;padding:10px}
+#osk .r{display:flex;gap:6px;margin:6px 0;justify-content:center}#osk button{min-width:46px;height:46px;font-size:20px;border-radius:8px;border:1px solid #62e0f055;background:#12303a;color:#fff}
+
+#vrsplash{position:fixed;inset:0;z-index:99;background:#061018f2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#62e0f0;font-family:Teko,sans-serif;cursor:pointer}
+#vrsplash b{font-size:96px;letter-spacing:8px}#vrsplash span{font-size:26px;color:#9bb;font-family:Rajdhani,sans-serif}
