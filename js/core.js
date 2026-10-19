@@ -212,7 +212,7 @@ function upd(dt){t0+=dt;
   if(t0-lastHit>(L.pk.includes('Second Wind')?2:4))P.sh=Math.min(P.msh,P.sh+(L.pk.includes('Second Wind')?65:40)*dt)}
  kick*=Math.exp(-9*dt);const mvs=Math.hypot(P.mx||0,P.mz||0),f_=P.dead?0:Math.min(1,mvs/7),spr=P.spr||0;bobP+=dt*(6.5+spr*3.5)*f_;if(P.on&&!wasOn)landD=.09;wasOn=P.on;landD*=Math.exp(-9*dt);cRoll+=(-((key.KeyD?1:0)-(key.KeyA?1:0))*.02*(P.on?1:.4)*(P.dead?0:1)-cRoll)*Math.min(1,dt*8);
  if(P.dead){if(mode=='Zombies')zDownCam(dt);else deathCam(dt)}else{C.position.set(P.x,P.y+1.65+Math.sin(bobP*2)*.014*f_*(1+spr)-landD,P.z);C.rotation.set(pitch+kick,yaw,cRoll)}
- gun.position.x+=(.2-rlX()-spr*.07+Math.cos(bobP)*(.006+.03*spr)*f_-gun.position.x)*10*dt;gun.position.y=-.2+Math.sin(bobP*2)*(.006+.03*spr)*f_-spr*.1+rlY();gun.position.z+=(-.45+spr*(.04+.06*Math.sin(bobP*2+1))-gun.position.z)*12*dt;gun.rotation.x=rlRot()+spr*(.5+.12*Math.sin(bobP*2));
+ gun.position.x+=(.2-rlX()-spr*.07+Math.cos(bobP)*(.006+.03*spr)*f_-gun.position.x)*10*dt;gun.position.y=-.2+Math.sin(bobP*2)*(.006+.03*spr)*f_-spr*.1+rlY();gun.position.z+=(-.45+spr*(.04+.06*Math.sin(bobP*2+1))-gun.position.z)*12*dt;gun.rotation.x=rlRot()-spr*(.62+.1*Math.sin(bobP*2));
  juiceTick(dt);gun.rotation.z-=spr*(.3+.07*Math.cos(bobP));gun.rotation.y+=spr*(.42+.05*Math.sin(bobP));featTick(dt);fpUpdate(dt);updBots(dt);for(const b of bots)if(b.al)animBot(b,dt);fallTick(dt);gfxTick(dt);modeTick(dt);
  for(let i=grs.length-1;i>=0;i--){const g=grs[i];g.t-=dt;g.v.y-=18*dt;const np=g.p.clone().add(g.v.clone().multiplyScalar(dt));let ex=g.t<=0;
   if(np.y<.13){np.y=.13;g.v.y*=-.35;g.v.x*=.7;g.v.z*=.7;if(g.g.imp)ex=1}
@@ -224,7 +224,8 @@ function upd(dt){t0+=dt;
  $('#cx').className=tg?'t':'';$('#sh').style.width=P.sh/P.msh*100+'%';$('#hp').style.width=Math.max(0,P.hp/P.mhp*100)+'%';
  $('#am').innerHTML=P.dead?(mode=='Zombies'?'Downed':'Respawning…'):`${cw().mag}<small>${rel>0?'Reloading…':'/ '+cw().res} · ${cw().pn||W[cw().k].n}${L.g?' · Grenades '+gc:''}</small>`}
 const clk=new THREE.Clock();
-(function loop(){requestAnimationFrame(loop);const dt=Math.min(clk.getDelta(),.05);if(run&&(!paused||(typeof netOn!='undefined'&&netOn)))upd(dt);else if(!run&&typeof menuCam=='function')menuCam(dt);if(typeof netOn!='undefined'&&netOn)netTick(dt);R.render(S,C)})();
+function gameFrame(){const dt=Math.min(clk.getDelta(),.05);if(typeof inputTick=='function')inputTick(dt);if(run&&(!paused||(typeof netOn!='undefined'&&netOn)))upd(dt);else if(!run&&typeof menuCam=='function')menuCam(dt);if(typeof netOn!='undefined'&&netOn)netTick(dt);if(typeof vrPost=='function')vrPost(dt);R.render(S,C)}
+(function loop(){requestAnimationFrame(loop);if(!(R.xr&&R.xr.isPresenting))gameFrame()})();
 
 /* ===================== input.js ===================== */
 /* ---------- input ---------- */

@@ -13,6 +13,7 @@ Local test: run `python3 -m http.server` in this folder and open http://localhos
 - `js/systems.js` juice (shake, particles, sounds), pickups and killstreaks, VMP-X, KN-115 and RayGun models, held weapons (visible magazines, pump shotgun), character rigs, reload animations, mantling and wall jumps, bot PvP, Team Deathmatch, Capture the Flag
 - `js/interface.js` levels, prestige and the camo tracks (animated shader camos), death camera, private P2P matches and persistent lobbies, home screen and the Zombies / Multiplayer menus, pause/dev menus, match-end sequence (victory/defeat, leaderboard, podium with emotes), touch controls
 - `js/gfx.js` graphics: procedurally textured and merged level geometry, real-time shadows, sky dome (day and night), window facades, flickering lights
+- `js/input.js` gamepad controller support (menus and play) and WebXR VR mode
 - `js/zombies.js` the Zombies mode: the Hollow Estate map, rounds and waves, zombie AI with flow-field pathfinding, points, doors, mystery boxes, Pack-a-Punch, soda perks and the co-op networking
 
 Each section inside the JS files starts with a banner comment showing its original file name.
@@ -33,7 +34,7 @@ When a match ends the world freezes and blurs, VICTORY or DEFEAT pops up, then t
 Every weapon has its own reload and the part being loaded travels with the left hand: magazine weapons drop the old mag and seat a fresh one, the shotgun is loaded shell by shell and then pumped, the rocket launcher is loaded from the rear and the RayGun swaps its energy cell. Bots use the same animations.
 
 ## Movement
-Walking speed is 7, hold Shift to sprint at 9 (forward only, the FOV widens slightly). While sprinting the weapon is held low and across the body with a running swing and you cannot fire it, unless you carry the Run & Gun perk (Multiplayer loadout, unlocks at level 10; in Zombies the Stamin Fizz soda gives the same ability). Movement accelerates and stops smoothly. The Marathon perk adds 15% to both. On touch, push the stick to its edge to sprint.
+Walking speed is 7, hold Shift to sprint at 9 (forward only, the FOV widens slightly). While sprinting the weapon is held low, muzzle pointing down, and across the body with a running swing and you cannot fire it, unless you carry the Run & Gun perk (Multiplayer loadout, unlocks at level 10; in Zombies the Stamin Fizz soda gives the same ability). Movement accelerates and stops smoothly. The Marathon perk adds 15% to both. On touch, push the stick to its edge to sprint.
 
 ## Domination
 Two teams (you are Blue, 5v5 with bots), three zones (A, B, C) per map. Stand in a zone with no enemy inside to capture it; the more of your team inside, the faster it flips (up to 3 count). A contested zone does not move. Every 2 seconds each zone a team owns gives that team 1 point. First team to 350 wins. Zones show on the radar and in the top bar. Bots go for the nearest zone their team does not own, and defenders hold zones the team already has. Zone positions come from `zn` in each map (a default row is used if a map has none).
@@ -101,3 +102,7 @@ Players, bots and zombies that die are thrown by the hit, tumble, bounce off wal
 - Your loadout, mode, map and settings are saved on every change and when the tab is hidden or closed, and are loaded after all weapons exist (previously a loadout using the VMP-X, Coyote or other late-defined weapons was thrown away on load).
 - Audio resumes automatically when you return to the tab.
 - Zombies podium: only the real players stand on it (just you in solo) while a crowd of zombies shambles around them.
+
+## Controller and VR
+- **Controller** (any standard gamepad, plug in and press a button): left stick move, right stick look, RT shoot, A jump, X reload, B or R3 knife, Y or D-pad swap, LB or LT grenade, RB use / killstreak (hold to revive), L3 toggles sprint (releasing the stick cancels it), Start pause. In menus the D-pad or left stick moves the focus, A presses, B goes back or resumes, left/right changes drop-downs and sliders. Note: browsers may refuse pointer lock without a mouse click; the game plays fine without it.
+- **VR** (WebXR, e.g. Quest browser or desktop Chrome/Edge with a headset): Settings > VR headset mode > On, then Deploy / Start survival; the match opens in the headset. The right controller aims and holds the gun (shots go where it points), trigger shoots, left stick moves in the aim direction, right stick snap-turns 30 degrees, A jump, B swap, X use, left trigger grenade, left grip reload, right grip knife, stick click sprint, Y leaves VR and opens the pause menu (Resume goes back into VR). Health, shield, ammo and round/points are on a panel on your left wrist. Shadows are turned off while in VR. Match end also returns you to the screen. Not tested on real hardware: please report anything that feels off.

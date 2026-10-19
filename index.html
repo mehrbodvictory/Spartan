@@ -26,8 +26,11 @@
    <label>Aim assist<select id="aa"><option value="0">Off</option><option value="0.6">Light</option><option value="1">Strong</option><option value="1.5" selected>Very strong</option></select></label>
    <label>Look sensitivity<input id="sn" type="range" min="0.3" max="2.5" step="0.1" value="1.4"></label>
    <label>Field of view<input id="fv" type="range" min="60" max="110" step="1" value="80"></label>
+   <label id="vrL" style="display:none">VR headset mode<select id="vrm"><option value="0">Off</option><option value="1">On (enter VR when a match starts)</option></select></label>
    <label>Graphics<select id="gq"><option value="high">High (shadows)</option><option value="low">Low (faster)</option></select></label>
    <h2>Controls</h2><div class="how"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</span><span><kbd>Shift</kbd> sprint</span><span><kbd>Mouse</kbd> look</span><span><kbd>Click</kbd>/<kbd>F</kbd> shoot</span><span><kbd>R</kbd> reload</span><span><kbd>G</kbd> grenade</span><span><kbd>V</kbd> melee</span><span><kbd>E</kbd> killstreak</span><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>/<kbd>Q</kbd> weapons</span><span><kbd>Space</kbd> jump · mantle ledges · wall jump</span><span><kbd>Esc</kbd> pause</span></div>
+   <h2>Controller</h2><div class="how"><span>Left stick move</span><span>Right stick look</span><span>RT shoot</span><span>A jump</span><span>X reload</span><span>B knife</span><span>Y swap</span><span>LB grenade</span><span>RB use / killstreak (hold to revive)</span><span>L3 sprint</span><span>R3 knife</span><span>D-pad swap</span><span>Start pause</span><span>Menus: D-pad / stick + A, B back</span></div>
+   <h2>VR</h2><p class="sub">Turn on VR headset mode above, then deploy: the match opens in your headset (WebXR: Quest browser or desktop Chrome / Edge with a headset). Right controller aims and holds the gun, trigger shoots, left stick moves the way the gun points, right stick snap-turns, A jump, B swap, X use, Y menu (takes you back to the screen), left trigger grenade, left grip reload, right grip knife, stick click sprint. Health and ammo show on your left wrist.</p>
    <p class="sub">Touch screens: drag on the left to look, tap or hold on the right to shoot, use the stick for movement (push it to the edge to sprint) and the buttons for jump, reload, grenade, melee, swap and killstreak.</p><p class="sub">No aim button: shots go where your crosshair points, and aim assist helps when an enemy is near it.</p></section>
  </main>
  <div id="hot"></div>
@@ -60,4 +63,5 @@
 <script src="js/gfx.js"></script>
 <script src="js/interface.js"></script>
 <script src="js/zombies.js"></script>
+<script src="js/input.js"></script>
 </body></html>
