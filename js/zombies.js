@@ -5,25 +5,56 @@
    their kill points back. Points, perks and weapons belong to each player. Teammates revive you by holding E; downed players come back
    at the next round; the run ends when everybody is down. ---------- */
 let zq=null,zG=null,zi=[],zdoors=[],zboxes=[],zgr=null,zfls={},zdead=[],zhc='',zbT=0,zsT=0;
-const PERKS={vit:{n:'Vitality Cola',c:0xd8332a,cost:2500,t:'+50 max health'},spd:{n:'Quick Fizz',c:0x39c85a,cost:3000,t:'Reload twice as fast'},dbl:{n:'Double Pop',c:0xf0c21e,cost:2000,t:'Double damage, faster fire'},rev:{n:'Revive Soda',c:0x2f7de0,cost:500,t:'Revive yourself once'},stam:{n:'Stamin Fizz',c:0xa04ad8,cost:2000,t:'Run 20% faster'},mule:{n:'Mule Soda',c:0xf08a2a,cost:4000,t:'Carry a third weapon'}};
+const PERKS={vit:{n:'Vitality Cola',c:0xd8332a,cost:2500,t:'+50 max health'},spd:{n:'Quick Fizz',c:0x39c85a,cost:3000,t:'Reload twice as fast'},dbl:{n:'Double Pop',c:0xf0c21e,cost:2000,t:'Double damage, faster fire'},rev:{n:'Revive Soda',c:0x2f7de0,cost:500,t:'Revive yourself once'},stam:{n:'Stamin Fizz',c:0xa04ad8,cost:2000,t:'Run 20% faster and shoot while sprinting'},mule:{n:'Mule Soda',c:0xf08a2a,cost:4000,t:'Carry a third weapon'}};
 /* perk hooks used by the weapon code (all neutral outside Zombies) */
 const zrl=()=>zq&&mode=='Zombies'&&zq.perks.spd?0.5:1,zfr=()=>zq&&mode=='Zombies'&&zq.perks.dbl?0.75:1,zsm=()=>zq&&mode=='Zombies'&&zq.perks.stam?1.2:1,
  zmul=w=>mode=='Zombies'&&zq?ZW*(w.pm||1)*(zq.perks.dbl&&!w.ex&&w.k!='RG'?2:1):1;
 const zHp=r=>{const bs=n=>100+30*(n-1)+5*n*(n-1);return Math.round(r<=10?bs(r):bs(10)*Math.pow(1.07,r-10))},zDm=r=>Math.min(55,18+r*1.3),zAc=r=>Math.max(.7,1.1-r*.015),zTot=r=>Math.min(56,Math.round(5+r*2.4)),ZW=2.2,ZE=3,RGB=3000,FACE={s:0,n:Math.PI,e:Math.PI/2,w:-Math.PI/2};
 const zMe=()=>netOn?myId:'solo',zCli=()=>netOn&&!isHost;
 
-/* ---------- the zombie map: four walled wings joined by four locked doors ---------- */
-MAPS['Hollow Estate']={d:'Zombies map: four walled wings, locked doors, perk machines, mystery boxes and Pack-a-Punch',zm:1,H:44,sky:0x141a24,gr:0x2c302a,bc:0x7a7468,ps:[-22,28],skyk:'night',hemi:.55,hemiC:0x8aa0d0,hemiG:0x1a2030,sunI:.25,sunC:0x9fb4ff,fogF:80,gt:'concrete',
- lights:[[-22,3.8,22,0xffc890,1.5,34],[22,3.8,22,0xffb070,1.4,34],[-22,3.8,-22,0x9aff9a,1.4,34],[22,3.8,-22,0x9ad0ff,1.6,34],[-3,3.8,3,0xff9a6a,1,26],[3,3.8,-3,0xffe0a0,1,26]],
+/* ---------- the zombie map: an abandoned, half-collapsed mansion. Four ruined wings (Foyer, Ballroom, Conservatory, Kitchen) joined by four boarded-up doors.
+   Walls are 8 high with no ledges beside them so nobody can climb out; light comes only from lamps, sconces, barrels and a fallen chandelier. ---------- */
+MAPS['Hollow Estate']={d:'Zombies map: an abandoned, collapsed mansion with four ruined wings, locked doors, perk machines, mystery boxes and Pack-a-Punch',zm:1,H:44,sky:0x141a24,gr:0x2c302a,bc:0x5e584e,ps:[-22,28],skyk:'night',hemi:.62,hemiC:0x8aa0d0,hemiG:0x1a2030,sunI:.3,sunC:0x9fb4ff,fogF:85,gt:'concrete',
  zs:[[-40,40,0],[-8,40,0],[-40,6,0],[40,40,1],[8,40,1],[40,6,1],[-40,-40,2],[-8,-40,2],[-40,-6,2],[40,-40,3],[8,-40,3],[40,-6,3]],
- dr:[{x:0,z:22,w:1.2,d:5,c:1000,a:0,b:1,n:'Garage'},{x:-22,z:0,w:5,d:1.2,c:1250,a:0,b:2,n:'Greenhouse'},{x:22,z:0,w:5,d:1.2,c:1500,a:1,b:3,n:'Laboratory'},{x:0,z:-22,w:1.2,d:5,c:2000,a:2,b:3,n:'Laboratory'}],
+ dr:[{x:0,z:22,w:1.2,d:5,c:1000,a:0,b:1,n:'Ballroom'},{x:-22,z:0,w:5,d:1.2,c:1250,a:0,b:2,n:'Conservatory'},{x:22,z:0,w:5,d:1.2,c:1500,a:1,b:3,n:'Kitchen'},{x:0,z:-22,w:1.2,d:5,c:2000,a:2,b:3,n:'Kitchen'}],
  mc:[{t:'vit',x:-14,z:42,f:'n'},{t:'rev',x:-42,z:22,f:'e'},{t:'dbl',x:42,z:14,f:'w'},{t:'mule',x:14,z:42,f:'n'},{t:'spd',x:-42,z:-14,f:'e'},{t:'stam',x:-14,z:-42,f:'s'},{t:'pap',x:30,z:-42,f:'s'},{t:'box',x:-32,z:4,f:'s'},{t:'box',x:8,z:-4,f:'n'}],
- b(){const a=[],vv=MAPS['Hollow Estate']._v||(MAPS['Hollow Estate']._v=[]),B=(x,z,w,d,h,y0,c,k)=>a.push([x,z,w,d,h,y0||0,c,k]),V=(x,z,w,d,h,y0,c,s,t)=>vv.push([x,z,w,d,h,y0||0,c,s,t]),wc=0x6e675c;let sd=5;const r=()=>(sd=(sd*16807)%2147483647)/2147483647;
-  B(0,-34.25,1.2,19.5,4.5,0,wc,'brick');B(0,0,1.2,39,4.5,0,wc,'brick');B(0,34.25,1.2,19.5,4.5,0,wc,'brick');B(-34.25,0,19.5,1.2,4.5,0,wc,'brick');B(0,0,39,1.2,4.5,0,wc,'brick');B(34.25,0,19.5,1.2,4.5,0,wc,'brick');
-  for(const[x,z,c,k]of[[-22,22,0x6a5238,'plank'],[22,22,0x55585c,'concrete'],[-22,-22,0x3f6a38,'grass'],[22,-22,0x566a78,'tile']])B(x,z,43,43,.05,0,c,k);
-  for(const[cx,cz]of[[-22,22],[22,22],[-22,-22],[22,-22]]){B(cx,cz,4,4,1,0,0x59483a,'plank');for(const sx of[-1,1])for(const sz of[-1,1]){B(cx+sx*9,cz+sz*9,1.6,1.6,4.5,0,0x5a554c,'concrete');V(cx+sx*9,cz+sz*9,1.9,1.9,.35,4.5,0x3a3832,'b','concrete')}B(cx-15,cz,2,5,1.2,0,0x6a5a45,'plank');B(cx+15,cz,2,5,1.2,0,0x6a5a45,'plank');V(cx,cz,.7,.7,3.9,3.7,0xffe4b0,'e')}
-  for(let k=0;k<80;k++){const x=(r()*2-1)*41,z=(r()*2-1)*41;if(Math.abs(x)<2.5||Math.abs(z)<2.5)continue;V(x,z,.5+r()*1.3,.5+r()*1.3,.1,.05,0x4a0b0b,'b','concrete')}
-  for(let k=0;k<40;k++){const x=(r()*2-1)*41,z=(r()*2-1)*41;if(Math.abs(x)<2.5||Math.abs(z)<2.5)continue;V(x,z,.3+r()*.5,.3+r()*.5,.15+r()*.3,.05,[0x5a554c,0x4a4640,0x6a5a45][k%3],'b')}
+ b(){const M=MAPS['Hollow Estate'],a=[],vv=M._v||(M._v=[]),B=(x,z,w,d,h,y0,c,k)=>a.push([x,z,w,d,h,y0||0,c,k]),V=(x,z,w,d,h,y0,c,s,t)=>vv.push([x,z,w,d,h,y0||0,c,s,t]);
+  let sd=17;const r=()=>(sd=(sd*16807)%2147483647)/2147483647,ri=(lo,hi)=>lo+r()*(hi-lo),lights=M.lights=[],wc=0x6e675c,occ=[],keep=[];
+  for(const m of M.mc)keep.push([m.x,m.z,4.2]);for(const d of M.dr)keep.push([d.x,d.z,6.5]);for(const s of M.zs)keep.push([s[0],s[1],3.2]);keep.push([M.ps[0],M.ps[1],5]);
+  /* tall boundary walls between the wings (8 high, ragged crowns) */
+  for(const[x,z,w,d]of[[0,-34.25,1.2,19.5],[0,0,1.2,39],[0,34.25,1.2,19.5],[-34.25,0,19.5,1.2],[0,0,39,1.2],[34.25,0,19.5,1.2]]){B(x,z,w,d,8,0,wc,'brick');const L=Math.max(w,d);for(let t=-L/2+1;t<L/2-1;t+=2.4+r()*2)V(w>d?x+t:x,w>d?z:z+t,w>d?1.4+r():w+.2,w>d?d+.2:1.4+r(),8+.3+r()*1.2,8,0x4a463e,'b','brick')}
+  /* the ruined wings */
+  const WN=[
+   {c:[-22,22],fl:[0x4a3a2c,'plank'],P:[[-18,-9,8,.8],[-14,-18.5,.8,7],[12,-8,.8,10],[16.5,-13,9,.8],[-12,12,.8,10],[-17,7,10,.8]],F:['couch','couch','table','table','piano','bookcase','bookcase','bookcase','bookcase','wardrobe','crate','rubble','rubble','rubble','rubble'],lamp:[6,-6],chan:[-4,14]},
+   {c:[22,22],fl:[0x5a5a58,'tile'],P:[[-14,-4,.8,8],[14,6,.8,8],[-9,-8,1.6,1.6,7],[9,-8,1.6,1.6,7],[-9,6,1.6,1.6,7],[9,14,1.6,1.6,7]],F:['couch','couch','table','table','table','piano','crate','crate','rubble','rubble','rubble','rubble','rubble','wardrobe'],chan:[0,2],sconce:[21.85,2,1]},
+   {c:[-22,-22],fl:[0x3f5a34,'grass'],P:[[-3,12,10,.8,3.2,'glass'],[14,-6,.8,10,3.2,'glass'],[-16,-2,8,.8],[0,-1,4,4,1],[-8,-8,10,2,.9],[8,5,10,2,.9]],F:['planter','planter','crate','crate','rubble','rubble','rubble','rubble','tree','tree','tree','table'],barrel:[-6,-14],lamp:[0,-1,1],lc:0x9ad0ff},
+   {c:[22,-22],fl:[0x6a6c66,'tile'],P:[[-12,-8,.8,8],[-17,-12,10,.8],[14,6,.8,10],[18,1,8,.8],[0,-6,8,2.2,1.1],[-2,3,6,2.2,1.1]],F:['counter','counter','fridge','fridge','table','crate','crate','crate','rubble','rubble','rubble','wardrobe'],lamp:[-3,-6,1.1],barrel:[6,10]}];
+  const TY={couch:[2.2,.95,.85,0x6a3a3a,'plank'],table:[2,1.1,.9,0x5a4028,'plank'],bookcase:[2.2,.5,2.3,0x4a3420,'plank'],piano:[1.7,1.3,1.1,0x15171a,'plank'],wardrobe:[1.4,.7,2.1,0x5a4a38,'plank'],crate:[1.1,1.1,1,0x6a5a3a,'plank'],planter:[2.4,1.1,.8,0x4a3a2a,'concrete'],counter:[3,.8,1,0x8a8a84,'tile'],fridge:[.9,.9,2,0xb5b8b4,'metal'],tree:[.6,.6,3.2,0x3a2d22,'plank']};
+  const hit=(x,z,w,d,m)=>occ.some(o=>Math.abs(x-o[0])<(w+o[2])/2+m&&Math.abs(z-o[1])<(d+o[3])/2+m),clear=(x,z,rad)=>keep.every(k=>Math.hypot(x-k[0],z-k[1])>k[2]+rad);
+  for(const W of WN){const[cx,cz]=W.c,wx=u=>cx+u,wz=v=>cz+v;
+   B(cx,cz,43,43,.05,0,W.fl[0],W.fl[1]);
+   for(const[u,v,w,d,h,k]of W.P){B(wx(u),wz(v),w,d,h||4.5,0,k=='glass'?0x3a5a54:wc,k||'brick');occ.push([u,v,w,d]);
+    if(!k&&!h&&Math.max(w,d)>4){const L=Math.max(w,d);for(let t=-L/2;t<L/2-.5;t+=1.2+r()*1.5)V(w>d?wx(u+t):wx(u),w>d?wz(v):wz(v+t),w>d?1+r()*1.2:w+.1,w>d?d+.1:1+r()*1.2,4.5+.2+r()*.7,4.5,0x4a463e,'b','brick')}}
+   /* furniture and rubble scattered on the floor, kept clear of machines, doors, spawns and each other */
+   for(const t of W.F){for(let n=0;n<60;n++){const u=ri(-19,19),v=ri(-19,19);let[w,d,h,c,k]=t=='rubble'?[ri(1.4,3.2),ri(1.4,3),ri(.7,1.2),0x6a665c,'concrete']:TY[t];if(r()<.5)[w,d]=[d,w];
+     if(!clear(wx(u),wz(v),Math.max(w,d)/2)||hit(u,v,w,d,1.6))continue;occ.push([u,v,w,d]);
+     B(wx(u),wz(v),w,d,h,0,c,k);
+     if(t=='rubble'){V(wx(u)+ri(-.8,.8),wz(v)+ri(-.8,.8),ri(.5,1),ri(.5,1),h+ri(.1,.4),0,0x7a7468,'b','concrete');V(wx(u)+1.4,wz(v)-.6,.7,1.2,.3,0,0x5a564e,'b','concrete')}
+     else if(t=='tree'){V(wx(u),wz(v),2.6,2.6,5,2.6,0x2e3a26,'s');V(wx(u)+.4,wz(v)-.5,1.8,1.8,5.6,3.4,0x26321f,'s')}
+     else if(t=='piano')V(wx(u),wz(v),w*.9,d*.9,h+.18,h,0x0c0d0f,'b','plank');
+     else if(t=='couch'||t=='table')V(wx(u),wz(v),w*.95,d*.95,h+.12,h,t=='couch'?0x7a4646:0x6a5030,'b','plank');
+     break}}
+   /* torn rugs, stains and debris, flat on the floor (walkable) */
+   for(let k=0;k<7;k++){const u=ri(-18,18),v=ri(-18,18);V(wx(u),wz(v),ri(2.4,4.6),ri(1.8,3.4),.04,.05,[0x5a1a1a,0x1f3a3a,0x4a3a1a][k%3],'b','plank')}
+   for(let k=0;k<18;k++){const u=ri(-20,20),v=ri(-20,20);V(wx(u),wz(v),ri(.5,1.6),ri(.5,1.6),.05,.05,0x3a0808,'b','concrete')}
+   for(let k=0;k<26;k++){const u=ri(-20,20),v=ri(-20,20);V(wx(u),wz(v),ri(.2,.7),ri(.2,.7),ri(.1,.28),.05,[0x5a554c,0x4a4640,0x6a5a45][k%3],'b','concrete')}
+   /* open roof: a few surviving rafters across the sky */
+   for(let k=-3;k<=3;k++){const L=ri(14,30);V(wx(0),wz(k*6.5),L,.45,7.9,7.4,0x2a2118,'b','plank');if(k%2)V(wx(k*6.5),wz(0),.45,ri(10,24),7.9,7.4,0x2a2118,'b','plank')}
+   /* light sources that are actually part of the room */
+   if(W.lamp){const[u,v,y]=[W.lamp[0],W.lamp[1],W.lamp[2]||0],x=wx(u),z=wz(v);V(x,z,.35,.35,y+.1,y,0x2a2a2a,'c');V(x,z,.06,.06,y+1.7,y,0x3a3a3a,'c');V(x,z,.5,.5,y+2.1,y+1.7,W.lc||0xffe0a0,'e');lights.push([x,y+1.9,z,W.lc||0xffc890,1.5,30])}
+   if(W.chan){const x=wx(W.chan[0]),z=wz(W.chan[1]);V(x,z,2.6,2.6,.5,0,0x8a6a2a,'c');V(x,z,1.7,1.7,.9,.45,0x6a4a1a,'c');for(let q=0;q<6;q++){const ag=q*1.047;V(x+Math.cos(ag)*1.3,z+Math.sin(ag)*1.3,.18,.18,.62,.5,0xffe4b0,'e')}V(x+2.1,z+.7,.1,1.6,.15,0,0xaab8c0,'g');B(x,z,2.6,2.6,.25,0,0x8a6a2a,'n');lights.push([x,1.4,z,0xffb070,1.8,34])}
+   if(W.barrel){const x=wx(W.barrel[0]),z=wz(W.barrel[1]);V(x,z,.95,.95,1,0,0x4a3a30,'c','metal');V(x,z,.7,.7,1.25,1,0xff7a1a,'e');B(x,z,.95,.95,1,0,0x4a3a30,'metal');lights.push([x,1.8,z,0xff8a3a,1.7,28])}
+   if(W.sconce){const[u,v,s]=W.sconce,x=wx(u),z=wz(v),dx=s==1?-1:s==0?0:0;V(x,z,.3,.5,3,2.5,0x2a2a2a,'b');V(x+dx*.3,z,.18,.18,3.3,2.95,0xffcf8a,'e');lights.push([x+dx*.8,3.1,z,0xffc080,1.2,22])}}
   return a}};
 
 /* ---------- small helpers ---------- */
@@ -45,13 +76,13 @@ const _zsg=setGun;setGun=function(){_zsg();gf.material.color.setHex(mode=='Zombi
 function zStart(){document.body.classList.toggle('zom',mode=='Zombies');$('#zh').style.display=mode=='Zombies'?'block':'none';$('#zp').textContent='';zhc='';
  if(zG&&zG.parent)zG.parent.remove(zG);zG=null;zi=[];zdoors=[];zboxes=[];zdead=[];zfls={};zbT=zsT=0;if(mode!='Zombies'){zq=null;return}
  const M=MAPS[sel.map];zq={r:0,pts:500,perks:{},cap:2,revBuys:0,revM:null,st:'prep',tm:6,toSpawn:0,spT:0,open:{0:1},fl:0,cur:null,gn:3,brutes:0,down:0,out:0,dnT:0,rvT:0,ad:0};
- wp=[zGunObj('MG')];cur=0;rel=0;gc=L.g?2:0;P.mhp=50;P.hp=50;setGun();
+ wp=[zGunObj('CT')];cur=0;rel=0;gc=L.g?2:0;P.mhp=50;P.hp=50;setGun();
  if(netOn){const k=Object.keys(names).sort().indexOf(myId);P.x+=(k%2?1.6:-1.6);P.z+=(k>1?1.6:0)}
  zG=new THREE.Group();mapG.add(zG);M.dr.forEach((d,i)=>zDoor(d,i));for(const m of M.mc){if(m.t=='box')zMakeBox(m);else zMachine(m)}zGrid()}
-function zDoor(d,idx){const m=new THREE.Group(),body=new THREE.Mesh(bg,new THREE.MeshLambertMaterial({color:0x5b4636}));body.scale.set(d.w,4.5,d.d);body.position.y=2.25;m.add(body);
+function zDoor(d,idx){const m=new THREE.Group(),body=new THREE.Mesh(bg,new THREE.MeshLambertMaterial({color:0x5b4636}));body.scale.set(d.w,8,d.d);body.position.y=4;m.add(body);
  const sg_=new THREE.MeshBasicMaterial({map:zTex(256,64,(g,w,h)=>{g.fillStyle='#1b1410';g.fillRect(0,0,w,h);g.fillStyle='#ffd24a';g.font='700 40px Teko,Impact,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('DOOR  '+d.c,w/2,h/2+2)})}),thin=d.d<d.w;
  for(const s of[1,-1]){const p=new THREE.Mesh(new THREE.PlaneGeometry(3.2,.8),sg_);if(thin){p.position.set(0,2.3,s*(d.d/2+.03));p.rotation.y=s>0?0:Math.PI}else{p.position.set(s*(d.w/2+.03),2.3,0);p.rotation.y=s>0?Math.PI/2:-Math.PI/2}m.add(p)}
- m.position.set(d.x,0,d.z);zG.add(m);const o={d,m,box:zSolid(d.x,d.z,d.w,d.d,4.5),open:0};zdoors.push(o);
+ m.position.set(d.x,0,d.z);zG.add(m);const o={d,m,box:zSolid(d.x,d.z,d.w,d.d,8),open:0};zdoors.push(o);
  zi.push({x:d.x,z:d.z,r:3.4,txt:()=>o.open?'':'Open door to the '+d.n,cost:()=>o.open?0:d.c,act:()=>{if(o.open)return;if(zq.pts<d.c)return zf('Not enough points');if(zCli())return void netSend({t:'zqd',i:idx});zq.pts-=d.c;zOpenDoor(idx,zMe())}})}
 function zOpenDoor(i,by){const o=zdoors[i];if(!o||o.open)return;o.open=1;o.sink=1;zUnsolid(o.box);zq.open[o.d.a]=zq.open[o.d.b]=1;zq.fl=0;beep(200,.4,'sawtooth',.09);msg(o.d.n+' unlocked',1.8);if(netOn&&isHost)netSend({t:'zd',i,by})}
 function zFace(p){return zTex(128,192,(g,w,h)=>{const col=hex(p.c);g.fillStyle='#14181c';g.fillRect(0,0,w,h);const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,col);gr.addColorStop(1,'#050505');g.fillStyle=gr;g.fillRect(6,6,w-12,h-12);
@@ -107,7 +138,7 @@ function mkZombie(x,z,big){const r=zq.r,{m,rig}=zModel(r,big),hp=Math.round(zHp(
  m.position.set(x,0,z);bots.push(b);burst(V(x,1,z),big?30:14,big?0xaa3a2a:0x6a9a4a,5,.7,.14);return b}
 function zPuppet(i,x,z,big,r){const{m,rig}=zModel(r,big),b={i,m,rig,x,z,tx:x,tz:z,y:0,hp:1e9,mhp:1e9,sh:0,msh:0,lh:-9,al:1,team:'z',zom:1,zp:1,big:!!big,nm:big?'Brute':'Zombie',df:1,k:0};m.position.set(x,0,z);bots.push(b);return b}
 function zSpawn(M,big){const open=M.zs.filter(s=>zq.open[s[2]]),pl=zPlayers(),far=open.filter(s=>pl.every(p=>Math.hypot(s[0]-p.x,s[1]-p.z)>16)),s=(far.length?far:open)[Math.random()*(far.length||open.length)|0];mkZombie(s[0]+(Math.random()-.5)*3,s[1]+(Math.random()-.5)*3,big)}
-/* damage to a zombie: 10 points per hit, 130 for a kill, 200 for a melee kill, 300 for a brute; the RayGun kills anything.
+/* damage to a zombie: 10 points per hit, kill 50 (60 explosive), headshot kill 100, melee kill 130; the RayGun kills anything.
    Guests send their hits to the host (zqh) and get the kill points back (zk). */
 const _zhb=hitBot;hitBot=function(b,d,head){if(b.zom)return zHit(b,d,head);if(mode=='Zombies')return;_zhb(b,d,head)};
 function zHit(b,d,head){if(!b.al)return;const w=wp.find(x=>x.k==srcK);if(srcK=='RG')d=RGB*(w&&w.pm?w.pm:1)*(b.big?2:1);else if(w&&w.ex)d*=ZE*(w.pm||1);else if(!srcK&&src!='Melee')d*=ZE;
@@ -116,7 +147,7 @@ function zHit(b,d,head){if(!b.al)return;const w=wp.find(x=>x.k==srcK);if(srcK=='
 function zDamage(b,d,head,by,k,mel){if(!b.al)return;b.hp-=d;b.lh=t0;const mine=by==zMe();
  if(mine){hits++;$('#hm').className='on'+(head?' hd':'');hmT=.12;beep(head?900:600,.05,'square',.04)}juiceHit(b,Math.min(d,9999),head);
  if(b.hp>0){if(mine&&!mel)zq.pts+=10;return}
- b.al=0;const pt=mel?200:b.big?300:130;zdead.push({b,t:0});
+ b.al=0;const pt=mel?130:head?100:(k=='RL'||k=='RG')?60:50;zdead.push({b,t:0});{const kp=mine?P:bots.find(x=>x.net&&x.id==by);ragStart(b,kp?b.x-kp.x:0,kp?b.z-kp.z:0,b.big?2.2:(k=='SG'||k=='RL'||k=='RG'?6:3.4))}
  if(mine){kills++;zq.pts+=pt;floatTxt(V(b.x,2.8,b.z),'+'+pt,'#ffd24a');juiceKill(b,head);wzkill(k);killXP(head)}
  else{const nb=bots.find(x=>x.net&&x.id==by);if(nb)nb.k=(nb.k||0)+1;netSend({t:'zk',to:by,pts:pt,k,h:head?1:0})}}
 function zMove(dt){const zs=bots.filter(b=>b.zom&&b.al),pls=zPlayers();
@@ -125,7 +156,7 @@ function zMove(dt){const zs=bots.filter(b=>b.zom&&b.al),pls=zPlayers();
   b.cd-=dt;if(D<1.5*(b.big?1.3:1)&&Math.abs(pl.y)<1.4){if(b.cd<=0){b.cd=b.ac;b.lunge=.3;if(pl.me)hurt(b.dm,b);else netSend({t:'hit',to:pl.id,d:b.dm,bot:b.i})}}else b.cd=Math.max(b.cd,.35)}
  for(let i=0;i<zs.length;i++)for(let j=i+1;j<zs.length;j++){const a=zs[i],c=zs[j],dx=c.x-a.x,dz=c.z-a.z,d=Math.hypot(dx,dz);if(d<.8&&d>.001){const p=(.8-d)*.5/d;mv(a,-dx*p,-dz*p,.45);mv(c,dx*p,dz*p,.45)}}
  zq.gn-=dt;if(zq.gn<=0&&zs.length){zq.gn=2+Math.random()*2;const b=zs[Math.random()*zs.length|0],d=Math.hypot(b.x-P.x,b.z-P.z);if(d<25)beep(70+Math.random()*50,.4,'sawtooth',Math.max(.01,.05-d*.002))}}
-function zAnim(dt){for(let i=zdead.length-1;i>=0;i--){const d=zdead[i];d.t+=dt;const k=Math.min(1,d.t/.5);d.b.m.rotation.x=-1.45*k;d.b.m.position.y=-.2*k;if(d.t>1.6){S.remove(d.b.m);const j=bots.indexOf(d.b);if(j>=0)bots.splice(j,1);zdead.splice(i,1)}}
+function zAnim(dt){for(let i=zdead.length-1;i>=0;i--){const d=zdead[i];d.t+=dt;ragTick(d.b,dt);if(d.t>6&&d.b.rag)d.b.rag.sink=(d.t-6)*1.4;if(d.t>7.2){S.remove(d.b.m);const j=bots.indexOf(d.b);if(j>=0)bots.splice(j,1);zdead.splice(i,1)}}
  for(const o of zdoors)if(o.sink){o.m.position.y-=dt*6;if(o.m.position.y<-5){zG.remove(o.m);o.sink=0}}}
 
 /* ---------- round flow ---------- */
@@ -156,7 +187,7 @@ function zcTick(dt){const z=zq;if(!z||mode!='Zombies')return;const k=Math.min(1,
  for(const b of bots)if(b.zp&&b.al){const ox=b.x,oz=b.z;b.x+=(b.tx-b.x)*k;b.z+=(b.tz-b.z)*k;b.m.position.set(b.x,0,b.z);if(Math.hypot(b.tx-ox,b.tz-oz)>.02)b.tyaw=Math.atan2(b.tx-ox,b.tz-oz)}
  zCommon(dt);zboxes.forEach((o,i)=>zBoxTick(o,i,dt,0));zHud()}
 function zSync(d){const seen=new Set();for(const[i,x,z,big]of d.l){seen.add(i);let b=bots.find(q=>q.zp&&q.i==i);if(!b)b=zPuppet(i,x,z,big,d.r);b.tx=x;b.tz=z}
- for(const b of bots)if(b.zp&&b.al&&!seen.has(b.i)){b.al=0;zdead.push({b,t:0})}}
+ for(const b of bots)if(b.zp&&b.al&&!seen.has(b.i)){b.al=0;zdead.push({b,t:0});ragStart(b,b.x-P.x,b.z-P.z,3)}}
 function zInteract(){const z=zq;let best=null,bd=1e9;if(!P.dead){for(const it of zi){const d=Math.hypot(P.x-it.x,P.z-it.z);if(d<it.r&&d<bd&&it.txt()){bd=d;best=it}}
   if(netOn)for(const b of bots)if(b.net&&!b.hb&&!b.al&&b.dn){const d=Math.hypot(P.x-b.x,P.z-b.z);if(d<2.6&&d<bd){bd=d;best={rv:b,txt:()=>'Hold E to revive '+b.nm,cost:()=>0,act:()=>{}}}}}
  z.cur=best;const e=$('#zp');if(P.dead&&z.down){e.textContent=`DOWN · bleeding out in ${Math.ceil(z.dnT)}s · a teammate can revive you`;e.className='bad';return}if(best){const c=best.cost();e.textContent=best.rv?best.txt():`[E] ${best.txt()}${c?'  ['+c+']':''}`;e.className=c>z.pts?'bad':''}else{e.textContent='';e.className=''}}
@@ -175,7 +206,7 @@ function zMarkers(){if(!netOn)return;for(const b of bots){if(!b.net||b.hb)contin
   if(b.zmk){b.zmk.position.set(b.x,2.3,b.z);if(t0>b.zmt){b.zmt=t0+.4;zSet(b.zmk,'✚ '+b.nm+' '+Math.round(Math.hypot(P.x-b.x,P.z-b.z))+'m','#ff5a3a')}}}}
 function zRevive(){endDeath();P.dead=0;P.hp=P.mhp*.6;P.sh=P.msh;gun.visible=true;rel=0;zq.down=zq.out=0;if(isHost||!netOn)for(const b of bots)if(b.zom&&b.al){const dx=b.x-P.x,dz=b.z-P.z,d=Math.hypot(dx,dz);if(d<7&&d>.01)mv(b,dx/d*(7-d),dz/d*(7-d),.45)}msg('Revived!',2);beep(660,.2,'triangle',.1)}
 /* a downed or bled-out player returns at the start of the next round with a pistol (points are kept) */
-function zRespawn(){const z=zq,ps=MAPS[sel.map].ps;endDeath();P.dead=0;z.down=z.out=0;z.perks={};z.cap=2;P.mhp=50;P.hp=50;P.sh=P.msh;wp=[zGunObj('MG')];cur=0;rel=0;setGun();P.x=ps[0];P.z=ps[1];P.y=0;gun.visible=true;msg('Back in the fight',2)}
+function zRespawn(){const z=zq,ps=MAPS[sel.map].ps;endDeath();P.dead=0;z.down=z.out=0;z.perks={};z.cap=2;P.mhp=50;P.hp=50;P.sh=P.msh;wp=[zGunObj('CT')];cur=0;rel=0;setGun();P.x=ps[0];P.z=ps[1];P.y=0;gun.visible=true;msg('Back in the fight',2)}
 /* network messages: types starting with z (longer than one letter) are routed here from onMsg */
 function zNet(d){const z=zq;if(!z||mode!='Zombies')return;
  switch(d.t){
@@ -193,3 +224,8 @@ function zNet(d){const z=zq;if(!z||mode!='Zombies')return;
  case'zb':if(!isHost)zSync(d);break;
  case'zs':if(!isHost)zRoundSync(d);break}}
 fixZM();ui();buildMap();
+loadSet();
+addEventListener('pagehide',saveSet);addEventListener('beforeunload',saveSet);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveSet()});
+/* audio: resume the shared context whenever the tab comes back or the browser suspended it */
+const audioKick=()=>{try{if(ac&&ac.state!='running')ac.resume().catch(()=>{})}catch(e){}};
+document.addEventListener('visibilitychange',audioKick);addEventListener('focus',audioKick);addEventListener('pageshow',audioKick);for(const ev of['pointerdown','keydown','touchstart'])addEventListener(ev,audioKick,true);setInterval(()=>{if(!document.hidden)audioKick()},700);
