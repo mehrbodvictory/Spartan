@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg"><link rel="stylesheet" href="style.css"></head><body>
 <div id="menu">
  <header id="brand"><h1>SPARTAN <b>DRILL</b></h1><p>Arena combat simulator</p></header>
- <nav id="nav"><button data-p="play" class="mp">Play</button><button data-p="priv" class="mp">Private match</button><button data-p="load" class="mp">Loadout</button><button data-p="mast" class="mp">Weapon mastery</button><button data-p="zplay" class="zm">Play</button><button data-p="priv" class="zm">Co-op lobby</button><button data-p="zcam" class="zm">Camos</button><button data-p="set">Settings</button><button id="back">‹ Back</button></nav>
+ <nav id="nav"><button data-p="play" class="mp">Play</button><button data-p="priv" class="mp">Private match</button><button data-p="load" class="mp">Loadout</button><button data-p="zplay" class="zm">Play</button><button data-p="priv" class="zm">Co-op lobby</button><button data-p="cust" class="zm">Camos</button><button data-p="set">Settings</button><button id="back">‹ Back</button></nav>
  <div id="prof"><input id="nm" type="text" maxlength="12" placeholder="Your name"><p id="rank"></p><div id="xpb"><div id="xpf"></div></div><button id="prest" class="btn sm" style="display:none"></button></div>
  <main>
   <section id="p-play" class="pn"><h2>Game mode</h2><div class="row" id="md"></div><h2>Map</h2><div class="row" id="mp"></div><button id="go" class="big">Deploy</button></section>
@@ -21,6 +21,7 @@
    <div class="how"><span>10 points per hit</span><span>50 per body kill</span><span>100 per headshot kill</span><span>130 per katana kill (the katana needs more swings every round)</span><span><kbd>F</kbd> buy / interact</span></div>
    <ul class="zl"><li>Doors (1000 to 2000) open new wings of the estate</li><li>Mystery Box (950): a random weapon. The RayGun is rare and one-shots everything</li><li>Pack-a-Punch: 5000 to upgrade your weapon, 10000 to upgrade it again</li><li>Soda machines: red health, green fast reload, yellow double damage and fire rate, blue self-revive (the machine runs dry after 4 buys), purple run speed, orange third weapon</li></ul>
    <p id="zbest" class="sub"></p><button id="zgo" class="big">Start survival</button></section>
+  <section id="p-cust" class="pn"></section>
   <section id="p-zcam" class="pn"><h2>Zombie camos</h2><p class="sub">Earn zombie kills with each weapon to unlock these. The last three are animated. Every camo, from this list or from Multiplayer, works in both modes.</p><div id="zwm"></div></section>
  <section id="p-set" class="pn"><h2>Settings</h2>
    <label>Aim assist<select id="aa"><option value="0">Off</option><option value="0.6">Light</option><option value="1">Strong</option><option value="1.5" selected>Very strong</option></select></label>
@@ -60,11 +61,21 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <script src="js/core.js"></script>
+<script src="js/maps.js"></script>
+<script src="js/decay.js"></script>
+<script src="js/maps2.js"></script>
+<script src="js/sights.js"></script>
 <script src="js/systems.js"></script>
+<script src="js/weapons.js"></script>
+<script src="js/models.js"></script>
 <script src="js/gfx.js"></script>
 <script src="js/interface.js"></script>
 <script src="js/nav.js"></script>
 <script src="js/zombies.js"></script>
 <script src="js/controls.js"></script>
 <script src="js/input.js"></script>
+<script src="js/melee.js"></script>
+<script src="js/strike.js"></script>
+<script src="js/loadout.js"></script>
+<script src="js/customize.js"></script>
 </body></html>

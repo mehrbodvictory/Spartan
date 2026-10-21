@@ -117,7 +117,7 @@ function vrAfter(){if(xrS&&xrEye)C.position.copy(xrEye)}
 function vrOrg(){if(!xrS||!inMatch())return null;const rh=vrHand('right');if(!rh||!xrRig)return null;xrRig.updateMatrixWorld(true);const m=new THREE.Matrix4().multiplyMatrices(xrRig.matrixWorld,rh.matrix),p=new THREE.Vector3().setFromMatrixPosition(m);return p.add(aimDir().multiplyScalar(.12))}
 function vrPost(dt){if(!xrS)return;xrEye=C.position.clone();const rh=vrHand('right'),lh=vrHand('left');
  if(rh&&!xrGunIn){rh.add(gun);xrGunIn=1}else if(rh&&gun.parent!==rh)rh.add(gun);
- if(rh){gun.position.set(0,-.025,-.06);gun.rotation.set(0,0,0);gun.visible=inMatch()}
+ if(rh){const _w=cw(),_A=_w&&typeof curAnch=='function'?curAnch(_w.k):null;/* the weapon's right-hand grip point sits exactly on the controller */if(_A&&_A.r)gun.position.set(-_A.r[0],-_A.r[1],-_A.r[2]);else gun.position.set(0,-.025,-.06);gun.rotation.set(0,0,0);gun.visible=inMatch()}
  if(typeof fpArm!='undefined')for(const a of[fpArm.r,fpArm.l])a.up.visible=a.fo.visible=false;
  if(lh&&xrWrist&&inMatch()){if(xrWrist.m.parent!==lh)lh.add(xrWrist.m);xrWristT-=dt;if(xrWristT<=0){xrWristT=.2;const g=xrWrist.g;g.clearRect(0,0,256,160);g.fillStyle='rgba(8,18,24,.78)';g.fillRect(0,0,256,160);g.fillStyle='#fff';g.font='bold 34px sans-serif';g.fillText($('#am').textContent||'',12,44);
    const bar=(y,col,el)=>{g.fillStyle='rgba(255,255,255,.15)';g.fillRect(12,y,232,14);g.fillStyle=col;g.fillRect(12,y,232*Math.max(0,Math.min(1,parseFloat(el.style.width)/100||0)),14)};bar(62,'#62e0f0',$('#sh'));bar(84,'#6bd66b',$('#hp'));

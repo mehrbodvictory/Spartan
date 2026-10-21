@@ -75,7 +75,7 @@ const _zsg=setGun;setGun=function(){_zsg();gf.material.color.setHex(mode=='Zombi
 /* ---------- building the level objects: doors, machines, boxes ---------- */
 function zStart(){document.body.classList.toggle('zom',mode=='Zombies');$('#zh').style.display=mode=='Zombies'?'block':'none';$('#zp').textContent='';zhc='';
  if(zG&&zG.parent)zG.parent.remove(zG);zG=null;zi=[];zdoors=[];zboxes=[];zdead=[];zfls={};zbT=zsT=0;if(mode!='Zombies'){zq=null;return}
- const M=MAPS[sel.map];zq={r:0,pts:500,perks:{},cap:2,revBuys:0,revM:null,st:'prep',tm:6,toSpawn:0,spT:0,open:{0:1},fl:0,cur:null,gn:3,brutes:0,down:0,out:0,dnT:0,rvT:0,ad:0};
+ const M=MAPS[sel.map];zq={r:0,pts:500,perks:{},cap:2,revBuys:0,revM:null,st:'prep',tm:6,toSpawn:0,spT:0,open:{0:1},fl:0,cur:null,gn:3,brutes:0,down:0,out:0,dnT:0,rvT:0,ad:0,mp:[],pb:{}};
  wp=[zGunObj('CT')];cur=0;rel=0;gc=L.g?2:0;P.mhp=50;P.hp=50;setGun();
  if(netOn){const k=Object.keys(names).sort().indexOf(myId);P.x+=(k%2?1.6:-1.6);P.z+=(k>1?1.6:0)}
  zG=new THREE.Group();mapG.add(zG);M.dr.forEach((d,i)=>zDoor(d,i));for(const m of M.mc){if(m.t=='box')zMakeBox(m);else zMachine(m)}zGrid()}
@@ -96,7 +96,7 @@ function zMachine(m){const pap=m.t=='pap',p=pap?{n:'Pack-a-Punch',c:0x7a3ad8,cos
  if(pap){const bm=new THREE.Mesh(new THREE.CylinderGeometry(.5,.5,9,12),new THREE.MeshBasicMaterial({color:0x8a4aff,transparent:true,opacity:.18,depthWrite:false}));bm.position.y=Hh+4.5;g.add(bm)}
  g.position.set(m.x,0,m.z);g.rotation.y=FACE[m.f];zG.add(g);const side=m.f=='e'||m.f=='w',bxo=zSolid(m.x,m.z,side?D_:W_,side?W_:D_,Hh);
  if(pap){zi.push({x:m.x,z:m.z,r:3.4,txt:()=>{const w=cw(),t=w.pap||0;return t>=2?'Weapon fully upgraded':'Pack-a-Punch the '+(w.pn||W[w.k].n)},cost:()=>[5000,10000][cw().pap||0]||0,act:()=>{const w=cw(),c=[5000,10000][w.pap||0];if(!c)return zf('Already fully upgraded');if(zq.pts<c)return zf('Not enough points');zq.pts-=c;zPap(w);beep(300,.15,'sawtooth',.09);setTimeout(()=>beep(900,.3,'triangle',.09),120);msg('Pack-a-Punched!',2)}})}
- else{const o={gone:0};if(m.t=='rev')zq.revM={g,bxo,o};zi.push({x:m.x,z:m.z,r:2.6,txt:()=>o.gone?'':zq.perks[m.t]?'':p.n+': '+p.t,cost:()=>o.gone||zq.perks[m.t]?0:p.cost,act:()=>zPerk(m.t)})}}
+ else{zq.mp.push({k:zq.mp.length,x:m.x,z:m.z,f:m.f,n:p.n});const o={gone:0};if(m.t=='rev')zq.revM={g,bxo,o};zi.push({x:m.x,z:m.z,r:2.6,txt:()=>o.gone?'':zq.perks[m.t]?'':p.n+': '+p.t,cost:()=>o.gone||zq.perks[m.t]?0:p.cost,act:()=>zPerk(m.t)})}}
 function zPerk(t){const p=PERKS[t];if(zq.perks[t])return zf('You already have '+p.n);if(t=='rev'&&zq.revBuys>=4)return zf('Out of stock');if(zq.pts<p.cost)return zf('Not enough points');zq.pts-=p.cost;zq.perks[t]=1;
  if(t=='vit'){P.mhp=100;P.hp=100}if(t=='mule')zq.cap=3;
  if(t=='rev'){if(zCli())netSend({t:'zqr'});else{zq.revBuys++;zRevCount(zq.revBuys);if(netOn)netSend({t:'zrev',n:zq.revBuys})}}
@@ -164,7 +164,7 @@ function zRoundSync(d){const z=zq;if(d.r>z.r){z.r=d.r;z.brutes=d.br||0;zRoundFx(
 function zCommon(dt){const z=zq;if(!P.dead&&t0-lastHit>6&&P.hp<P.mhp)P.hp=Math.min(P.mhp,P.hp+12*dt);
  if(z.down){z.dnT-=dt;if(z.dnT<=0){z.down=0;z.out=1;msg('You bled out. You return next round',3)}}
  if(z.cur&&z.cur.rv&&key.KeyF&&!P.dead){z.rvT+=dt;$('#zp').textContent=`Reviving ${z.cur.rv.nm}… ${Math.min(100,Math.round(z.rvT/2*100))}%`;if(z.rvT>=2){z.rvT=0;netSend({t:'zqv',to:z.cur.rv.id});z.pts+=100;feed('You revived '+z.cur.rv.nm)}}else z.rvT=0;
- zAnim(dt);zInteract();zMarkers()}
+ zAnim(dt);zInteract();zMarkers();zProne()}
 function zomTick(dt){const z=zq;if(!z||mode!='Zombies')return;const M=MAPS[sel.map];
  let alive=0;for(const b of bots)if(b.zom&&b.al)alive++;
  if(z.st=='prep'){z.tm-=dt;if(z.tm<=0)zNewRound()}
@@ -176,6 +176,11 @@ function zomTick(dt){const z=zq;if(!z||mode!='Zombies')return;const M=MAPS[sel.m
   zsT+=dt;if(zsT>.5){zsT=0;netSend({t:'zs',r:z.r,st:z.st,tm:Math.ceil(z.tm),br:z.brutes})}
   if(!zPlayers().length&&!over){z.ad+=dt;if(z.ad>6)endGame('You reached round '+z.r)}else z.ad=0}
  $('#ob').textContent=z.st=='prep'?(z.r?`Round ${z.r} survived  ·  next round in ${Math.ceil(z.tm)}`:`Get ready  ·  first round in ${Math.ceil(z.tm)}`):`Round ${z.r}  ·  Zombies left ${z.toSpawn+alive}`;zHud()}
+/* lying prone in front of a perk machine pays 100 points, once per machine per match and only to the first player who does it (the host decides in co-op) */
+function zProne(){const z=zq;if(!z||P.dead||!ST.prone||!z.mp)return;z.pbq=z.pbq||{};for(const m of z.mp){if(z.pb[m.k]||z.pbq[m.k])continue;const a=FACE[m.f],fx=Math.sin(a),fz=Math.cos(a),dx=P.x-m.x,dz=P.z-m.z,fw=dx*fx+dz*fz,lat=Math.abs(dx*fz-dz*fx);
+  if(fw>.7&&fw<3.6&&lat<1.8){z.pbq[m.k]=1;if(zCli())netSend({t:'zqp',k:m.k});else zProneGrant(m.k,zMe())}}}
+function zProneGrant(k,by){const z=zq,m=z.mp[k];if(!m||z.pb[k])return;z.pb[k]=by;if(by==zMe())zProneGift(k);if(netOn&&isHost)netSend({t:'zpg',k,by})}
+function zProneGift(k){const z=zq,m=z.mp[k];z.pts+=100;msg('+100 · '+(m?m.n:'perk machine')+' secret',2.2);beep(1000,.1,'triangle',.07);setTimeout(()=>beep(1500,.12,'triangle',.06),90)}
 /* guests: the host runs the world, guests move the puppets and handle their own interactions */
 function zcTick(dt){const z=zq;if(!z||mode!='Zombies')return;const k=Math.min(1,dt*10);
  for(const b of bots)if(b.zp&&b.al){const ox=b.x,oz=b.z;b.x+=(b.tx-b.x)*k;b.z+=(b.tz-b.z)*k;b.m.position.set(b.x,0,b.z);if(Math.hypot(b.tx-ox,b.tz-oz)>.02)b.tyaw=Math.atan2(b.tx-ox,b.tz-oz)}
@@ -206,6 +211,8 @@ function zNet(d){const z=zq;if(!z||mode!='Zombies')return;
  switch(d.t){
  case'zqh':if(isHost){const b=bots.find(x=>x.zom&&!x.zp&&x.i==d.i&&x.al);if(b)zDamage(b,d.d,d.h,d.id,d.k,d.m)}break;
  case'zqd':if(isHost)zOpenDoor(d.i,d.id);break;
+ case'zqp':if(isHost)zProneGrant(d.k,d.id);break;
+ case'zpg':if(!isHost){z.pb[d.k]=d.by;if(d.by==myId)zProneGift(d.k)}break;
  case'zqb':if(isHost&&zboxes[d.i]&&zboxes[d.i].st==0)zBoxStart(zboxes[d.i],d.i,d.id);break;
  case'zqe':if(isHost){const o=zboxes[d.i];if(o&&o.st==2&&o.by==d.id)zBoxEnd(o,d.i)}break;
  case'zqr':if(isHost){z.revBuys++;zRevCount(z.revBuys);netSend({t:'zrev',n:z.revBuys})}break;

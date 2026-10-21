@@ -130,3 +130,16 @@ A ruined city block: two crossing streets, four gutted buildings (doorways, wind
 
 ## VR
 Menus work inside the headset (the DOM menus are mirrored onto a panel you point at), the Quest browser shows an Enter VR splash and the whole site runs in VR after one trigger pull (browsers only allow starting VR from a user gesture). Fix: in VR the shot origin used the headset-relative camera position, which is why shots came from the middle of the map; shots now leave from the right controller and the real eye position is restored after every render.
+
+## Update notes
+- **New maps:** Rust (desert oil refinery traced from the reference layout) and Decay (abandoned downtown, completely new layout). Blockfort, Pillars and Canyon were rebuilt as detailed maps (castle, Roman forum, mining gorge). All open maps are enclosed by a fence or low wall with an invisible barrier above it; the world continues beyond (js/maps.js, js/decay.js, js/maps2.js).
+- **Tactical map** (M) now uses the dark/red scan-line style, and the player arrow points the way you look.
+- **Loadout screen** redesigned: numbered loadout tabs (saved), slot grid, detail panel with a weapon preview rendered from the game's own models (js/loadout.js). New **Melee** slot: Katana or Fists.
+- **Melee:** tap V = quick weapon strike (weaker); hold V = draw the loadout melee weapon (much more damage). Katana is held with both hands at the base of the grip. New first-person arms/hands (js/melee.js).
+- **MVR-67** assault rifle added (js/weapons.js). New attachment: **Quickdraw Grip** (faster aim down sights).
+- **Iron sights:** every weapon has its own style (js/sights.js). KN-115, VMP-X and Coyote follow the reference photos. Detailed models for KN-115, SMG, Battle Rifle, Machine Pistol, Sniper, Rocket Launcher and RayGun (js/models.js).
+- **Killstreaks:** Shield Boost now at 5 kills, Airstrike at 8 as a bomber carpet bombing a line across the map; it never hurts you or your team (js/strike.js).
+- **Zombies:** lie prone in front of a perk machine for +100 points, once per machine per match, first player only.
+- **Multiplayer (P2P):** TURN/STUN servers, heartbeat, 15 s reconnect grace, automatic rejoin, and the match keeps running in a background tab. Other players show jump, crouch, slide, prone and dive poses, backwards running, look pitch, correct height and hit boxes, and their weapon camo.
+- **VR:** the weapon's grip point now sits on the controller.
+- **Customize weapon** replaces the Weapon mastery menu: a button in the Loadout screen (and the Camos button in the Zombies menu) opens a camo screen with a large preview of the weapon wearing the selected camo (Preview weapon cycles side / three quarter / top / front / rear / underside), Challenges and Weapon Prestige tabs, Military / Special / Mastery camo rows for Multiplayer and Zombies, locks with requirement and progress, and Track next camo (js/customize.js).

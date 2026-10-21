@@ -2,7 +2,7 @@
 /* ---------- full control scheme shared by keyboard + mouse, controller and VR: aim down sights, stances (crouch, slide, prone, dive), walk, auto-run, tactical sprint,
    lethal and tactical equipment, field upgrade, armor plates, fire mode, weapon mount, steady aim, ping, night vision, scoreboard and map ---------- */
 const ST={ads:0,adsIn:0,ax:0,ay:-.12,az:-.4,zoom:.2,eye:1.65,crouch:0,prone:0,slide:0,dive:0,walk:0,auto:0,tac:0,tacCd:0,lastShift:-9,mount:0,steady:0,nv:0,plates:3,tN:2,field:0,fieldCd:0,fm:{},sj:0,flash:0,sc:0,mapOn:0,sbOn:0,pings:[],qi:0};
-function ctlReset(){Object.assign(ST,{ads:0,adsIn:0,eye:1.65,crouch:0,prone:0,slide:0,dive:0,walk:0,auto:0,tac:0,tacCd:0,mount:0,steady:0,plates:3,tN:2,field:0,fieldCd:0,sj:0,flash:0});for(const p of ST.pings)S.remove(p.m);ST.pings=[];const e=$('#flash');if(e)e.style.opacity=0}
+function ctlReset(){mvReset();Object.assign(ST,{ads:0,adsIn:0,eye:1.65,crouch:0,prone:0,slide:0,dive:0,walk:0,auto:0,tac:0,tacCd:0,mount:0,steady:0,plates:3,tN:2,field:0,fieldCd:0,sj:0,flash:0});for(const p of ST.pings)S.remove(p.m);ST.pings=[];const e=$('#flash');if(e)e.style.opacity=0}
 /* ---------- ADS: put the sight line of the current weapon on the camera axis ---------- */
 const _sgC=setGun;setGun=function(){_sgC.apply(this,arguments);const w=cw();if(!w)return;const k=w.k,l=(WG[k]||WG.AR)[0],pz=-.14+.1*l;let s=null,rel_=.22,zm=.2;
  if(k=='AR'){const t=knG.userData.sight;if(t)s={yt:t.yt,zr:t.zr-.12}}else if(k=='VMP')s=vmpG.userData.sight;else if(k=='RG')s=rgG.userData.sight;else if(k=='SN'){s={yt:.11,zr:pz-(l*.35-.14)};rel_=.1}else s=fpG.userData.sight;
@@ -14,14 +14,14 @@ function moveCalc(dt){let f=(key.KeyW?1:0)-(key.KeyS?1:0),s=(key.KeyD?1:0)-(key.
  if(ST.slide>0||ST.dive>0){f=1;s=0;spt=false}
  let spd=7;if(spt)spd=ST.tac>0?10.2:9;else if(ST.slide>0)spd=4+7*(ST.slide/.85);else if(ST.dive>0)spd=2+9*(ST.dive/.5);else if(ST.prone)spd=1.8;else if(ST.crouch)spd=3.8;else if(ST.walk)spd=3.6;
  if(ST.ads>.3&&!ST.slide&&!ST.dive)spd*=1-.35*ST.ads;if(ST.field>0)spd*=1.25;return{f,s,spt,spd}}
-function ctlTick(dt){if(P.dead){ST.adsIn=0;ST.ads=0;ST.slide=ST.dive=0}
- const sh=key.ShiftLeft||key.ShiftRight,tg=ST.adsIn&&rel<=0&&!P.dead&&!P.mt?1:0;ST.ads+=(tg-ST.ads)*Math.min(1,dt*(tg?9:12));if(ST.ads<.002)ST.ads=0;
+function ctlTick(dt){meleeTick(dt);if(P.dead){ST.adsIn=0;ST.ads=0;ST.slide=ST.dive=0}
+ const sh=key.ShiftLeft||key.ShiftRight,tg=ST.adsIn&&rel<=0&&!P.dead&&!P.mt?1:0;ST.ads+=(tg-ST.ads)*Math.min(1,dt*(tg?9*((cw()&&cw().ad)||1):12));if(ST.ads<.002)ST.ads=0;
  if(ST.slide>0){ST.slide-=dt;if(ST.slide<=0)ST.crouch=1}if(ST.dive>0){ST.dive-=dt;if(ST.dive<=0)ST.prone=1}
  if(ST.tac>0&&(P.spr||0)>.5){ST.tac-=dt;if(ST.tac<=0)ST.tacCd=6}if(ST.tacCd>0)ST.tacCd-=dt;
  if(ST.field>0)ST.field-=dt;if(ST.fieldCd>0)ST.fieldCd-=dt;if(ST.steady>0)ST.steady-=dt;
  if(ST.mount&&(ST.ads<.5||Math.hypot(P.mx||0,P.mz||0)>1))ST.mount=0;
  const et=ST.slide>0?.8:ST.prone?.55:ST.crouch?1.15:1.65;ST.eye+=(et-ST.eye)*Math.min(1,dt*10);if(!key.Space)ST.sj=0;
- const sc=$('#scope'),w=cw(),scoped=ST.ads>.85&&w&&w.k=='SN';if(sc)sc.style.display=scoped?'block':'none';katTick(dt);gun.scale.setScalar(scoped||kat.t>0?.01:1);
+ const sc=$('#scope'),w=cw(),scoped=ST.ads>.85&&w&&w.k=='SN';if(sc)sc.style.display=scoped?'block':'none';katTick(dt);gun.scale.setScalar(scoped||meleeOut()?.01:1);
  if(ST.flash>0){ST.flash-=dt;const e=$('#flash');if(e)e.style.opacity=Math.min(1,ST.flash)}
  for(let i=ST.pings.length-1;i>=0;i--){const p=ST.pings[i];p.t-=dt;p.m.position.y=p.y+Math.sin(t0*4)*.15;p.m.rotation.y+=dt*2;if(p.t<=0){S.remove(p.m);ST.pings.splice(i,1)}}
  if(ST.mapOn)drawMap();if(ST.sbOn&&(ST.sbT=(ST.sbT||0)-dt)<=0){ST.sbT=.5;drawSb()}}
@@ -48,13 +48,26 @@ function actSb(on){ST.sbOn=on;const e=$('#sbd');e.style.display=on?'block':'none
 function actMap(){ST.mapOn=!ST.mapOn;const e=$('#mapv');e.style.display=ST.mapOn?'block':'none';if(ST.mapOn)drawMap()}
 function drawSb(){const rows=finRows(),e=$('#sbd');e.innerHTML='<h3>Scoreboard</h3><table>'+rows.map((r,i)=>`<tr class="${r.me?'me':''}"><td>${i+1}</td><td>${r.nm}</td><td>${r.k}</td><td>${r.d==null?'-':r.d}</td></tr>`).join('')+'</table>'+(typeof teamTxt=='function'?`<p>${teamTxt()}</p>`:'')}
 /* ---------- map: top-down view of every wall and object, with allies, objectives and zombie-mode machines ---------- */
-function drawMap(){const cv=$('#mapc'),c=cv.getContext('2d'),W=cv.width,k=W/(2*H);c.clearRect(0,0,W,W);c.fillStyle='rgba(8,18,24,.92)';c.fillRect(0,0,W,W);
- const X=x=>(x+H)*k,Z=z=>(z+H)*k;for(const b of bx){if(b.h<=.3)continue;c.fillStyle=b.h>3?'#8a929a':b.h>1.2?'#6a727a':'#4a525a';c.fillRect(X(b.x0),Z(b.z0),Math.max(1,(b.x1-b.x0)*k),Math.max(1,(b.z1-b.z0)*k))}
- const dot=(x,z,col,r)=>{c.fillStyle=col;c.beginPath();c.arc(X(x),Z(z),r,0,7);c.fill()};
+function drawMap(){const cv=$('#mapc'),c=cv.getContext('2d'),W=cv.width,M=MAPS[sel.map]||{},k=W/(2*H),tb=M.tb||[-H,-H,H,H],X=x=>(x+H)*k,Z=z=>(z+H)*k;
+ /* tactical map: dark satellite-style ground, a red scan-line band just outside the play area, a white outline, buildings as lit blocks */
+ c.clearRect(0,0,W,W);const bg_=c.createRadialGradient(W/2,W/2,W*.08,W/2,W/2,W*.78);bg_.addColorStop(0,'#2b2b2d');bg_.addColorStop(1,'#09090a');c.fillStyle=bg_;c.fillRect(0,0,W,W);
+ let sd=17;const rn=()=>(sd=(sd*16807)%2147483647)/2147483647;c.fillStyle='rgba(255,255,255,.035)';for(let i=0;i<70;i++)c.fillRect(rn()*W,rn()*W,4+rn()*22,2+rn()*10);c.fillStyle='rgba(0,0,0,.25)';for(let i=0;i<40;i++)c.fillRect(rn()*W,rn()*W,8+rn()*30,4+rn()*14);
+ const x0=X(tb[0]),z0=Z(tb[1]),x1=X(tb[2]),z1=Z(tb[3]);
+ c.save();c.beginPath();c.rect(x0-W*.05,z0-W*.05,x1-x0+W*.1,z1-z0+W*.1);c.rect(x0,z0,x1-x0,z1-z0);c.clip('evenodd');c.fillStyle='rgba(255,30,30,.12)';c.fillRect(0,0,W,W);c.fillStyle='rgba(255,45,45,.6)';for(let y=0;y<W;y+=4)c.fillRect(0,y,W,1.3);c.restore();
+ c.fillStyle='#202022';c.fillRect(x0,z0,x1-x0,z1-z0);c.fillStyle='rgba(255,255,255,.03)';for(let i=0;i<120;i++)c.fillRect(x0+rn()*(x1-x0),z0+rn()*(z1-z0),2+rn()*8,2+rn()*5);
+ const rect=b=>[X(b.x0),Z(b.z0),Math.max(1,(b.x1-b.x0)*k),Math.max(1,(b.z1-b.z0)*k)];
+ for(const b of bx){if(b.h<=.3||b.h>=13.9)continue;const hi=(b.y0||0)>=2,r=rect(b);if(hi){c.fillStyle='rgba(150,150,156,.45)';c.fillRect(...r);continue}
+  if(b.h>3){c.fillStyle='#6f6f73';c.fillRect(...r);c.strokeStyle='rgba(255,255,255,.9)';c.lineWidth=1;c.strokeRect(r[0]+.5,r[1]+.5,r[2],r[3])}else if(b.h>1.2){c.fillStyle='#4e4e52';c.fillRect(...r);c.strokeStyle='rgba(200,200,200,.55)';c.lineWidth=1;c.strokeRect(r[0]+.5,r[1]+.5,r[2],r[3])}else{c.fillStyle='#3a3a3d';c.fillRect(...r)}}
+ c.strokeStyle='#fff';c.lineWidth=2;c.strokeRect(x0,z0,x1-x0,z1-z0);
+ /* targeting-screen decoration */
+ c.strokeStyle='rgba(255,60,60,.8)';c.lineWidth=2;const br=22,m=8;for(const[bx_,by_,sx,sy]of[[m,m,1,1],[W-m,m,-1,1],[m,W-m,1,-1],[W-m,W-m,-1,-1]]){c.beginPath();c.moveTo(bx_,by_+sy*br);c.lineTo(bx_,by_);c.lineTo(bx_+sx*br,by_);c.stroke()}
+ c.fillStyle='rgba(255,70,70,.85)';c.font='12px monospace';c.fillText('25.06',W*.58,18);c.fillText('55.77',10,W*.34);c.fillText('23.5',W-48,W*.62);c.beginPath();c.moveTo(W-52,24);c.lineTo(W-44,16);c.lineTo(W-36,24);c.lineTo(W-44,32);c.closePath();c.stroke();c.fillStyle='rgba(255,255,255,.8)';c.fillText('N',W/2-3,16);
+ const dot=(x,z,col,r)=>{c.fillStyle=col;c.beginPath();c.arc(X(x),Z(z),r,0,7);c.fill();c.strokeStyle='rgba(0,0,0,.6)';c.lineWidth=1;c.stroke()};
  for(const z of zones)dot(z.x,z.z,z.o=='A'?'#62a8ff':z.o=='B'?'#ff5a3a':'#ddd',Math.max(6,(z.r||5)*k));for(const f of flags)dot(f.x,f.z,f.team=='A'?'#62a8ff':'#ff5a3a',6);
  if(mode=='Zombies'&&typeof zdoors!='undefined'){for(const d of zdoors)if(!d.sink)dot(d.x||d.o&&d.o.x||0,d.z||d.o&&d.o.z||0,'#ffb454',4)}
  for(const b of bots)if(b.al&&(ally(b)||uav>0))dot(b.x,b.z,ally(b)?'#62e0f0':'#ff5a3a',4);
- c.save();c.translate(X(P.x),Z(P.z));c.rotate(-yaw+Math.PI);c.fillStyle='#fff';c.beginPath();c.moveTo(0,-9);c.lineTo(-6,7);c.lineTo(6,7);c.fill();c.restore()}
+ /* you: the arrow points where you look (world forward is (-sin yaw, -cos yaw); the arrow tip is drawn pointing up, so it is rotated by -yaw) */
+ c.save();c.translate(X(P.x),Z(P.z));c.rotate(-yaw);c.fillStyle='#fff';c.strokeStyle='#000';c.lineWidth=1.5;c.beginPath();c.moveTo(0,-10);c.lineTo(-6.5,8);c.lineTo(0,4);c.lineTo(6.5,8);c.closePath();c.fill();c.stroke();c.restore()}
 /* ---------- keyboard + mouse ---------- */
 function kbDown(e){const c=e.code;if(['Space','Tab','AltLeft','F1','F3','F6','ControlLeft'].includes(c)||c.startsWith('Arrow'))e.preventDefault();key[c]=1;
  switch(c){
@@ -62,16 +75,16 @@ function kbDown(e){const c=e.code;if(['Space','Tab','AltLeft','F1','F3','F6','Co
   case'ShiftLeft':if(!e.repeat){if(t0-ST.lastShift<.32&&ST.tacCd<=0)ST.tac=4;ST.lastShift=t0}break;
   case'KeyC':if(!e.repeat)actCrouch();break;case'ControlLeft':if(!e.repeat)actProne();break;case'AltLeft':ST.walk=1;break;
   case'KeyH':if(!e.repeat)ST.auto=ST.auto?0:1;break;
-  case'KeyR':startRel();break;case'KeyV':melee();break;case'KeyE':if(!e.repeat)throwG();break;case'KeyQ':if(!e.repeat)actTactical();break;
+  case'KeyR':startRel();break;case'KeyV':if(!e.repeat)mvDown();break;case'KeyE':if(!e.repeat)throwG();break;case'KeyQ':if(!e.repeat)actTactical();break;
   case'KeyF':if(!e.repeat)actInteract();break;case'KeyT':if(!e.repeat)actMount();break;case'KeyB':if(!e.repeat)actFireMode();break;
   case'KeyX':if(!e.repeat)actField();break;case'KeyG':if(!e.repeat)actPlate();break;
   case'Digit1':actSwapNext();break;case'Digit2':actSwapPrev();break;
   case'Digit3':useStreak(0);break;case'Digit4':useStreak(1);break;case'Digit5':useStreak(2);break;case'Digit6':useStreak(3);break;
   case'Tab':if(!e.repeat)actSb(1);break;case'KeyM':case'CapsLock':if(!e.repeat)actMap();break;case'KeyN':if(!e.repeat)actNV();break;
   case'F1':case'F3':case'F6':case'KeyO':paused=1;trig=0;showPause();if(document.exitPointerLock)document.exitPointerLock();break}}
-addEventListener('keyup',e=>{if(e.code=='Tab'){actSb(0)}if(e.code=='AltLeft')ST.walk=0});
-addEventListener('mousedown',e=>{if(!run||paused||over)return;if(e.button==2){actAds(1)}else if(e.button==1){e.preventDefault();actPing()}else if(e.button==3){e.preventDefault();melee()}else if(e.button==4){e.preventDefault();actMount()}});
-addEventListener('mouseup',e=>{if(e.button==2)actAds(0)});
+addEventListener('keyup',e=>{if(e.code=='KeyV')mvUp();if(e.code=='Tab'){actSb(0)}if(e.code=='AltLeft')ST.walk=0});
+addEventListener('mousedown',e=>{if(!run||paused||over)return;if(e.button==2){actAds(1)}else if(e.button==1){e.preventDefault();actPing()}else if(e.button==3){e.preventDefault();mvDown()}else if(e.button==4){e.preventDefault();actMount()}});
+addEventListener('mouseup',e=>{if(e.button==2)actAds(0);if(e.button==3)mvUp()});
 addEventListener('wheel',e=>{if(!run||paused||over)return;if(e.deltaY>0)actSwapNext();else if(e.deltaY<0)actSwapPrev()},{passive:true});
 /* menu hot keys while no match is running */
 addEventListener('keydown',e=>{if(run)return;const nav=p=>{const b=document.querySelector(`#nav button[data-p="${p}"]`);if(b&&b.offsetParent!==null||b)b.click()};
@@ -105,4 +118,5 @@ function buildKatana(){const g=new THREE.Group(),L=.7,w=.034,t=.0075,sori=.03,ph
 const katG=buildKatana();C.add(katG);
 const KF=[{p:0,x:.3,y:-.18,z:-.5,rx:-1.2,rz:-.95,ry:.25},{p:.22,x:.42,y:.12,z:-.42,rx:-1.0,rz:-1.55,ry:.45},{p:.55,x:-.32,y:-.22,z:-.78,rx:-1.25,rz:1.35,ry:-.35},{p:1,x:-.16,y:-.55,z:-.5,rx:-.9,rz:.9,ry:0}];
 function katSwing(){kat.t=.5;kat.hit=0}
-function katTick(dt){if(xrS||ST.nvv){katG.visible=false;return}if(kat.t>0){kat.t-=dt;const p=cl(1-Math.max(0,kat.t)/.5,0,1);let a=KF[0],b=KF[1];for(let i=0;i<KF.length-1;i++)if(p>=KF[i].p){a=KF[i];b=KF[i+1]}let u=cl((p-a.p)/(b.p-a.p),0,1);u=u*u*(3-2*u);const L=k=>a[k]+(b[k]-a[k])*u;katG.visible=true;katG.position.set(L('x'),L('y'),L('z'));katG.rotation.set(L('rx'),L('ry'),L('rz'))}else katG.visible=false}
+function katTick(dt){if(xrS||ST.nvv){katG.visible=false;return}if(kat.t>0){kat.t-=dt;const p=cl(1-Math.max(0,kat.t)/.5,0,1);let a=KF[0],b=KF[1];for(let i=0;i<KF.length-1;i++)if(p>=KF[i].p){a=KF[i];b=KF[i+1]}let u=cl((p-a.p)/(b.p-a.p),0,1);u=u*u*(3-2*u);const L=k=>a[k]+(b[k]-a[k])*u;katG.visible=true;katG.position.set(L('x'),L('y'),L('z'));katG.rotation.set(L('rx'),L('ry'),L('rz'))}
+ else if(MV.draw>.03&&melName()=='Katana'){const d=1-MV.draw,sw=Math.sin(t0*1.6)*.01;katG.visible=true;katG.position.set(.26-d*.1,-.2-d*.5+sw,-.5);katG.rotation.set(-1.2,.25,-.95+d*.5)}else katG.visible=false}

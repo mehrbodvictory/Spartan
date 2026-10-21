@@ -9,7 +9,7 @@ sun.shadow.mapSize.set(2048,2048);{const k=sun.shadow.camera;k.left=k.bottom=-46
 function setGfx(q){gfxQ=q;sun.castShadow=q=='high';try{localStorage.setItem('sdrill-gfx',q)}catch(e){}}setGfx(gfxQ);
 
 /* procedural grey-scale textures, tinted by each box's colour */
-const TEXC={},TS={brick:2.4,stucco:3,plank:1.6,concrete:3,asphalt:4,grass:4,shingle:1.8,tile:2,metal:2};
+const TEXC={},TS={brick:2.4,stucco:3,plank:1.6,concrete:3,asphalt:4,grass:4,shingle:1.8,tile:2,metal:2,sand:3.2,rust:2,cobble:2.2};
 function gTex(kind){if(TEXC[kind])return TEXC[kind];const N=128,c=document.createElement('canvas');c.width=c.height=N;const g=c.getContext('2d');let sd=kind.length*7919;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647,gr=(v,a)=>`rgba(${v|0},${v|0},${v|0},${a})`;
  g.fillStyle=gr(180,1);g.fillRect(0,0,N,N);const sp=(n,lo,hi,a,s)=>{for(let i=0;i<n;i++){g.fillStyle=gr(lo+rnd()*(hi-lo),a);g.fillRect(rnd()*N,rnd()*N,s*(.5+rnd()),s*(.5+rnd()))}};
  if(kind=='brick'){g.fillStyle=gr(120,1);g.fillRect(0,0,N,N);for(let r=0;r<8;r++)for(let k=-1;k<4;k++){g.fillStyle=gr(165+rnd()*60,1);g.fillRect(k*32+(r%2?16:0)+1,r*16+1,30,14)}sp(500,110,230,.18,2)}
@@ -17,6 +17,9 @@ function gTex(kind){if(TEXC[kind])return TEXC[kind];const N=128,c=document.creat
  else if(kind=='plank'){for(let r=0;r<8;r++){g.fillStyle=gr(150+rnd()*70,1);g.fillRect(0,r*16,N,15);g.fillStyle=gr(90,.9);g.fillRect(0,r*16+15,N,1)}for(let i=0;i<260;i++){g.fillStyle=gr(110+rnd()*60,.25);g.fillRect(rnd()*N,rnd()*N,10+rnd()*30,1)}}
  else if(kind=='asphalt'){g.fillStyle=gr(150,1);g.fillRect(0,0,N,N);sp(1400,60,230,.35,1.5)}
  else if(kind=='grass'){g.fillStyle=gr(165,1);g.fillRect(0,0,N,N);for(let i=0;i<1600;i++){g.strokeStyle=gr(110+rnd()*120,.35);const x=rnd()*N,y=rnd()*N;g.beginPath();g.moveTo(x,y);g.lineTo(x+rnd()*3-1.5,y-2-rnd()*4);g.stroke()}}
+ else if(kind=='sand'){g.fillStyle=gr(196,1);g.fillRect(0,0,N,N);sp(1500,150,235,.22,1.6);g.strokeStyle=gr(150,.25);for(let i=0;i<9;i++){g.beginPath();let y=rnd()*N;g.moveTo(0,y);for(let x=0;x<=N;x+=16)g.lineTo(x,y+Math.sin(x*.09+i)*3);g.stroke()}}
+ else if(kind=='rust'){g.fillStyle=gr(170,1);g.fillRect(0,0,N,N);for(let i=0;i<22;i++){g.fillStyle=gr(120+rnd()*100,.55);g.fillRect(i*6,0,5,N)}sp(700,70,200,.3,2);for(let i=0;i<14;i++){g.fillStyle=gr(70,.5);g.fillRect(rnd()*N,rnd()*N,3+rnd()*9,2+rnd()*6)}}
+ else if(kind=='cobble'){g.fillStyle=gr(90,1);g.fillRect(0,0,N,N);for(let r=0;r<8;r++)for(let k=0;k<8;k++){g.fillStyle=gr(150+rnd()*80,1);g.beginPath();g.ellipse(k*16+(r%2?8:0)+8,r*16+8,7,6.5,0,0,7);g.fill()}}
  else if(kind=='shingle'){for(let r=0;r<8;r++)for(let k=-1;k<5;k++){const x=k*28+(r%2?14:0),y=r*16;g.fillStyle=gr(140+rnd()*80,1);g.beginPath();g.moveTo(x,y);g.lineTo(x+26,y);g.lineTo(x+26,y+10);g.quadraticCurveTo(x+13,y+20,x,y+10);g.fill()}}
  else if(kind=='tile'){g.fillStyle=gr(100,1);g.fillRect(0,0,N,N);for(let r=0;r<4;r++)for(let k=0;k<4;k++){g.fillStyle=gr(185+rnd()*50,1);g.fillRect(k*32+1,r*32+1,30,30)}sp(300,150,240,.15,2)}
  else{g.fillStyle=gr(185,1);g.fillRect(0,0,N,N);for(let i=0;i<90;i++){g.fillStyle=gr(140+rnd()*100,.25);g.fillRect(rnd()*N,0,1+rnd()*2,N)}}

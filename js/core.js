@@ -8,10 +8,10 @@ SG:{n:'Shotgun',d:14,r:.8,m:6,sp:.06,rc:6,pel:8,au:0,rl:2.8,len:.5,col:0x555a62}
 MG:{n:'Magnum',d:36,r:.26,m:8,sp:.005,rc:3,pel:1,au:0,rl:1.5,len:.5,col:0x1b2027},
 MP:{n:'Machine Pistol',d:24,r:.07,m:24,sp:.03,rc:.6,pel:1,au:1,rl:1.4,len:.25,col:0x3a3a4a}};
 const PRI=['AR','SMG','BR','SG'],SEC=['MG','MP'];
-const A={'Extended Mag':{m:1.5,t:'+50% magazine'},'Compensator':{rc:.55,t:'Less kick'},'Laser Sight':{sp:.5,t:'Tighter spread'},'Long Barrel':{d:1.12,t:'+12% damage'},'Fast Hands':{rl:.65,t:'Faster reload'},'Hollow Point':{d:1.18,rc:1.25,t:'+18% damage, more kick'}};
+const A={'Extended Mag':{m:1.5,t:'+50% magazine'},'Compensator':{rc:.55,t:'Less kick'},'Laser Sight':{sp:.5,t:'Tighter spread'},'Long Barrel':{d:1.12,t:'+12% damage'},'Fast Hands':{rl:.65,t:'Faster reload'},'Hollow Point':{d:1.18,rc:1.25,t:'+18% damage, more kick'},'Quickdraw Grip':{ad:1.9,t:'Aim down sights almost twice as fast'}};
 const K={'Marathon':'Move 15% faster','Overshield':'+50 shield','Scavenger':'Kills refill ammo','Spring Legs':'Jump higher','Second Wind':'Shield recharges much faster','Hardline':'Killstreaks need 1 fewer kill','Run & Gun':'Shoot while sprinting'};
 const GR={'Frag':{fuse:1.8,R:7,d:110,imp:0,t:'Bounces, 1.8s fuse'},'Impact':{fuse:4,R:5,d:85,imp:1,t:'Explodes on contact'}};
-const MODES={'Slayer':'First to 20 kills. Bots respawn.','Survival':'One life. Endless waves.','Time Attack':'Most kills in 90 seconds.','Team Deathmatch':'5v5 with bot teammates. First team to 50 kills wins.','Capture the Flag':'5v5 with bot teams. Steal the red flag, bring it to your base. First to 3 captures.','Hardpoint':'QUICK INTEL: Capture and hold the active Hardpoint to earn points for your team. Only one teammate is required inside the Hardpoint to score. Hardpoints rotate to a new location every minute. The first team to 250 points wins. Both teams race to control one scoring zone marked by a visible perimeter; you only score while your team holds it uncontested.','Domination':'5v5 with bot teams. Hold the three zones: every owned zone earns points. First team to 350 wins.','Zombies':'Survive endless rounds of the undead. Earn points, open doors, use the mystery box, Pack-a-Punch and perks. Solo.'};
+const MODES={'Slayer':'First to 20 kills. Bots respawn.','Survival':'One life. Endless waves.','Time Attack':'Most kills in 90 seconds.','Team Deathmatch':'5v5 with bot teammates. First team to 50 kills wins.','Capture the Flag':'5v5 with bot teams. Steal the red flag, bring it to your base. First to 3 captures.','Hardpoint':'Hold the rotating zone to score. First team to 250 wins.','Domination':'5v5 with bot teams. Hold the three zones: every owned zone earns points. First team to 350 wins.','Zombies':'Survive endless rounds of the undead. Earn points, open doors, use the mystery box, Pack-a-Punch and perks. Solo.'};
 /* open maps have no tall walls: the play area is enclosed by one continuous fence (with an invisible tall collision wall above it) */
 function barrierLine(a,x0,z0,x1,z1,seed){const hz=Math.abs(x1-x0)>=Math.abs(z1-z0),L=hz?Math.abs(x1-x0):Math.abs(z1-z0),cx=(x0+x1)/2,cz=(z0+z1)/2;
  /* one continuous painted fence with a top rail, plus an invisible tall collision wall above it so nobody can mantle, wall jump or squeeze over */
@@ -139,7 +139,11 @@ gf.scale.set(.06,.06,.12);gun.add(gb,gf);C.add(gun);
 let bobP=0,landD=0,cRoll=0,wasOn=1,selKeep=null,relT=0,mapG,bx=[],H=30,bots=[],fx=[],grs=[],wp=[],cur=0,rel=0,nf=0,P={},yaw=0,pitch=0,kick=0,fr=1,AA=1,sens=1,run=0,paused=0,over=0,mode,t0=0,kills=0,deaths=0,shots=0,hits=0,wave=0,tl=90,gc=0,dmA=0,hmT=0,msT=0,rt=0,lastHit=0,tg=null;
 const key={},CONE=.06;let trig=0,fresh=0;
 let ac;function beep(f,d,ty,v){try{ac=ac||new AudioContext();const o=ac.createOscillator(),g=ac.createGain();o.type=ty||'square';o.frequency.setValueAtTime(f,ac.currentTime);o.frequency.exponentialRampToValueAtTime(f/2,ac.currentTime+d);g.gain.setValueAtTime((v||.05)*vol,ac.currentTime);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+d);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
-function eff(k,at){const w={...W[k]};for(const a of at)for(const p in A[a])if(p!='t')w[p]*=A[a][p];w.m=Math.round(w.m);w.k=k;return w}
+function eff(k,at){const w={...W[k],ad:1};for(const a of at)for(const p in A[a])if(p!='t')w[p]*=A[a][p];w.m=Math.round(w.m);w.k=k;return w}
+/* head and body hit spheres [headPos, bodyPos, headRadius, bodyRadius] that follow the stance of other players (crouch, slide, prone, dive) and the height they are really at */
+function hitPts(b){const pc=b.pc||0,psl=b.psl||0,pp=b.pp||0,y=b.y||0,ry=b.ry==null?0:b.ry,fx=Math.sin(ry),fz=Math.cos(ry);
+ const sh=(1-pp),hy=y+(1.75-.34*pc-.62*psl)*sh+.34*pp,by=y+(.95-.26*pc-.42*psl)*sh+.26*pp,hf=.8*pp;
+ return[V(b.x+fx*hf,hy,b.z+fz*hf),V(b.x,by,b.z),.3,.65-.3*pp-.08*pc]}
 function buildMap(){if(mapG)S.remove(mapG);const M=MAPS[sel.map];H=M.H;mapG=new THREE.Group();S.add(mapG);S.background=new THREE.Color(M.sky);S.fog=new THREE.Fog(M.sky,30,M.fogF||(M.open?170:110));bx=[];
  M._v=[];const list=M.b();for(const [x,z,w,d,h,y0=0] of list)bx.push({x0:x-w/2,x1:x+w/2,z0:z-d/2,z1:z+d/2,h,y0});
  gfxMap(M,list)}
@@ -175,8 +179,8 @@ function shoot(){const w=cw();src=W[w.k].n;srcK=w.k;w.mag--;shots++;nf=t0+w.r*zf
  if(T)d0=base.clone().lerp(T.v,Math.min(.7,.55*AA*(1-T.a/T.cone*.5))).normalize();
  const mvg=((key.KeyW||key.KeyA||key.KeyS||key.KeyD||ST.auto)?1.6:1)*(1-.65*ST.ads)*(ST.mount?.5:1)*(ST.steady>0?.6:1)*(ST.crouch?.8:1)*(ST.prone?.65:1);
  for(let i=0;i<w.pel;i++){const d=d0.clone().add(V(Math.random()-.5,Math.random()-.5,Math.random()-.5).multiplyScalar(2*w.sp*mvg)).normalize();let tw=castW(o,d,120),bt=1e9,bb=null,hd=0;
-  for(const b of bots){if(!b.al||ally(b))continue;const th=rs(o,d,V(b.x,b.y+1.75,b.z),.3),tb=rs(o,d,V(b.x,b.y+.95,b.z),.65),t=Math.min(th,tb);if(t<bt){bt=t;bb=b;hd=th<tb}}
-  if(w.k=='SN'){let any=0;for(const b of bots.slice()){if(!b.al||ally(b))continue;const th=rs(o,d,V(b.x,b.y+1.75,b.z),.3),tb=rs(o,d,V(b.x,b.y+.95,b.z),.65),t=Math.min(th,tb);if(t<tw){any=1;hitBot(b,w.d*zmul(w)*(th<tb?2:1)*falloff(w,t),th<tb)}}if(!any&&tw<119&&i<2)burst(o.clone().add(d.clone().multiplyScalar(tw-.05)),4,0xffd27a,3,.35,.06)}
+  for(const b of bots){if(!b.al||ally(b))continue;const hp_=hitPts(b),th=rs(o,d,hp_[0],hp_[2]),tb=rs(o,d,hp_[1],hp_[3]),t=Math.min(th,tb);if(t<bt){bt=t;bb=b;hd=th<tb}}
+  if(w.k=='SN'){let any=0;for(const b of bots.slice()){if(!b.al||ally(b))continue;const hp_=hitPts(b),th=rs(o,d,hp_[0],hp_[2]),tb=rs(o,d,hp_[1],hp_[3]),t=Math.min(th,tb);if(t<tw){any=1;hitBot(b,w.d*zmul(w)*(th<tb?2:1)*falloff(w,t),th<tb)}}if(!any&&tw<119&&i<2)burst(o.clone().add(d.clone().multiplyScalar(tw-.05)),4,0xffd27a,3,.35,.06)}
   else if(bb&&bt<tw){tw=bt;hitBot(bb,w.d*zmul(w)*(hd&&w.k!='RG'?2:1)*falloff(w,bt),hd)}else if(tw<119&&i<2)burst(o.clone().add(d.clone().multiplyScalar(tw-.05)),4,0xffd27a,3,.35,.06);
   if(i==0&&netOn)netShot(w.k,o,d,Math.min(tw,120));if(w.ex)boom(o.clone().add(d.clone().multiplyScalar(Math.max(0,Math.min(tw,120)-.3))),w.ex);if(w.k=='RG')rgBeam(o,d,Math.min(tw,120));else if(i==0||w.pel>1&&i<3)tr(o,d,Math.min(tw,w.pw?150:80),w.ex?0xff8040:0xfff0a0)}
  kick+=w.rc*.004*(1-.4*ST.ads)*(ST.mount?.4:1);gun.position.z+=.05;gf.visible=true;setTimeout(()=>gf.visible=false,45);gunSnd(w);shake=Math.max(shake,w.rc*.014);flashL=1;fk=Math.max(fk,.6);if(w.mag<=0)startRel()}
@@ -184,7 +188,7 @@ function startRel(){const w=cw();if(rel>0||w.mag>=w.m||w.res<=0)return;rel=relT=
 function swap(i){if(i<0||i>=wp.length||i==cur)return;cur=i;rel=0;setGun()}
 function boom(p,g){if(g.tac)return flashBoom(p);if(g.w){src=W[g.w].n;srcK=g.w}else{src='Explosive';srcK=''}const m=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:g.c||0xffa040,transparent:true,opacity:.6}));m.position.copy(p);m.scale.setScalar(.5);S.add(m);fx.push({m,l:.35,grow:g.R*3,sph:1});beep(70,.4,'sawtooth',.12);noise(.5,900,.6);burst(p,40,g.c||0xffa040,9,.7,.18);shake=Math.max(shake,Math.min(1.2,14/(1+p.distanceTo(C.position))));flashL=2;
  for(const b of bots){if(!b.al||ally(b))continue;const D=Math.hypot(b.x-p.x,1-p.y,b.z-p.z);if(D<g.R)hitBot(b,g.d*(1-D/g.R),0)}
- const D=Math.hypot(P.x-p.x,P.y+1-p.y,P.z-p.z);if(D<g.R*.8)hurt(g.d*.4*(1-D/g.R))}
+ const D=Math.hypot(P.x-p.x,P.y+1-p.y,P.z-p.z);if(D<g.R*.8&&!g.own)hurt(g.d*.4*(1-D/g.R))}
 function throwG(){if(!L.g||gc<=0||P.dead)return;gc--;const d=aimDir(),m=new THREE.Mesh(sg,new THREE.MeshLambertMaterial({color:L.g=='Frag'?0x4a7a3a:0x62e0f0}));m.scale.setScalar(.13);S.add(m);grs.push({m,p:C.position.clone(),v:d.multiplyScalar(15).add(V(0,3,0)),t:GR[L.g].fuse,g:GR[L.g]})}
 
 /* ===================== game.js ===================== */
@@ -212,7 +216,7 @@ function upd(dt){t0+=dt;ctlTick(dt);
   if(t0-lastHit>(L.pk.includes('Second Wind')?2:4))P.sh=Math.min(P.msh,P.sh+(L.pk.includes('Second Wind')?65:40)*dt)}
  kick*=Math.exp(-9*dt);const mvs=Math.hypot(P.mx||0,P.mz||0),f_=P.dead?0:Math.min(1,mvs/7),spr=P.spr||0;bobP+=dt*(6.5+spr*3.5)*f_;if(P.on&&!wasOn)landD=.09;wasOn=P.on;landD*=Math.exp(-9*dt);cRoll+=(-((key.KeyD?1:0)-(key.KeyA?1:0))*.02*(P.on?1:.4)*(P.dead?0:1)-cRoll)*Math.min(1,dt*8);
  if(P.dead){if(mode=='Zombies')zDownCam(dt);else deathCam(dt)}else{C.position.set(P.x,P.y+ST.eye+Math.sin(bobP*2)*.014*f_*(1+spr)-landD,P.z);C.rotation.set(pitch+kick,yaw,cRoll)}
- gun.position.x+=(.2*(1-ST.ads)+ST.ax*ST.ads-rlX()-spr*.07+Math.cos(bobP)*(.006+.03*spr)*f_-gun.position.x)*10*dt;gun.position.y=-.2*(1-ST.ads)+ST.ay*ST.ads+Math.sin(bobP*2)*(.006+.03*spr)*(1-ST.ads*.8)*f_-spr*.1+rlY();gun.position.z+=(-.45*(1-ST.ads)+ST.az*ST.ads+spr*(.04+.06*Math.sin(bobP*2+1))-gun.position.z)*12*dt;gun.rotation.x=rlRot()-spr*(.62+.1*Math.sin(bobP*2));
+ gun.position.x+=(.2*(1-ST.ads)+ST.ax*ST.ads-rlX()-spr*.07+Math.cos(bobP)*(.006+.03*spr)*f_-gun.position.x)*10*dt;gun.position.y=-.2*(1-ST.ads)+ST.ay*ST.ads+Math.sin(bobP*2)*(.006+.03*spr)*(1-ST.ads*.8)*f_-spr*.1+rlY()+bashY();gun.position.z+=(-.45*(1-ST.ads)+ST.az*ST.ads+spr*(.04+.06*Math.sin(bobP*2+1))+bashZ()-gun.position.z)*12*dt;gun.rotation.x=rlRot()+bashRot()-spr*(.62+.1*Math.sin(bobP*2));
  juiceTick(dt);gun.rotation.z-=spr*(.3+.07*Math.cos(bobP));gun.rotation.y+=spr*(.42+.05*Math.sin(bobP));featTick(dt);fpUpdate(dt);updBots(dt);for(const b of bots)if(b.al)animBot(b,dt);fallTick(dt);gfxTick(dt);modeTick(dt);
  for(let i=grs.length-1;i>=0;i--){const g=grs[i];g.t-=dt;g.v.y-=18*dt;const np=g.p.clone().add(g.v.clone().multiplyScalar(dt));let ex=g.t<=0;
   if(np.y<.13){np.y=.13;g.v.y*=-.35;g.v.x*=.7;g.v.z*=.7;if(g.g.imp)ex=1}
@@ -224,8 +228,10 @@ function upd(dt){t0+=dt;ctlTick(dt);
  $('#cx').className=(tg?'t':'')+(ST.ads>.4?' h':'');$('#sh').style.width=P.sh/P.msh*100+'%';$('#hp').style.width=Math.max(0,P.hp/P.mhp*100)+'%';
  $('#am').innerHTML=P.dead?(mode=='Zombies'?'Downed':'Respawning…'):`${cw().mag}<small>${rel>0?'Reloading…':'/ '+cw().res} · ${cw().pn||W[cw().k].n}${L.g?' · Grenades '+gc:''}</small>`}
 const clk=new THREE.Clock();
-function gameFrame(){const dt=Math.min(clk.getDelta(),.05);if(typeof inputTick=='function')inputTick(dt);if(run&&(!paused||(typeof netOn!='undefined'&&netOn)))upd(dt);else if(!run&&typeof menuCam=='function')menuCam(dt);if(typeof netOn!='undefined'&&netOn)netTick(dt);if(typeof vrPost=='function')vrPost(dt);R.render(S,C);if(typeof vrAfter=='function')vrAfter()}
-(function loop(){requestAnimationFrame(loop);if(!(R.xr&&R.xr.isPresenting))gameFrame()})();
+function gameFrame(){const dt=Math.min(clk.getDelta(),.05);if(typeof inputTick=='function')inputTick(dt);if(run&&(!paused||(typeof netOn!='undefined'&&netOn)))upd(dt);else if(!run&&typeof menuCam=='function')menuCam(dt);if(typeof netOn!='undefined'&&netOn)netTick(dt);if(typeof vrPost=='function')vrPost(dt);if(!document.hidden)R.render(S,C);if(typeof vrAfter=='function')vrAfter()}
+(function loop(){requestAnimationFrame(loop);if(!(R.xr&&R.xr.isPresenting)&&!document.hidden)gameFrame()})();
+/* browsers freeze requestAnimationFrame and slow timers in background tabs, which made a host or guest look disconnected. A worker timer is not throttled, so while the tab is hidden it keeps the match (and the network traffic) running */
+try{const wk=new Worker(URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),25)'],{type:'text/javascript'})));wk.onmessage=()=>{if(document.hidden&&typeof netOn!='undefined'&&netOn&&!(R.xr&&R.xr.isPresenting))gameFrame()}}catch(e){}
 
 /* ===================== input.js ===================== */
 /* ---------- input ---------- */
@@ -237,31 +243,3 @@ addEventListener('mousedown',e=>{if(e.button==0&&run&&!paused){trig=1;fresh=1}})
 addEventListener('contextmenu',e=>e.preventDefault());
 addEventListener('keydown',e=>{if(!run||paused)return;if(typeof kbDown=='function')return kbDown(e);if(e.code=='Space')e.preventDefault();if(!key[e.code]){if(e.code=='KeyF')fresh=1;if(e.code=='KeyR')startRel();if(e.code=='KeyG')throwG();if(e.code=='Digit1')swap(0);if(e.code=='Digit2')swap(1);if(e.code=='Digit3')swap(mode=='Zombies'?2:wp.findIndex(w=>w.pw));if(e.code=='KeyV')melee();if(e.code=='KeyE')useStreak();if(e.code=='KeyQ')swap((cur+1)%wp.length)}key[e.code]=1});
 addEventListener('keyup',e=>key[e.code]=0);addEventListener('blur',()=>{for(const k in key)key[k]=0;trig=0});
-
-
-/* ---------- Decay: a ruined city block. Two crossing streets, four gutted buildings (doorways, window sills you can vault, collapsed rooms), a crater plaza with a fountain ruin and a toppled bus,
-   wrecked cars, barricades and rubble. NOTE: first layout, built without the reference images; the Hardpoint spots are in `zn`. ---------- */
-MAPS.Decay={d:'Ruined city block: gutted buildings, wrecked cars, barricaded streets and a crater plaza',H:40,sky:0x7d8a90,gr:0x3b3e3a,bc:0x6b665c,gt:'concrete',hemi:.85,sunI:.55,
- zn:[[0,0],[-23,-23],[23,-23],[-23,23],[23,23]],
- b(){const a=[],B=(x,z,w,d,h,y0,c,k)=>a.push([x,z,w,d,h,y0||0,c,k]);let sd=41;const r=()=>(sd=(sd*16807)%2147483647)/2147483647,ri=(l,h)=>l+r()*(h-l);
-  B(0,0,80,8,.04,0,0x2c2e30,'asphalt');B(0,0,8,80,.04,0,0x2c2e30,'asphalt');
-  const wall=(x0,z0,x1,z1,h,gaps,col)=>{const hz=Math.abs(z1-z0)<.01,L=hz?Math.abs(x1-x0):Math.abs(z1-z0),o=hz?Math.min(x0,x1):Math.min(z0,z1),segs=[];let p=0;for(const[g0,g1]of gaps.sort((q,w)=>q[0]-w[0])){if(g0>p)segs.push([p,g0]);p=g1}if(p<L)segs.push([p,L]);
-   for(const[s0,s1]of segs){const len=s1-s0,mid=o+(s0+s1)/2,hh=h*(r()<.3?ri(.45,.8):1),px=hz?mid:x0,pz=hz?z0:mid,w=hz?len:.8,d=hz?.8:len;
-    if(len>6&&r()<.7){const wx=ri(.3,.6)*len,ww=2.2;/* window: low sill + upper wall */const a0=-len/2+wx,a1=a0+ww;if(hz){B(px-len/2+(a0+len/2)/2,pz,a0+len/2,d,hh,0,col);B(px+(a0+a1)/2,pz,ww,d,1.1,0,col);B(px+(a0+a1)/2,pz,ww,d,hh,2.5,col);B(px+(a1+len/2)/2,pz,len/2-a1,d,hh,0,col)}else{B(px,pz-len/2+(a0+len/2)/2,w,a0+len/2,hh,0,col);B(px,pz+(a0+a1)/2,w,ww,1.1,0,col);B(px,pz+(a0+a1)/2,w,ww,hh,2.5,col);B(px,pz+(a1+len/2)/2,w,len/2-a1,hh,0,col)}}
-    else B(px,pz,w,d,hh,0,col)}};
-  const cols=[0x7a7468,0x6a6a66,0x80756a,0x5f625f];let ci=0;
-  for(const[sx,sz]of[[-1,-1],[1,-1],[-1,1],[1,1]]){const cx=sx*23,cz=sz*23,x0=cx-10,x1=cx+10,z0=cz-10,z1=cz+10,c=cols[ci++%4];
-   wall(x0,z0,x1,z0,7,[[7,12]],c);wall(x0,z1,x1,z1,7,[[6,11]],c);wall(x0,z0,x0,z1,7,[[8,13]],c);wall(x1,z0,x1,z1,7,[[5,10]],c);
-   wall(x0+3,cz+(sz>0?-2:2),cx+2,cz+(sz>0?-2:2),5,[[6,9.5]],c);wall(cx+2,z0+3,cx+2,cz-3,6,[[2,5]],c);
-   B(cx-5,cz+5,1.4,1.4,7,0,c);B(cx+6,cz-6,1.4,1.4,5.5,0,c);
-   for(let i=0;i<5;i++)B(cx+ri(-8,8),cz+ri(-8,8),ri(1.5,3),ri(1.5,3),ri(.7,1.3),0,0x6a665e,'concrete');B(cx+sx*-3,cz+sz*-3,4,2.4,.9,0,0x4a4038,'plank')}
-  /* crater plaza: fountain ruin and a ring of rubble with gaps */
-  B(0,0,5,5,1.1,0,0x7a7a74,'concrete');B(0,0,2,2,2.4,0,0x6a6a64,'concrete');
-  for(let i=0;i<10;i++){if(i%3==1)continue;const ag=i/10*6.283;B(Math.cos(ag)*9.5,Math.sin(ag)*9.5,ri(2,3.4),ri(2,3.4),ri(.8,1.5),0,0x6a665e,'concrete')}
-  /* toppled bus, wrecked cars, barricades */
-  B(-14,3,9,2.8,2.6,0,0xc9a42a,'metal');B(-14,3.2,8.6,2.2,.3,2.6,0x8a7a2a,'metal');
-  const car=(x,z,rot)=>{const w=rot?4.2:1.9,d=rot?1.9:4.2,c=[0x7a2a2a,0x2a4a6a,0x5a5a5a,0x8a8a7a][r()*4|0];B(x,z,w,d,1.4,0,c,'metal')};
-  for(const[x,z,ro]of[[-6,-3,1],[8,2.5,1],[18,-2.5,1],[-27,2,1],[30,-3,1],[3,-12,0],[-2.5,14,0],[2.5,-27,0],[-3,26,0],[3.5,33,0]])car(x,z,ro);
-  for(const[x,z,w,d]of[[-34,0,.9,6],[34,0,.9,6],[0,-34,6,.9],[0,34,6,.9],[10,6,3,.8],[-9,-7,.8,3]])B(x,z,w,d,1.1,0,0x9a9a92,'concrete');
-  for(let i=0;i<14;i++){const x=ri(-36,36),z=ri(-36,36);if((Math.abs(x)<5&&Math.abs(z)<12)||(Math.abs(z)<5&&Math.abs(x)<12))continue;B(x,z,ri(1.2,2.6),ri(1.2,2.6),ri(.7,1.4),0,0x6a665e,'concrete')}
-  return a}};
