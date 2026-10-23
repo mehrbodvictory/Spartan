@@ -22,11 +22,11 @@ MAPS.Decay={d:'Abandoned downtown: ruined hotel, church, market hall, parking de
    jers=(x,z,hz,n)=>{for(let i=0;i<n;i++){const p=(i-(n-1)/2)*3.1,bx=hz?x+p:x,bz=hz?z:z+p;B(bx,bz,hz?3:.7,hz?.7:3,1.05,0,0xb5b0a2,'concrete')}},
    vine=(x,z,hz,L,h)=>{for(let i=0;i<Math.max(2,L/1.3|0);i++){const o=-L/2+rnd()*L,hh=1+rnd()*(h||5);V(hz?x+o:x,hz?z:z+o,hz?.5+rnd()*.7:.12,hz?.12:.5+rnd()*.7,hh,0,pick([GRN,DG,0x5a7a3a]),'b','grass')}},
    graf=(x,z,hz,L)=>{for(let i=0;i<3;i++){const o=(rnd()-.5)*L*.7;V(hz?x+o:x,hz?z:z+o,hz?.5+rnd()*1.5:.06,hz?.06:.5+rnd()*1.5,1.2+rnd()*1.2,.8,pick([0xc8362a,0x2a7ac8,0xe8c020,0x40c060,0xe8e8e8]),'b')}};
-  const ops=(L,skip,lo,hi,step)=>{const r=[];for(let o=-L/2+2;o<L/2-1.3;o+=step||3.4){if(skip.some(([s,w])=>Math.abs(o-s)<w/2+1.1))continue;if(rnd()<.14)continue;r.push([o,1.3,lo,hi])}return r};
+  const ops=(L,skip,lo,hi,step)=>{const r=[];for(let o=-L/2+2;o<L/2-1.3;o+=step||3.4){if(skip.some(([s,w])=>Math.abs(o-s)<Math.max(2.4,w)/2+1.1))continue;if(rnd()<.14)continue;r.push([o,1.3,lo,hi])}return r};
   /* generic building: walls per floor with windows, doors on the ground floor, floor slabs with stairwell holes, stairs, flat roof. o.col collapses the east end */
   const bld=o=>{const{x,z,w,d,fl=2,fh=3.6,t=.4,c=CONC,k='stucco',dr={},wlo=.9,whi=2.4,roof=1,rc=DCON,rf=0,col=null,st=[0,'n'],nowin=0,gl=0}=o,S=['n','s','w','e'],
    L=s=>(s=='n'||s=='s')?w:d,pos=s=>s=='n'?[x,z-d/2+t/2,1]:s=='s'?[x,z+d/2-t/2,1]:s=='w'?[x-w/2+t/2,z,0]:[x+w/2-t/2,z,0];
-   for(let f=0;f<fl;f++){const y0=f*fh;for(const s of S){if(col&&col.side==s&&f>=col.wall)continue;const[px,pz,hz]=pos(s),len=hz?w:d-2*t,dd=(dr[s]||[]).filter(()=>f==0).map(([o,wd,ht])=>[o,wd||1.8,0,ht||2.5]);
+   for(let f=0;f<fl;f++){const y0=f*fh;for(const s of S){if(col&&col.side==s&&f>=col.wall)continue;const[px,pz,hz]=pos(s),len=hz?w:d-2*t,dd=(dr[s]||[]).filter(()=>f==0).map(([o,wd,ht])=>[o,Math.max(2.4,wd||2.4),0,ht||2.5]);
       const wn=nowin?[]:ops(len,(dr[s]||[]).map(([o,wd])=>[o,wd||1.8]),wlo,whi,Math.max(3.2,len/5|0?3.4:3.4));MK.wall(B,hz,px,pz,len,t,y0,y0+fh,[...dd,...wn],c,k)}}
    /* floors */
    const stw=1.7,run=Math.ceil(fh/.3)*.55;
@@ -118,7 +118,7 @@ MAPS.Decay={d:'Abandoned downtown: ruined hotel, church, market hall, parking de
   /* ====================== STREET LIFE: cars, wrecks, barricades, trees, lamps, trash ====================== */
   car(-33,-2.2,1,0x6a2a2a,0);car(-28,3.8,1,0x2a4a6a,1);car(-22,-2,1,0x8a8a7a,0);car(-5,-1.8,1,0x3a3a3a,1);car(6,3.8,1,0x5a2a2a,0);car(40,3.8,1,0x4a4a3a,1);car(-1.6,-12,0,0x6a6a2a,0);car(.4,-22,0,0x2a2a2a,1);car(-2,-33,0,0x5a3a2a,0);car(-1.2,15,0,0x4a5a3a,1);car(-2,24,0,0x7a2a2a,0);car(.2,35,0,0x2a3a5a,1);
   car(-6.6,-30,0,0x8a8a6a,0);car(4.3,-38,0,0x3a3a3a,1);car(-8,28,1,0x3a5a3a,1);car(4,32,1,0x6a6a6a,0);car(-44,10,0,0x4a4a4a,1);
-  jers(-9.5,-4.6,1,2);jers(7.5,6.6,1,2);jers(-1,-18.5,1,3);jers(-1,20.5,1,3);sand(-4,-6,1,5);sand(6,8.4,1,6);sand(-6.2,12,0,5);sand(4.2,-14,0,5);
+  jers(-9.5,-4.6,1,2);jers(7.5,6.6,1,2);jers(-4.4,-18.5,1,1);jers(2.6,-18.5,1,1);jers(-4.4,20.5,1,1);jers(2.6,20.5,1,1);sand(-4,-6,1,5);sand(6,8.4,1,6);sand(-6.2,12,0,5);sand(4.2,-14,0,5);
   for(const[x,z]of[[-42,-2],[-35,-5.6],[-24,-5.8],[-12,-5.8],[10,-5.5],[27,-5.7],[41,-5.6],[-42,8],[-26,8.2],[10,8.4],[34,8.4],[-8,22],[-8,-24],[7,-8],[7,28],[-8,36]])tree(x,z);
   for(const[x,z,b]of[[-42,-4.6,0],[-30,-4.6,1],[-18,-4.6,0],[-6.8,-4.6,0],[6.4,-4.6,1],[20,-4.6,0],[34,-4.6,0],[-42,7,0],[-30,7,1],[-12,7,0],[6.4,7,0],[20,7,1],[34,7,0],[-6.4,-18,0],[4.4,-26,1],[-6.4,26,0],[4.4,18,0]])lamp(x,z,b);
   for(const[x,z,h,c]of[[-6.9,-9,0,0x3a5a3a],[-6.9,-30,0,0x3a5a3a],[6,-19.6,1,0x2a4a6a],[4.6,29,0,0x3a5a3a],[-20,6.8,1,0x2a4a6a],[-44,-7,0,0x5a3a2a],[-9,24,1,0x3a5a3a],[30,7,1,0x5a3a2a]])dump(x,z,h,c);

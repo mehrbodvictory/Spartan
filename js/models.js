@@ -20,7 +20,7 @@ MODELS.AR=function(g,rm){const k=gunKit(g,rm),M=k.M,body=rm||M(0x3a4a52),dk=M(0x
  k.cyl(.016,.4,0,.062,.66,steel);k.cyl(.013,.5,0,.01,.82,dk);k.cyl(.02,.06,0,.01,.7,gm);                                                                         /* gas tube, barrel, gas block */
  k.cyl(.024,.07,0,.01,1.0,gm);for(const a of[0,2.094,4.189])k.cone(.007,.05,Math.cos(a)*.017,.01+Math.sin(a)*.017,1.06,dk);k.cyl(.028,.012,0,.01,.975,cu);               /* tri-prong muzzle */
  k.box(.014,.05,.014,0,.045,.92,dk);k.box(.004,.02,.004,0,.07,.92,teal);                                                                                              /* front sight post */
- for(let i=0;i<4;i++){const y=-.06-i*.045,z=.26+Math.sin(i*.28)*.04+i*.012,m=k.box(.048,.05,.075,0,y,z,cu,.1*i);mags.push(m)}mags.push(k.box(.054,.014,.08,0,-.255,.31,dk,.34));       /* curved copper magazine */
+ for(let i=0;i<4;i++){const y=-.06-i*.045,z=.26+Math.sin(i*.28)*.04+i*.012,m=k.box(.048,.05,.075,0,y,z,cu,.1*i);mags.push(m)}mags.push(k.box(.054,.014,.08,0,-.238,.3,dk,.34));       /* curved copper magazine */
  k.box(.044,.14,.06,0,-.125,.02,dk,.32);k.box(.05,.02,.07,0,-.2,-.03,gm,.32);k.box(.058,.01,.1,0,-.058,.11,gm);k.box(.004,.028,.1,0,-.072,.115,dk);k.box(.01,.03,.012,0,-.075,.14,steel);   /* grip, trigger guard, trigger */
  k.box(.056,.1,.05,0,0,-.075,gm);k.box(.04,.04,.3,0,.03,-.26,body);k.box(.04,.06,.24,0,-.06,-.25,body,.12);k.box(.05,.11,.04,0,-.02,-.4,dk);k.box(.05,.02,.06,0,.045,-.4,gm);k.box(.03,.05,.14,0,-.04,-.16,gm); /* stock */
  g.userData.a={r:[0,-.12,.02],l:[0,-.07,.66],m:[0,-.12,.3]};g.userData.mags=mags;mkSights(g,{st:'kn',ap:1,yt:.112,yb:.0885,yf:.1,zr:.04,zf:.92});return g};
@@ -85,3 +85,17 @@ MODELS.RG=function(g,rm){const k=gunKit(g,rm),M=k.M,body=rm||M(0xb02a22),dk=M(0x
 /* ---- VMP-X: the SMG frame in black with gold plates, a fat round muzzle device and the hooded sights of its first-person model ---- */
 MODELS.VMP=function(g,rm){MODELS._st='vmp';const k=gunKit(g,rm),gold=k.M(0xc9a94d);MODELS.SMG(g,rm||k.M(0x23262b));MODELS._st=0;
  k.box(.074,.03,.16,0,.035,.34,gold);k.box(.074,.02,.12,0,-.04,.16,gold);k.cyl(.034,.1,0,.005,.8,k.M(0x15171a));k.cyl(.038,.012,0,.005,.76,gold);k.cyl(.03,.012,0,.005,.85,gold);return g};
+
+/* ===================== weld: no floating parts ===================== */
+/* Every model is checked as it is built: parts are grouped by whether their bounding boxes touch, and any group that floats free of the main body is joined to it with a thin dark strut across the
+   smallest gap (sights onto rails, stocks onto receivers, handguards onto barrels, grips onto frames). Magazines and pumps are left alone because they move when reloading. */
+const weldMat=new THREE.MeshLambertMaterial({color:0x24272c});
+function weldModel(g,boxOf){boxOf=boxOf||(m=>{const b=new THREE.Box3().setFromObject(m);return{min:[b.min.x,b.min.y,b.min.z],max:[b.max.x,b.max.y,b.max.z]}});
+ const skip=new Set([...(g.userData.mags||[]),...(g.userData.pump||[])]),ms=[];g.traverse(m=>{if(m.isMesh&&!m.userData.att&&!m.userData.weld&&!skip.has(m))ms.push(m)});const n=ms.length;if(n<2||n>160)return;
+ const bs=ms.map(boxOf),par=[...Array(n).keys()],f=i=>par[i]==i?i:(par[i]=f(par[i])),eps=.004,gap=(a,b)=>{let d2=0;for(let k=0;k<3;k++){const d=Math.max(0,a.min[k]-b.max[k],b.min[k]-a.max[k]);d2+=d*d}return Math.sqrt(d2)};
+ for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)if(gap(bs[i],bs[j])<=eps)par[f(i)]=f(j);
+ for(let guard=0;guard<60;guard++){const cnt={};for(let i=0;i<n;i++)cnt[f(i)]=(cnt[f(i)]||0)+1;const roots=Object.keys(cnt);if(roots.length<2)break;const main=+roots.sort((a,b)=>cnt[b]-cnt[a])[0];
+  let best=null;for(let i=0;i<n;i++){if(f(i)==main)continue;for(let j=0;j<n;j++){if(f(j)!=main)continue;const d=gap(bs[i],bs[j]);if(!best||d<best.d)best={d,i,j}}}if(!best)break;
+  const a=bs[best.i],b=bs[best.j],p=[],q=[];for(let k=0;k<3;k++){const lo=Math.max(a.min[k],b.min[k]),hi=Math.min(a.max[k],b.max[k]);if(lo<=hi){p[k]=q[k]=(lo+hi)/2}else if(a.max[k]<b.min[k]){p[k]=a.max[k];q[k]=b.min[k]}else{p[k]=a.min[k];q[k]=b.max[k]}}
+  const th=.018,s=new THREE.Mesh(bg,weldMat);s.userData.weld=1;s.scale.set(Math.abs(p[0]-q[0])+th,Math.abs(p[1]-q[1])+th,Math.abs(p[2]-q[2])+th);s.position.set((p[0]+q[0])/2,(p[1]+q[1])/2,(p[2]+q[2])/2);g.add(s);par[f(best.i)]=f(best.j)}}
+{const _bg=buildGun;buildGun=function(k,rm,g){const o=_bg.apply(this,arguments);try{weldModel(o)}catch(e){}return o}}

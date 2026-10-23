@@ -62,10 +62,12 @@ const vrHand=h=>xrCtl.find(c=>c.userData.hand==h)||null;
 function vrPanel(){const c=document.createElement('canvas');c.width=256;c.height=160;const t=new THREE.CanvasTexture(c),m=new THREE.Mesh(new THREE.PlaneGeometry(.16,.1),new THREE.MeshBasicMaterial({map:t,transparent:true,depthTest:false}));m.renderOrder=999;m.position.set(0,.03,.08);m.rotation.x=-1.1;return{m,c,g:c.getContext('2d'),t}}
 /* menu panel: a big canvas that mirrors whatever DOM menu is showing; the right controller is a laser pointer */
 let vm=null,vmT=0,vmHover=null,vmLast='',vmLatch=null;
-function vrMenuInit(){const cv=document.createElement('canvas');cv.width=1280;cv.height=Math.round(1280*innerHeight/innerWidth);const tex=new THREE.CanvasTexture(cv),w=2.6,h=w*innerHeight/innerWidth,mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex,transparent:true,side:THREE.DoubleSide,depthTest:false}));mesh.renderOrder=900;
+function vrMenuInit(){const cv=document.createElement('canvas');cv.width=1280;cv.height=Math.round(1280*innerHeight/innerWidth);const tex=new THREE.CanvasTexture(cv),w=2.0,h=w*innerHeight/innerWidth,mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex,transparent:true,side:THREE.DoubleSide,depthTest:false}));mesh.renderOrder=900;
  const dot=new THREE.Mesh(new THREE.SphereGeometry(.012,8,8),new THREE.MeshBasicMaterial({color:0x62e0f0,depthTest:false}));dot.renderOrder=999;const ray=new THREE.Mesh(new THREE.CylinderGeometry(.002,.002,1,6),new THREE.MeshBasicMaterial({color:0x62e0f0,depthTest:false}));ray.renderOrder=999;
  vm={cv,c:cv.getContext('2d'),tex,mesh,dot,ray,w,h,ray_:new THREE.Raycaster(),placed:false}}
-function vrMenuPlace(){const cam=R.xr.getCamera(C),p=new THREE.Vector3().setFromMatrixPosition(cam.matrixWorld),d=new THREE.Vector3(0,0,-1).transformDirection(cam.matrixWorld);d.y=0;if(d.length()<.1)d.set(0,0,-1);d.normalize();vm.mesh.position.copy(p).add(d.multiplyScalar(2.1));vm.mesh.position.y=p.y;vm.mesh.lookAt(p);vm.placed=true}
+function vrMenuPlace(){const cam=R.xr.getCamera(C);cam.updateMatrixWorld(true);const p=new THREE.Vector3().setFromMatrixPosition(cam.matrixWorld),d=new THREE.Vector3(0,0,-1).transformDirection(cam.matrixWorld);d.y=0;if(d.length()<.1)d.set(0,0,-1);d.normalize();
+ /* 1.5 m in front of the eyes, centred on eye height; the plane's front (+z) is turned towards the player */
+ vm.mesh.position.set(p.x+d.x*1.5,p.y-.05,p.z+d.z*1.5);vm.mesh.rotation.set(0,Math.atan2(p.x-vm.mesh.position.x,p.z-vm.mesh.position.z),0);vm.mesh.updateMatrixWorld(true);vm.placed=true}
 function wrapText(c,t,x,y,mw,lh){const ws=t.split(/\s+/);let l='';for(const w of ws){const n=l?l+' '+w:w;if(c.measureText(n).width>mw&&l){c.fillText(l,x,y);y+=lh;l=w}else l=n}if(l)c.fillText(l,x,y);return y}
 function vrMirror(box){const c=vm.c,sc=vm.cv.width/innerWidth;c.clearRect(0,0,vm.cv.width,vm.cv.height);c.fillStyle='rgba(6,14,20,.94)';c.fillRect(0,0,vm.cv.width,vm.cv.height);
  for(const e of[box,...box.querySelectorAll('*')]){if(!vis(e))continue;const r=e.getBoundingClientRect();if(r.bottom<0||r.top>innerHeight||r.right<0||r.left>innerWidth)continue;const cs=getComputedStyle(e);if(cs.visibility=='hidden'||cs.opacity==0)continue;const x=r.left*sc,y=r.top*sc,w=r.width*sc,h=r.height*sc;
@@ -79,8 +81,8 @@ function vrMirror(box){const c=vm.c,sc=vm.cv.width/innerWidth;c.clearRect(0,0,vm
  vm.tex.needsUpdate=true}
 function vrMenu(dt,gr,gl){const box=menuBox();if(!vm)vrMenuInit();const rh=vrHand('right')||vrHand('left');
  if(!box){if(vm.mesh.parent)vm.mesh.parent.remove(vm.mesh);for(const o of[vm.dot,vm.ray])if(o.parent)o.parent.remove(o);vm.placed=false;return}
- if(!vm.mesh.parent){xrRig.add(vm.mesh);xrRig.add(vm.dot);xrRig.add(vm.ray);vmLast=''}
- if(!vm.placed)vrMenuPlace();vmT-=dt;
+ if(!vm.mesh.parent){S.add(vm.mesh);S.add(vm.dot);S.add(vm.ray);vmLast='';vm.placeN=6}
+ if(!vm.placed||vm.placeN-->0)vrMenuPlace();vmT-=dt;
  let hit=null;if(rh){xrRig.updateMatrixWorld(true);const m=new THREE.Matrix4().multiplyMatrices(xrRig.matrixWorld,rh.matrix),o=new THREE.Vector3().setFromMatrixPosition(m),d=new THREE.Vector3(0,0,-1).transformDirection(m);vm.ray_.set(o,d);vm.mesh.updateMatrixWorld(true);const h=vm.ray_.intersectObject(vm.mesh)[0];
   vm.ray.position.copy(o).addScaledVector(d,(h?h.distance:3)/2);vm.ray.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d);vm.ray.scale.set(1,h?h.distance:3,1);
   if(h){hit=h;vm.dot.visible=true;vm.dot.position.copy(h.point)}else vm.dot.visible=false}
@@ -93,7 +95,8 @@ function vrMenu(dt,gr,gl){const box=menuBox();if(!vm)vrMenuInit();const rh=vrHan
  if(gpEdgeOf('vmb',b4(gl,5)||b4(gr,5))){if(box.id=='osk')closeOSK();else if(box.id=='pause')resumeAny();else{const b=$('#back');if(b&&vis(b))b.click()}}
  if(vmT<=0){vmT=.25;vrMirror(box)}}
 const b4=(g,i)=>!!(g&&g.buttons[i]&&g.buttons[i].pressed);
-function vrStart(){xrRig=xrRig||(()=>{const r=new THREE.Group();S.add(r);return r})();S.remove(C);xrRig.add(C);rigYaw=yaw;for(const c of xrCtl)xrRig.add(c);xrGunIn=0;xrSnap=0;sun.castShadow=false;xrWrist=vrPanel();vmLatch=null;R.setAnimationLoop(gameFrame)}
+function vrMenuClear(){if(vm){for(const o of[vm.mesh,vm.dot,vm.ray])if(o&&o.parent)o.parent.remove(o);vm.placed=false;vmHover=null}}
+function vrStart(){vrMenuClear();xrRig=xrRig||(()=>{const r=new THREE.Group();S.add(r);return r})();S.remove(C);xrRig.add(C);rigYaw=yaw;for(const c of xrCtl)xrRig.add(c);xrGunIn=0;xrSnap=0;sun.castShadow=false;xrWrist=vrPanel();vmLatch=null;R.setAnimationLoop(gameFrame)}
 function vrEnd(){R.setAnimationLoop(null);xrS=null;if(xrRig){xrRig.remove(C);S.add(C);for(const c of xrCtl)xrRig.remove(c);if(vm){for(const o of[vm.mesh,vm.dot,vm.ray])if(o.parent)o.parent.remove(o);vm.placed=false}}C.add(gun);gun.position.set(.2,-.2,-.45);gun.rotation.set(0,0,0);if(xrWrist&&xrWrist.m.parent)xrWrist.m.parent.remove(xrWrist.m);xrWrist=null;sun.castShadow=gfxQ=='high';C.aspect=innerWidth/innerHeight;C.updateProjectionMatrix();trig=0;gpTrig=0;for(const k in key)key[k]=false;if(run&&!over&&!paused)pausePad()}
 function vrPre(dt){const rh=vrHand('right'),lh=vrHand('left'),gr=rh&&rh.userData.gp,gl=lh&&lh.userData.gp;
  if(!inMatch()){ /* menus, pause, podium: the rig floats at the camera the menu uses, controllers become a laser pointer */

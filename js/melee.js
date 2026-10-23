@@ -4,11 +4,13 @@
    Also builds the first-person arms: sleeves in the colour of the player character, cuff, gloved hand with palm, knuckle plate, four curled fingers and a thumb. ---------- */
 const MEL={Katana:{n:'Katana',d:100,reach:3.1,cnt:3,cd:.55,zf:1,desc:'Two-handed blade. Long reach, can hit several enemies, very high damage when drawn.'},
  Fists:{n:'Fists',d:72,reach:2.4,cnt:1,cd:.4,zf:.55,desc:'Fast alternating punches. Short reach, but the quickest melee.'}};
-const MV={down:0,h:0,f:0,draw:0,hold:0},MB={t:0,d:.34},FI={t:0,side:0,d:.3};
+const MV={down:0,h:0,f:0,draw:0,hold:0,eq:0,flair:0},MB={t:0,d:.34},FI={t:0,side:0,d:.3};
 const melName=()=>MEL[L.me]?L.me:'Katana';
-function mvReset(){MV.down=MV.h=MV.f=MV.hold=0;MV.draw=0;MB.t=0;FI.t=0}
+function mvReset(){MV.down=MV.h=MV.f=MV.hold=MV.eq=MV.flair=0;MV.draw=0;MB.t=0;FI.t=0}
+/* V: tap = quick strike with the weapon in your hands (or put the melee weapon away if it is out), hold = whip the melee weapon out; it then stays in your hands like any weapon and the fire button swings it */
 function mvDown(){if(!run||paused||over||P.dead)return;MV.down=1;MV.h=0;MV.f=0}
-function mvUp(){if(MV.down&&!MV.f)rifleBash();MV.down=0;MV.hold=0}
+function mvUp(){if(MV.down&&!MV.f){if(MV.eq)MV.eq=0;else rifleBash()}MV.down=0}
+function meleeDraw(){MV.eq=1;MV.flair=.6;noise(.14,2600,.22);beep(1500,.06,'triangle',.05);if(typeof haptic=='function')haptic(.4,90,.5,'right')}
 /* damage a cone in front of the player. Returns true when something was hit */
 function meleeHit(dmg,reach,cnt,zf,cone){const f=V(-Math.sin(yaw),0,-Math.cos(yaw));let hit=0;
  const list=bots.filter(b=>b.al&&!ally(b)).map(b=>{const dx=b.x-P.x,dz=b.z-P.z,D=Math.hypot(dx,dz);return{b,D,dt:D>0?(dx*f.x+dz*f.z)/D:1}}).filter(o=>o.D<reach&&o.dt>cone&&Math.abs((o.b.y||0)-(P.y||0))<2.2).sort((a,b)=>a.D-b.D);
@@ -22,10 +24,11 @@ melee=function(){if(t0<mn||P.dead)return;const m=MEL[melName()];mn=t0+m.cd;src='
 /* tap V: butt-stroke with the weapon in your hands, about a third of the damage */
 function rifleBash(){if(t0<mn||P.dead||rel>0)return;mn=t0+.42;src='Melee';srcK='';MB.t=MB.d;noise(.08,1800,.2);const f=V(-Math.sin(yaw),0,-Math.cos(yaw));
  const n=meleeHit(40,2.3,1,.3,.35);if(n)kick=Math.max(kick,.3);meleeLunge(f,.2)}
-function meleeTick(dt){if(MB.t>0)MB.t-=dt;if(FI.t>0)FI.t-=dt;
- if(MV.down){MV.h+=dt;if(!MV.f&&MV.h>=.2){MV.f=1;MV.hold=1;melee()}}else MV.hold=0;
- if(P.dead||paused||over){MV.down=0;MV.hold=0}
- MV.draw+=((MV.hold?1:0)-MV.draw)*Math.min(1,dt*(MV.hold?11:9));if(MV.draw<.01)MV.draw=0}
+function meleeTick(dt){if(MB.t>0)MB.t-=dt;if(FI.t>0)FI.t-=dt;if(MV.flair>0)MV.flair-=dt;
+ if(MV.down){MV.h+=dt;if(!MV.f&&MV.h>=.2){MV.f=1;if(!MV.eq)meleeDraw()}}
+ if(P.dead||paused||over){MV.down=0;MV.eq=0}
+ if(MV.eq){ST.adsIn=0;if(trig&&!P.dead&&t0>=mn)melee()}
+ MV.hold=MV.eq;MV.draw+=((MV.eq?1:0)-MV.draw)*Math.min(1,dt*(MV.eq?11:9));if(MV.draw<.01)MV.draw=0}
 const meleeOut=()=>MV.draw>.03||kat.t>0||FI.t>0;
 /* weapon strike offsets used by the camera-held gun (see upd) */
 const bashP=()=>MB.t>0?Math.sin(Math.PI*(1-MB.t/MB.d)):0;
@@ -64,3 +67,8 @@ fpUpdate=function(dt){if(!meleeOut()||!run||P.dead||over){_fpu(dt);return}
  /* katana: right hand at the pommel end of the grip, left hand just under the guard, both following the blade through every swing */
  katG.updateMatrix();const mt=katG.matrix,Rh=V(0,-.235,0).applyMatrix4(mt),Lh=V(0,-.12,0).applyMatrix4(mt);
  ik(SR,Rh,V(.5,-1,.35),fpArm.r);ik(SL,Lh,V(-.5,-1,.35),fpArm.l)};
+
+/* nothing fires, reloads or swaps while the melee weapon is out: reload (R) or a weapon switch puts it away */
+{const _sh=shoot;shoot=function(){if(MV.eq)return;_sh.apply(this,arguments)}}
+{const _sr=startRel;startRel=function(){if(MV.eq){MV.eq=0;return}_sr.apply(this,arguments)}}
+{const _sw=swap;swap=function(){MV.eq=0;_sw.apply(this,arguments)}}

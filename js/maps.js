@@ -9,7 +9,7 @@ const MK={
   const put=(a,b,lo,hi)=>{if(b-a<.03||hi-lo<.03)return;const m=(a+b)/2,l=b-a;B(hz?cx+m:cx,hz?cz:cz+m,hz?l:t,hz?t:l,hi,lo,c,k)};
   for(const[o,w,bt,tp]of ops){put(cur,o-w/2,y0,y1);put(o-w/2,o+w/2,y0,y0+bt);put(o-w/2,o+w/2,y0+tp,y1);cur=o+w/2}put(cur,len/2,y0,y1)},
  /* four walls with doors / windows per side (n = -z, s = +z, w = -x, e = +x) and an optional flat roof */
- room(B,o){const{x,z,w,d,h,y0=0,t=.35,c,k,roof=1,rc,rk,rt=.3,dr={},wn={}}=o,ops=s=>[...(dr[s]||[]).map(([f,wd,ht])=>[f,wd||1.8,0,ht||2.4]),...(wn[s]||[]).map(([f,wd])=>[f,wd||1.2,1.1,2.1])],W=MK.wall;
+ room(B,o){const{x,z,w,d,h,y0=0,t=.35,c,k,roof=1,rc,rk,rt=.3,dr={},wn={}}=o,ops=s=>[...(dr[s]||[]).map(([f,wd,ht])=>[f,Math.max(2.4,wd||2.4),0,ht||2.4]),...(wn[s]||[]).map(([f,wd])=>[f,wd||1.2,1.1,2.1])],W=MK.wall;
   W(B,1,x,z-d/2+t/2,w,t,y0,y0+h,ops('n'),c,k);W(B,1,x,z+d/2-t/2,w,t,y0,y0+h,ops('s'),c,k);W(B,0,x-w/2+t/2,z,d-2*t,t,y0,y0+h,ops('w'),c,k);W(B,0,x+w/2-t/2,z,d-2*t,t,y0,y0+h,ops('e'),c,k);
   if(roof)B(x,z,w+.2,d+.2,y0+h+rt,y0+h,rc||c,rk||k)},
  /* stairs: n steps rising .3 each, running in direction dir ('n','s','e','w'), starting at (x,z) = bottom centre */

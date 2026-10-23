@@ -6,10 +6,10 @@
 const CU={k:'AR',tab:'ch',track:'mp',sel:null,view:0,img:{},tiles:{}};
 const CU_VIEWS=[['SIDE',[1,.06,0]],['THREE QUARTER',[.75,.5,.85]],['TOP',[.02,1,.06]],['FRONT',[.05,.12,1]],['REAR',[-.05,.18,-1]],['UNDERSIDE',[.5,-.9,.3]]];
 let cuRen=null;
-function cuPreview(k,cn,view){const key=k+'|'+(cn||'')+'|'+view+'|'+(typeof gfxQ!='undefined'?1:0);if(CU.img[key]!=null)return CU.img[key];
+function cuPreview(k,cn,view){const key=k+'|'+(cn||'')+'|'+view+'|'+attsFor(k).join(',')+'|'+(typeof gfxQ!='undefined'?1:0);if(CU.img[key]!=null)return CU.img[key];
  try{if(!cuRen){cuRen=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});cuRen.setSize(1100,460,false);cuRen.setPixelRatio(1);cuRen.setClearColor(0,0)}
   const sc=new THREE.Scene();sc.add(new THREE.HemisphereLight(0xffffff,0x3a4a5e,.95));const d1=new THREE.DirectionalLight(0xffffff,1);d1.position.set(4,6,3);sc.add(d1);const d2=new THREE.DirectionalLight(0x88aaff,.55);d2.position.set(-4,1,-4);sc.add(d2);
-  const rm=cn?camoRm(k,cn):undefined,g=buildGun(k,rm);sc.add(g);const bb=new THREE.Box3().setFromObject(g),ct=bb.getCenter(new THREE.Vector3()),sp=bb.getBoundingSphere(new THREE.Sphere()),fov=24,
+  const rm=cn?camoRm(k,cn):undefined,g=buildGun(k,rm);try{attApply(g,k,attsFor(k),1)}catch(e){}sc.add(g);const bb=new THREE.Box3().setFromObject(g),ct=bb.getCenter(new THREE.Vector3()),sp=bb.getBoundingSphere(new THREE.Sphere()),fov=24,
    cam=new THREE.PerspectiveCamera(fov,1100/460,.05,60),dist=sp.radius/Math.sin(THREE.MathUtils.degToRad(fov/2))*.78,dv=new THREE.Vector3(...CU_VIEWS[view][1]).normalize();
   /* the camera looks along -x for the side view so the muzzle points left, like the reference */
   cam.position.copy(ct).addScaledVector(dv,dist);cam.up.set(0,view==2?0:1,view==2?-1:0);cam.lookAt(ct);cuRen.render(sc,cam);return CU.img[key]=cuRen.domElement.toDataURL('image/png')}catch(e){return CU.img[key]=''}}
@@ -29,7 +29,7 @@ function custRender(){const e=$('#p-cust');if(!e)return;const k=CU.k,w=wd(k),{al
   <div class="cu-tabs"><button data-cutab="ch" class="${CU.tab=='ch'?'on':''}">CHALLENGES</button><button data-cutab="pr" class="${CU.tab=='pr'?'on':''}">WEAPON PRESTIGE</button></div>
   <div class="cu-wsel"><button data-cuw="-1">‹</button><span>${nm(k)} <i>Lv ${wlv(k)}${w.p?' ★'+w.p:''}</i></span><button data-cuw="1">›</button></div></div>
   <div class="cu-main"><div class="cu-stage"><img src="${cuPreview(k,CU.tab=='ch'?(cur?cur.n:eq||''):(eq||''),CU.view)}" alt=""><b>${CU_VIEWS[CU.view][0]}</b></div><aside class="cu-info">${info}</aside></div>
-  <div class="cu-bot"><div class="cu-modes"><span class="dis">CO-OP CAMPAIGN</span><button data-cutr="mp" class="${CU.track=='mp'?'on':''}">MULTIPLAYER</button><button data-cutr="zm" class="${CU.track=='zm'?'on':''}">ZOMBIES</button></div>
+  <div class="cu-bot"><div class="cu-modes"><button data-cutr="mp" class="${CU.track=='mp'?'on':''}">MULTIPLAYER</button><button data-cutr="zm" class="${CU.track=='zm'?'on':''}">ZOMBIES</button></div>
   <div class="cu-groups">${groups.map(([n,l],gi)=>`<div class="cg"><h4>${n}</h4><div class="cr">${gi==0?`<button class="ct ${!cur?'sel':''}" data-cut="" title="Default"><span class="sw" style="--c:#2a3036"></span>${eq?'':'<em>EQUIPPED</em>'}</button>`:''}${l.map(tile).join('')}</div></div>`).join('')}</div>
   <div class="cu-btns"><button data-cuact="track">TRACK NEXT CAMO (${tc}/${all.length})</button><button data-cuact="view">PREVIEW WEAPON</button><button data-cuact="weap">WEAPONS</button></div>${tr?`<p class="cu-trk">Tracking: ${tr.split(':')[1]} on ${nm(tr.split(':')[0])}</p>`:''}</div></div>`}
 function custWeapons(){const e=$('#p-cust');const keys=Object.keys(W);e.querySelector('.cu-main').innerHTML=`<div class="cu-wlist">${keys.map(x=>`<button class="${x==CU.k?'on':''}" data-cuw2="${x}"><b>${nm(x)}</b><i>Lv ${wlv(x)}</i></button>`).join('')}</div>`}

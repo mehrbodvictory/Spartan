@@ -10,17 +10,31 @@ const PERKC=['#c0392b','#2e86de','#27ae60'];
 const nm_=k=>W[k]?W[k].n:k;
 /* ---------- weapon preview renderer: one extra small WebGL context, images cached as data URLs ---------- */
 const WIMG={};let wRen=null;
-function wImg(k){if(WIMG[k]!=null)return WIMG[k];try{if(!wRen){wRen=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});wRen.setSize(640,300,false);wRen.setPixelRatio(1);wRen.setClearColor(0,0)}
+function wImg(k){const ak=k+'|'+attsFor(k).join(',');if(WIMG[ak]!=null)return WIMG[ak];try{if(!wRen){wRen=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});wRen.setSize(640,300,false);wRen.setPixelRatio(1);wRen.setClearColor(0,0)}
  const sc=new THREE.Scene();sc.add(new THREE.HemisphereLight(0xffffff,0x4a5566,1.0));const dl=new THREE.DirectionalLight(0xffffff,.9);dl.position.set(4,5,2);sc.add(dl);const dl2=new THREE.DirectionalLight(0x99aacc,.4);dl2.position.set(-4,2,-3);sc.add(dl2);
- const g=buildGun(k);sc.add(g);const bb=new THREE.Box3().setFromObject(g),ct=bb.getCenter(new THREE.Vector3()),sz=bb.getSize(new THREE.Vector3()),hw=Math.max(sz.z*.56,sz.y*1.15),hh=hw*300/640,cam=new THREE.OrthographicCamera(-hw,hw,hh,-hh,.01,30);
- cam.position.set(ct.x+6,ct.y,ct.z);cam.lookAt(ct.x,ct.y,ct.z);wRen.render(sc,cam);return WIMG[k]=wRen.domElement.toDataURL('image/png')}catch(e){return WIMG[k]=''}}
-const IMG_M={Katana:'<svg viewBox="0 0 200 60"><path d="M10 40 Q90 10 190 8 L186 14 Q100 22 14 46Z" fill="#dfe6ee"/><rect x="2" y="38" width="22" height="10" rx="3" fill="#c9a94d" transform="rotate(-14 2 40)"/></svg>',
- Fists:'<svg viewBox="0 0 120 80"><rect x="20" y="22" width="70" height="40" rx="14" fill="#dfe6ee"/><rect x="26" y="14" width="14" height="18" rx="6" fill="#dfe6ee"/><rect x="44" y="10" width="14" height="20" rx="6" fill="#dfe6ee"/><rect x="62" y="12" width="14" height="19" rx="6" fill="#dfe6ee"/><rect x="78" y="16" width="14" height="18" rx="6" fill="#dfe6ee"/><rect x="84" y="44" width="26" height="14" rx="6" fill="#cfd6de"/></svg>'};
-const IMG_G={Frag:'<svg viewBox="0 0 60 80"><ellipse cx="30" cy="48" rx="20" ry="24" fill="#cfd6de"/><rect x="24" y="12" width="12" height="10" fill="#9aa4ae"/><path d="M36 14 q12 -4 14 6" stroke="#9aa4ae" stroke-width="3" fill="none"/></svg>',
- Impact:'<svg viewBox="0 0 60 80"><circle cx="30" cy="44" r="22" fill="#cfd6de"/><circle cx="30" cy="44" r="9" fill="#ff7a3a"/></svg>'};
-const IMG_F='<svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="26" fill="none" stroke="#cfd6de" stroke-width="5"/><path d="M40 20 L48 40 L40 60 L32 40Z" fill="#cfd6de"/></svg>',
- IMG_T='<svg viewBox="0 0 60 80"><rect x="18" y="14" width="24" height="56" rx="8" fill="#cfd6de"/><rect x="24" y="6" width="12" height="10" fill="#9aa4ae"/></svg>';
-function ring(lv,mx){const p=Math.min(1,lv/mx),c=2*Math.PI*17;return `<span class="ring"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="none" stroke="#23424c" stroke-width="3"/><circle cx="20" cy="20" r="17" fill="none" stroke="var(--cy)" stroke-width="3" stroke-dasharray="${(c*p).toFixed(1)} ${c}" transform="rotate(-90 20 20)"/></svg><b>${lv}</b><i>/${mx}</i></span>`}
+ const g=buildGun(k);try{attApply(g,k,attsFor(k),1)}catch(e){}sc.add(g);const bb=new THREE.Box3().setFromObject(g),ct=bb.getCenter(new THREE.Vector3()),sz=bb.getSize(new THREE.Vector3()),hw=Math.max(sz.z*.56,sz.y*1.15),hh=hw*300/640,cam=new THREE.OrthographicCamera(-hw,hw,hh,-hh,.01,30);
+ cam.position.set(ct.x+6,ct.y,ct.z);cam.lookAt(ct.x,ct.y,ct.z);wRen.render(sc,cam);return WIMG[ak]=wRen.domElement.toDataURL('image/png')}catch(e){return WIMG[ak]=''}}
+/* ---------- 3D previews of the non-gun items: the same models the game uses, rendered once and cached ---------- */
+const OIMG={};
+function objImg(id,fn){if(OIMG[id]!=null)return OIMG[id];try{if(!wRen){wRen=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});wRen.setSize(640,300,false);wRen.setPixelRatio(1);wRen.setClearColor(0,0)}
+ const sc=new THREE.Scene();sc.add(new THREE.HemisphereLight(0xffffff,0x4a5566,1.0));const d1=new THREE.DirectionalLight(0xffffff,.95);d1.position.set(3,5,4);sc.add(d1);const d2=new THREE.DirectionalLight(0x99aacc,.45);d2.position.set(-4,1,-3);sc.add(d2);
+ const g=fn();sc.add(g);const bb=new THREE.Box3().setFromObject(g),ct=bb.getCenter(new THREE.Vector3()),sp=bb.getBoundingSphere(new THREE.Sphere()),fov=24,cam=new THREE.PerspectiveCamera(fov,640/300,.01,40),dist=sp.radius/Math.sin(THREE.MathUtils.degToRad(fov/2))*.8;
+ cam.position.copy(ct).addScaledVector(new THREE.Vector3(.55,.35,1).normalize(),dist);cam.lookAt(ct);wRen.render(sc,cam);return OIMG[id]=wRen.domElement.toDataURL('image/png')}catch(e){return OIMG[id]=''}}
+function objBuild(id){const M=c=>new THREE.MeshLambertMaterial({color:c}),g=new THREE.Group(),
+ cy=(r,h,x,y,z,m,rt)=>{const e=new THREE.Mesh(new THREE.CylinderGeometry(rt==null?r:rt,r,h,16),m);e.position.set(x,y,z);g.add(e);return e},
+ sp=(r,x,y,z,m,sx,sy,sz)=>{const e=new THREE.Mesh(sg,m);e.scale.set(r*(sx||1),r*(sy||1),r*(sz||1));e.position.set(x,y,z);g.add(e);return e},
+ tr=(R,t,x,y,z,m,rx)=>{const e=new THREE.Mesh(new THREE.TorusGeometry(R,t,8,24),m);e.position.set(x,y,z);e.rotation.x=rx==null?Math.PI/2:rx;g.add(e);return e},
+ bx=(w,h,d,x,y,z,m,rz)=>{const e=new THREE.Mesh(bg,m);e.scale.set(w,h,d);e.position.set(x,y,z);if(rz)e.rotation.z=rz;g.add(e);return e};
+ if(id=='katana'){const k=buildKatana();k.visible=true;const w=new THREE.Group();w.add(k);w.rotation.z=-Math.PI/2.5;return w}
+ if(id=='fists'){const gl=M(0x151515),gl2=M(0x2a2c32),sl=M(0x3d6ad6);for(const s of[-1,1]){const h=mkFpHand(s,gl,gl2);h.scale.setScalar(2.6);h.rotation.set(Math.PI*.5,0,s*.15);h.position.set(s*.16,0,0);g.add(h);cy(.045,.3,s*.16,-.02,-.2,sl).rotation.x=Math.PI/2.4}return g}
+ if(id=='frag'){const o=M(0x4a5a30),d=M(0x2a3320),st=M(0x8a9098);sp(.04,0,0,0,o,1,1.25,1);for(let i=-3;i<=3;i++){tr(.04*Math.sqrt(Math.max(.05,1-Math.pow(i/3.4,2))),.003,0,i*.0125,0,d)}for(let i=0;i<8;i++){const a=i*.785;bx(.004,.09,.004,Math.cos(a)*.0405,0,Math.sin(a)*.0405,d)}cy(.011,.03,0,.054,0,st);bx(.012,.006,.05,.012,.066,0,st);tr(.012,.0022,.03,.06,0,st,0);return g}
+ if(id=='impact'){const o=M(0x555a60),r=M(0xc0392b);sp(.04,0,0,0,o,1,1.1,1);tr(.04,.006,0,.003,0,r);tr(.036,.004,0,.022,0,r);const c=new THREE.Mesh(new THREE.ConeGeometry(.012,.03,12),M(0x2a2a2e));c.position.y=.054;g.add(c);cy(.006,.02,0,.07,0,M(0xe8e8e0));return g}
+ if(id=='flash'){const o=M(0xb8bcc2),d=M(0x2a2c30),st=M(0x8a9098);cy(.028,.12,0,0,0,o);cy(.03,.016,0,.062,0,d);cy(.03,.016,0,-.062,0,d);tr(.029,.003,0,.02,0,d);tr(.029,.003,0,-.02,0,d);bx(.012,.006,.05,.012,.076,0,st);tr(.012,.0022,.03,.07,0,st,0);cy(.01,.016,0,.07,0,st);return g}
+ if(id=='adren'){const gl=new THREE.MeshBasicMaterial({color:0x3fd0c9}),b=M(0x2a3a44),st=M(0xcfd6de);cy(.018,.12,0,0,0,b);cy(.014,.1,0,.0,.0,gl);cy(.02,.02,0,.07,0,st);cy(.007,.04,0,.095,0,st);cy(.003,.05,0,-.1,0,st,.001);const n=new THREE.Mesh(new THREE.ConeGeometry(.003,.04,8),st);n.position.y=-.115;n.rotation.x=Math.PI;g.add(n);cy(.022,.012,0,-.066,0,M(0x1b2830));tr(.019,.003,0,.03,0,st);g.rotation.z=Math.PI/3;return g}
+ return g}
+const oTag=id=>{const u=objImg(id,()=>objBuild(id));return u?`<img src="${u}" alt="">`:''};
+const IMG_M={get Katana(){return oTag('katana')},get Fists(){return oTag('fists')}},IMG_G={get Frag(){return oTag('frag')},get Impact(){return oTag('impact')}},IMG_F={toString:()=>oTag('adren')},IMG_T={toString:()=>oTag('flash')};
+function ring(lv,mx){const p=Math.min(1,lv/mx),c=2*Math.PI*17;return `<span class="ring"><svg viewBox="0 0 40 40" width="42" height="42"><circle cx="20" cy="20" r="17" fill="none" stroke="#23424c" stroke-width="3"/><circle cx="20" cy="20" r="17" fill="none" stroke="var(--cy)" stroke-width="3" stroke-dasharray="${(c*p).toFixed(1)} ${c}" transform="rotate(-90 20 20)"/></svg><b>${lv}</b><i>/${mx}</i></span>`}
 const wlvS=k=>typeof wlv=='function'?wlv(k):1;
 const perkN=i=>L.pk[i]||null;
 function slotHtml(id,cls,label,name,body,extra){return `<button class="ls ${cls} ${LSL.sel==id?'sel':''}" data-slot="${id}"><u>${label}</u>${body||''}<b>${name}</b>${extra||''}</button>`}
@@ -53,6 +67,7 @@ function ldRender(){const e=$('#ld');if(!e)return;sanitizeMe();
   ${slotHtml('t','w2','TACTICAL','Flashbang',`<span class="wi mi">${IMG_T}</span>`)}
   ${slotHtml('l','w2','LETHAL',L.g||'None',`<span class="wi mi">${L.g?IMG_G[L.g]||IMG_G.Frag:''}</span>`)}
   ${pk(0)}${pk(1)}${pk(2)}
+  ${typeof skSel=='function'?slotHtml('ks','w6','KILLSTREAKS',skSel().map(i=>STK[i].n).join(' · '),`<span class="ksrow">${skSel().map(i=>`<span class="ksi">${skTag(i)}</span>`).join('')}</span>`):''}
  </div><aside class="lo-side">${detailHtml()}</aside></div></div>`;
  $('#pts').textContent=cost()+' / 10 points'}
 function sanitizeMe(){if(!MEL[L.me])L.me='Katana'}

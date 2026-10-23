@@ -143,3 +143,11 @@ Menus work inside the headset (the DOM menus are mirrored onto a panel you point
 - **Multiplayer (P2P):** TURN/STUN servers, heartbeat, 15 s reconnect grace, automatic rejoin, and the match keeps running in a background tab. Other players show jump, crouch, slide, prone and dive poses, backwards running, look pitch, correct height and hit boxes, and their weapon camo.
 - **VR:** the weapon's grip point now sits on the controller.
 - **Customize weapon** replaces the Weapon mastery menu: a button in the Loadout screen (and the Camos button in the Zombies menu) opens a camo screen with a large preview of the weapon wearing the selected camo (Preview weapon cycles side / three quarter / top / front / rear / underside), Challenges and Weapon Prestige tabs, Military / Special / Mastery camo rows for Multiplayer and Zombies, locks with requirement and progress, and Track next camo (js/customize.js).
+- **Controller vibration** (gamepad and VR) with a Settings toggle (js/haptics.js). VR menu panels are placed in the world, facing the player (js/input.js).
+- **Attachments are visible** on the weapon in first person, previews and other players (js/attach.js). Held weapons are scaled and placed so both hands reach the grip and foregrip. Models are welded so no part floats free (js/models.js).
+- **Navigation fixes:** doors are at least 2.4 m wide, the walkable main region is computed per map, spawns and bots stay inside it (js/nav.js).
+- **Private matches:** bot count slider, and the new mode **One in the Chamber** (js/oitc.js).
+- **Melee:** hold V to whip the melee weapon out; it stays equipped, left-click swings, tap V or press R to put it away (js/melee.js).
+- **Skyboxes:** a different sky and sun direction on every map (js/sky.js).
+- **Killstreaks:** 45 streaks with models, a customizable Scorestreaks screen (Loadout > Killstreaks), enemy bots shoot your placed streaks, enemy helicopters appear now and then (js/sk_data.js, sk_core.js, sk_use.js, sk_ui.js). Streaks are local to the player who earned them in P2P matches.
+- **Three lane maps:** every multiplayer map has a north, middle and south lane with themed dividers and crossover gaps (js/lanes.js).

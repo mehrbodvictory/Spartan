@@ -6,7 +6,7 @@
 /* multi storey building: walls with windows per floor, door gaps on the ground floor, slabs with a stairwell hole, stairs between floors, roof slab */
 function multi(B,o){const{x,z,w,d,fl=2,fh=3.6,t=.45,c,k='stucco',rc,rk,dr={},wn={},roof=1,wlo=1.1,whi=2.4,step=3.4,rnd=Math.random}=o,S=['n','s','w','e'],
  pos=s=>s=='n'?[x,z-d/2+t/2,1,w]:s=='s'?[x,z+d/2-t/2,1,w]:s=='w'?[x-w/2+t/2,z,0,d-2*t]:[x+w/2-t/2,z,0,d-2*t];
- for(let f=0;f<fl;f++){const y0=f*fh;for(const s of S){const[px,pz,hz,len]=pos(s),dd=f==0?(dr[s]||[]).map(([q,wd,ht])=>[q,wd||1.8,0,ht||2.5]):[],ww=[];if(wn[s]!==0){for(let q=-len/2+2;q<len/2-1.3;q+=step){if((dr[s]||[]).some(([a,b])=>f==0&&Math.abs(q-a)<(b||1.8)/2+1.1))continue;ww.push([q,1.2,wlo,whi])}}MK.wall(B,hz,px,pz,len,t,y0,y0+fh,[...dd,...ww],c,k)}}
+ for(let f=0;f<fl;f++){const y0=f*fh;for(const s of S){const[px,pz,hz,len]=pos(s),dd=f==0?(dr[s]||[]).map(([q,wd,ht])=>[q,Math.max(2.4,wd||2.4),0,ht||2.5]):[],ww=[];if(wn[s]!==0){for(let q=-len/2+2;q<len/2-1.3;q+=step){if((dr[s]||[]).some(([a,b])=>f==0&&Math.abs(q-a)<Math.max(2.4,b||2.4)/2+1.1))continue;ww.push([q,1.2,wlo,whi])}}MK.wall(B,hz,px,pz,len,t,y0,y0+fh,[...dd,...ww],c,k)}}
  const stw=1.7,n=Math.ceil(fh/.3),run=n*.55;
  for(let f=1;f<=fl;f++){const y=f*fh,fl_=f-1,north=fl_%2==0,zz=north?z-d/2+t+stw/2+.1:z+d/2-t-stw/2-.1,x0=x-w/2+t+.3;if(f<fl)MK.slab(B,x,z,w-2*t,d-2*t,y,y-.35,rc||c,'concrete',[x0+run/2,zz,run+.4,stw+.3]);else if(roof)B(x,z,w+.3,d+.3,y+.3,y-.1,rc||c,rk||'concrete')}
  for(let f=0;f<fl-1;f++){const north=f%2==0,zz=north?z-d/2+t+stw/2+.1:z+d/2-t-stw/2-.1,x0=x-w/2+t+.3;MK.stairs(B,x0,zz,stw,n,'e',rc||c,'concrete',fh/n,.55,f*fh)}}
@@ -100,13 +100,13 @@ MAPS.Pillars={d:'Ruined Roman forum: colonnades, amphitheatre, temple, baths and
   for(const[x,z]of[[-4.4,-4.2],[4.4,-4.2],[-4.4,.2],[4.4,.2]])col(x,z,4.6,1,1.2);V(0,-2,8,3.6,1.34,1.3,0xb0302a,'b');plinth(0,3.4,2.2,.8,0xc8b078);
   /* temple to the north: stylobate steps, six front columns, cella with a door, fallen roof, statue inside */
   const tx=-4,tz=-26;for(let i=0;i<3;i++)B(tx,tz,22-i*1.4,13-i*1.2,.3*(i+1),0,MAR,'concrete');MK.room(B,{x:tx,z:tz-1,w:11,d:9,h:7.4,t:.7,y0:.9,c:MAR,k:'concrete',roof:0,dr:{s:[[0,3,4.6]]},wn:{}});
-  for(let i=0;i<6;i++)col(tx-8.8+i*3.52,tz+4.7,i==2?3.6:8,i!=2);for(const s of[-1,1])for(let i=0;i<2;i++)col(tx+s*9.8,tz-1+i*5,8,1);beam(tx,tz+4.7,1,19,9.7);B(tx,tz-1,5,3,8.9,8.3,DM,'concrete');plinth(tx,tz-3,2.6,.9+.4,0xe8e0cc);fallen(tx+6,tz+8.5,1,6);fallen(tx-9,tz+9.2,0,5);V(tx,tz+6,19,.5,11.8,9.7,DM,'b','concrete');
+  for(let i=0;i<6;i++)col(tx-8.8+i*3.52,tz+4.7,i==2?3.6:8,i!=2);for(const s of[-1,1])for(let i=0;i<2;i++)col(tx+s*9.8,tz-1+i*5,8,1);beam(tx,tz+4.7,1,19,9.7);B(tx,tz-1,5,3,8.9,8.3,DM,'concrete');plinth(tx,tz-3,2.6,.9+.4,0xe8e0cc);fallen(tx+6,tz+8.5,1,6);fallen(tx-9,tz+10.6,1,4);V(tx,tz+6,19,.5,11.8,9.7,DM,'b','concrete');
   /* baths in the south: sunken pool shown as a rim and water, arcaded hall on both sides */
   const bx=3,bz=24;B(bx,bz,15,.7,1,0,MAR,'concrete');B(bx,bz+6.4,15,.7,1,0,MAR,'concrete');B(bx-7.2,bz+3.2,.7,6.4,1,0,MAR,'concrete');B(bx+7.2,bz+3.2,.7,6.4,1,0,MAR,'concrete');V(bx,bz+3.2,14,5.8,.7,.1,0x4a9ab8,'g');
   for(const s of[-1,1]){MK.wall(B,0,bx+s*11,bz+3,16,.9,0,5.6,[[-4.6,2.8,0,3.6],[0,2.8,0,3.6],[4.6,2.8,0,3.6]],PINK,'stucco');B(bx+s*11,bz+3,1.2,16.4,6.1,5.6,DM,'concrete');for(let i=0;i<3;i++)V(bx+s*(11+.5),bz-2.3+i*4.6+3,.2,2.6,4.8,3.4,0x2a2a2a,'b')}
   B(bx,bz+9,28,.9,5.6,0,PINK,'stucco');for(let i=0;i<5;i++)V(bx-10+i*5,bz+8.4,2.4,.2,3.6,.1,0x2a2a2a,'b');
   /* stoas: long covered halls east and west with doorways */
-  for(const s of[-1,1])MK.room(B,{x:s*28,z:-18,w:6,d:20,h:5.4,t:.6,c:OLD,k:'concrete',rc:BRK,rk:'shingle',dr:{[s>0?'w':'e']:[[-5,2.4,3.6],[5,2.4,3.6]],n:[[0,2.2,3]]},wn:{[s>0?'e':'w']:[[-6,1.4],[0,1.4],[6,1.4]]}});
+  for(const s of[-1,1])MK.room(B,{x:s*28,z:-18,w:6,d:20,h:5.4,t:.6,c:OLD,k:'concrete',rc:BRK,rk:'shingle',dr:{w:[[-5,2.6,3.6],[5,2.6,3.6]],e:[[-5,2.6,3.6],[5,2.6,3.6]],n:[[0,2.4,3]]},wn:{[s>0?'e':'w']:[[-6,1.4],[0,1.4],[6,1.4]]}});
   /* triumphal arch at the east end of the avenue: two piers and a lintel high enough to walk under */
   for(const s of[-1,1]){B(33.5,s*3.6,5,3.2,10,0,MAR,'concrete');V(33.5,s*3.6,5.4,3.6,10.2,7,DM,'b','concrete')}B(33.5,0,5,10.4,11.4,7.4,MAR,'concrete');V(33.5,0,5.4,10.8,12,11.2,DM,'b','concrete');V(33.5,0,2,3,13.6,12,0xc8a24a,'b');for(const s of[-1,1])steps(30.4,s*3.6,1,3.2,3,'e');
   /* statues on plinths, fountains, fallen columns, broken walls, benches of stone, cypress and olive groves */
@@ -133,7 +133,7 @@ MAPS.Pillars={d:'Ruined Roman forum: colonnades, amphitheatre, temple, baths and
   return o}};
 
 /* =============================== CANYON =============================== */
-MAPS.Canyon={d:'Mining gorge: trestle bridge, mill, mine tunnel, water tower, rail carts and climbable ledges',H:44,open:1,sky:0x86b4dc,gr:0xb4693e,gt:'sand',bc:0xb9774c,hemi:.95,hemiC:0xfff0dc,hemiG:0x8a5a3a,sunI:1,sunC:0xffe6c0,fogF:150,
+MAPS.Canyon={d:'Mining gorge: trestle bridge, mill, mine tunnel, water tower, rail carts and climbable ledges',H:44,open:1,sky:0xe0a070,gr:0xb4693e,gt:'sand',bc:0xb9774c,hemi:.85,hemiC:0xffc8a0,hemiG:0x8a4a3a,sunI:1.05,sunC:0xffb070,fogF:150,
  fb:[[-33,8],[33,-6]],zn:[[-26,6],[0,-2],[27,-4]],tb:[-44,-44,44,44],inside:(x,z)=>Math.abs(x)<40&&Math.abs(z)<40,
  lights:[[30,3.6,-18,0xffa040,1.2,16],[-6,3.2,-12,0xffd9a0,.9,16],[22,2.5,-30,0xffa040,1,14],[-20,3,16,0xffc070,.9,16]],
  b(){const a=[],v=MAPS.Canyon._v,B=(x,z,w,d,h,y0,c,k)=>a.push([x,z,w,d,h,y0||0,c,k]),V=(x,z,w,d,h,y0,c,s,t)=>v.push([x,z,w,d,h,y0||0,c,s||'b',t]),rnd=MK.rnd(17),pick=q=>q[rnd()*q.length|0],
