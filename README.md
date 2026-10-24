@@ -150,4 +150,27 @@ Menus work inside the headset (the DOM menus are mirrored onto a panel you point
 - **Melee:** hold V to whip the melee weapon out; it stays equipped, left-click swings, tap V or press R to put it away (js/melee.js).
 - **Skyboxes:** a different sky and sun direction on every map (js/sky.js).
 - **Killstreaks:** 45 streaks with models, a customizable Scorestreaks screen (Loadout > Killstreaks), enemy bots shoot your placed streaks, enemy helicopters appear now and then (js/sk_data.js, sk_core.js, sk_use.js, sk_ui.js). Streaks are local to the player who earned them in P2P matches.
-- **Three lane maps:** every multiplayer map has a north, middle and south lane with themed dividers and crossover gaps (js/lanes.js).
+- **Three lane maps:** every multiplayer map has a north, middle and south lane. Dividers are long, mostly continuous walls with exactly three staggered crossover gaps each, and objective zones stay open (MK.lanes in js/maps.js).
+
+## File layout (12 files in total)
+index.html, style.css, favicon.svg, README.md and eight scripts in js/, loaded in this order:
+core.js (engine, modes, original maps) · maps.js (toolkit, Rust, Decay, Blockfort, Pillars, Canyon, lane dividers) · systems.js (sights, weapons, models, bots, killstreak basics) ·
+graphics.js (level rendering, per-map skies) · interface.js (menus, P2P networking, navigation, zombies) · controls.js (controls, VR and gamepad, melee, arms, attachments) ·
+menus.js (loadout and customize screens, vibration, One in the Chamber) · streaks.js (the 45 killstreaks and their screen).
+Each bundle contains the source sections named in the "######## name.js ########" comments, so the file names in the notes above point to those sections.
+
+
+## Update notes (this version)
+- **Barriers:** the invisible boundary walls (kind `'n'`) now only stop players. Bullets, and anything fired from killstreaks, pass over them (`castW` skips boxes flagged `pl`).
+- **Killstreaks in multiplayer (js/streaks.js, sk_net):** every device, aircraft and helicopter is mirrored to the other players (10 Hz), they can shoot it down (the owner applies the damage, capped per hit), and explosions are shown to everyone. Streaks are also awarded every frame, not only on the kill event, and the ready streak glows in the side panel.
+- **Nuke:** cannot be equipped any more. It launches by itself at 30 kills in a row, everyone gets the countdown, and when it detonates the match ends with the nuker winning (works in solo, team and free-for-all private matches; the host ends the match).
+- **Streak durability:** helicopters have 2.4x health, enemy bot fire on streaks is much weaker, and the Rocket Launcher (x3.5-4) and RayGun (x3-3.5) deal extra damage to streaks.
+- **Power weapons:** Rocket Launcher and Sniper pick-ups are lost on death and stripped at the start of every match.
+- **One in the Chamber:** every kill (gun, melee or a player) gives one bullet back.
+- **Sounds:** every weapon has its own synthesized shot (table `GS` in js/systems.js). The MVR-67 is now a slow, hard hitting rifle (40 damage, 0.14 s per shot, 24 rounds, 3 body shots to kill).
+- **Attachments** are now measured in the weapon's own space, so they show up in first person and on other players.
+- **Terrain:** dunes and hills that reached into the arena are pushed out past the fence (`tclip` in js/graphics.js). They are scenery only.
+- **HUD:** the match info at the top is rendered as a scoreboard bar (team panels with progress, a centre badge, status chips) from the text the game modes already produce.
+- **RayGun ADS:** the power cell and cap no longer block the sight picture while aiming.
+- **VR:** in the main menu the headset stays at a fixed spot facing the arena (the old code followed the orbiting menu camera, so you drifted away from the panel). Weapon and arm meshes are forced hidden outside matches.
+- **Anti-cheat (end of js/streaks.js, in a closure):** progress is signed; edits made from outside the game (console scripts, hack menus, edited storage) flag the profile and reset levels, unlocks, camos and weapon progress the next time the game is opened. Also catches god mode, double damage, edited weapon tables, replaced game functions and impossible hits. The dev menu works only from real clicks. Existing profiles that used the dev "unlock everything" are reset on first load. This is client-side protection against copy-paste exploits; real security needs a server.
