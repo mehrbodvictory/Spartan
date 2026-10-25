@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Spartan Drill</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600&family=Teko:wght@500;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="favicon.svg"><link rel="stylesheet" href="style.css"></head><body>
+<div id="menu">
+ <header id="brand"><h1>SPARTAN <b>DRILL</b></h1><p>Arena combat simulator</p></header>
+ <nav id="nav"><button data-p="play" class="mp">Play</button><button data-p="priv" class="mp">Private match</button><button data-p="load" class="mp">Loadout</button><button data-p="zplay" class="zm">Play</button><button data-p="priv" class="zm">Co-op lobby</button><button data-p="cust" class="zm">Camos</button><button data-p="set">Settings</button><button id="back">‹ Back</button></nav>
+ <div id="prof"><input id="nm" type="text" maxlength="12" placeholder="Your name"><p id="rank"></p><div id="xpb"><div id="xpf"></div></div><button id="prest" class="btn sm" style="display:none"></button></div>
+ <main>
+  <section id="p-play" class="pn"><h2>Game mode</h2><div class="row" id="md"></div><h2>Map</h2><div class="row" id="mp"></div><button id="go" class="big">Deploy</button></section>
+  <section id="p-priv" class="pn"><h2>Private match</h2><p class="sub">Play with friends directly, peer to peer. Host creates a code, friends type it in. Pick any game mode: bots and rules run on the host. Uses your current loadout.</p>
+   
+   <div class="two"><div class="card2"><h3>Host</h3><label id="pmodeL">Game mode<select id="pmode"></select></label><label id="pmL">Map<select id="pm"></select></label><label id="pbL">Bots in the match: <b id="pbv">6</b><input id="pbots" type="range" min="0" max="12" step="1" value="6"></label><button id="host" class="big">Create match</button>
+    <div id="hostbox" style="display:none"><div id="code"></div><button id="startnet" class="big">Start match</button></div></div>
+   <div class="card2"><h3>Join</h3><label>Match code<input id="jc" type="text" maxlength="5" placeholder="ABCDE"></label><button id="join" class="big">Join match</button></div></div>
+   <p id="lb"></p><ul id="plist"></ul><button id="leave" class="big alt" style="display:none">Leave lobby</button></section>
+  <section id="p-load" class="pn"><h2>Loadout <span id="pts"></span></h2><div id="ld"></div></section>
+  <section id="p-mast" class="pn"><h2>Weapon mastery and camos</h2><p class="sub">Kills in Multiplayer level your weapons and unlock these camos. Zombie camos can be equipped here too.</p><div id="wm"></div></section>
+  <section id="p-zplay" class="pn"><h2>Zombies</h2><p class="sub">Survive endless rounds of the undead, solo or with up to 3 friends in a co-op lobby. You start with a pistol and 500 points. Zombies get stronger every round and a pack of brutes arrives every fifth round.</p>
+   <div class="how"><span>10 points per hit</span><span>50 per body kill</span><span>100 per headshot kill</span><span>130 per katana kill (the katana needs more swings every round)</span><span><kbd>F</kbd> buy / interact</span></div>
+   <ul class="zl"><li>Doors (1000 to 2000) open new wings of the estate</li><li>Mystery Box (950): a random weapon. The RayGun is rare and one-shots everything</li><li>Pack-a-Punch: 5000 to upgrade your weapon, 10000 to upgrade it again</li><li>Soda machines: red health, green fast reload, yellow double damage and fire rate, blue self-revive (the machine runs dry after 4 buys), purple run speed, orange third weapon</li></ul>
+   <p id="zbest" class="sub"></p><button id="zgo" class="big">Start survival</button></section>
+  <section id="p-cust" class="pn"></section>
+  <section id="p-ks" class="pn"></section>
+  <section id="p-zcam" class="pn"><h2>Zombie camos</h2><p class="sub">Earn zombie kills with each weapon to unlock these. The last three are animated. Every camo, from this list or from Multiplayer, works in both modes.</p><div id="zwm"></div></section>
+ <section id="p-set" class="pn"><h2>Settings</h2>
+   <label>Aim assist<select id="aa"><option value="0">Off</option><option value="0.6">Light</option><option value="1">Strong</option><option value="1.5" selected>Very strong</option></select></label>
+   <label>Look sensitivity<input id="sn" type="range" min="0.3" max="2.5" step="0.1" value="1.4"></label>
+   <label>Field of view<input id="fv" type="range" min="60" max="110" step="1" value="80"></label>
+   <label id="vrL" style="display:none">VR headset mode<select id="vrm"><option value="0">Off</option><option value="1">On (enter VR when a match starts)</option></select></label>
+   <label>Graphics<select id="gq"><option value="high">High (shadows)</option><option value="low">Low (faster)</option></select></label>
+   <h2>Keyboard and mouse</h2><div class="how"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</span><span><kbd>Space</kbd> jump / stand / mantle</span><span><kbd>Shift</kbd> sprint (double press: tactical sprint)</span><span><kbd>C</kbd> crouch / slide</span><span><kbd>Ctrl</kbd> prone / dive</span><span><kbd>Alt</kbd> walk</span><span><kbd>H</kbd> auto run</span><span><kbd>LMB</kbd> fire</span><span><kbd>RMB</kbd> aim down sights</span><span><kbd>R</kbd> reload</span><span><kbd>V</kbd> / <kbd>Mouse 4</kbd> katana</span><span><kbd>E</kbd> lethal (frag)</span><span><kbd>Q</kbd> tactical (flashbang)</span><span><kbd>F</kbd> interact / buy / revive</span><span><kbd>T</kbd> / <kbd>Mouse 5</kbd> weapon mount (while aiming)</span><span><kbd>B</kbd> fire mode</span><span><kbd>X</kbd> field upgrade</span><span><kbd>G</kbd> armor plate</span><span><kbd>1</kbd> / wheel down next weapon</span><span><kbd>2</kbd> / wheel up previous weapon</span><span><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd><kbd>6</kbd> killstreak slots</span><span><kbd>Tab</kbd> scoreboard</span><span><kbd>M</kbd> / <kbd>Caps</kbd> map</span><span><kbd>MMB</kbd> ping</span><span><kbd>N</kbd> night vision</span><span><kbd>Esc</kbd> / <kbd>F1</kbd> / <kbd>F3</kbd> / <kbd>F6</kbd> menu</span></div>
+   <h2>Controller</h2><div class="how"><span>LS move</span><span>RS look</span><span>LS click sprint (twice: tactical sprint, or steady aim while aiming)</span><span>RS click katana (LT + RS click: weapon mount)</span><span>LT aim</span><span>RT fire</span><span>LB tactical</span><span>RB lethal</span><span>LB + RB field upgrade</span><span>A jump / stand / mantle</span><span>B crouch / slide, hold: prone / dive</span><span>X reload, hold: interact</span><span>Y swap weapon, hold: armor plate</span><span>D-pad up ping</span><span>D-pad down inventory, hold: night vision</span><span>D-pad left fire mode</span><span>D-pad right killstreak</span><span>View: map, hold: scoreboard</span><span>Menu: pause</span><span>Menus: D-pad / stick + A, B back, on-screen keyboard for names and codes</span></div>
+   <h2>VR (Quest and other WebXR headsets)</h2><div class="how"><span>Right controller aims and holds the weapon</span><span>Right trigger fire</span><span>Left trigger lethal</span><span>Left grip tactical</span><span>Both grips field upgrade</span><span>Right grip reload, hold: interact</span><span>A jump</span><span>B swap, hold: armor plate</span><span>X crouch / slide, hold: prone / dive</span><span>Y pause menu</span><span>Left stick move</span><span>Left stick click sprint (twice: tactical)</span><span>Right stick click katana</span><span>Right stick left/right snap turn, up ping, down fire mode</span></div><p class="sub">In VR the menus appear on a panel in front of you: point with the right controller, pull the trigger to press (grip changes a drop-down backwards, right stick scrolls). Health, ammo and score are on your left wrist.</p>
+   <p class="sub">Touch screens: drag on the left to look, tap or hold on the right to shoot, use the stick for movement (push it to the edge to sprint) and the buttons for jump, reload, grenade, melee, swap and killstreak.</p><p class="sub">No aim button: shots go where your crosshair points, and aim assist helps when an enemy is near it.</p></section>
+ </main>
+ <div id="hot"></div>
+ <div id="dev"><div class="card"><h2>Developer menu</h2><button class="big" data-d="all">Unlock everything</button><button class="big" data-d="lvl">Max level 55</button><button class="big" data-d="master">Prestige Master 1250</button><button class="big alt" data-d="reset">Reset all progress</button><button class="big alt" data-d="close">Close</button></div></div>
+</div>
+<div id="home"><header><h1>SPARTAN <b>DRILL</b></h1><p>Choose your battlefield</p></header>
+ <div id="hbtns"><button id="hz" class="hb"><b>Zombies</b><span>Survive the undead. Doors, perks, the mystery box and Pack-a-Punch.</span><i id="hzs"></i></button>
+ <button id="hmp" class="hb"><b>Multiplayer</b><span>Arena modes, bot matches and private lobbies.</span><i id="hms"></i></button></div></div>
+<div id="pause"><div class="card"><h2 id="pt">Paused</h2><button id="resume" class="big">Resume</button>
+ <label>Aim assist<select id="aa2"><option value="0">Off</option><option value="0.6">Light</option><option value="1">Strong</option><option value="1.5">Very strong</option></select></label>
+ <label>Look sensitivity<input id="sn2" type="range" min="0.3" max="2.5" step="0.1"></label>
+ <label>Field of view<input id="fv2" type="range" min="60" max="110" step="1"></label>
+ <label>Volume<input id="vl" type="range" min="0" max="1" step="0.05" value="1"></label>
+ <label>Screen shake<input id="sk" type="range" min="0" max="1" step="0.1" value="1"></label>
+ <button id="exit" class="big alt">Exit match</button></div></div>
+<div id="end"><div class="card"><div id="et"></div><br><button class="big" id="again">Play again</button><button class="big alt" id="tomenu">Main menu</button></div></div>
+<div id="fin"><div id="fbl"></div>
+ <div id="fvt"><b></b><span></span></div>
+ <section id="fbd"></section>
+ <div id="fpod"><p id="fcd"></p><div id="fnm"></div><div id="fem"><button data-e="0"><kbd>1</kbd>Wave</button><button data-e="1"><kbd>2</kbd>Cheer</button><button data-e="2"><kbd>3</kbd>Dance</button><button data-e="3"><kbd>4</kbd>Flex</button></div></div>
+ <div id="ffd"></div></div>
+<div id="rcv"></div><div id="osk"></div><div id="scope"></div><div id="flash"></div><div id="nvo"></div><div id="sbd"></div><div id="mapv"><canvas id="mapc" width="640" height="640"></canvas><p>M to close</p></div>
+<div id="hud"><div id="dm"></div><div id="di"></div><canvas id="rd" width="150" height="150"></canvas><div id="kf"></div><div id="ks"></div><div id="pops"></div><div id="kst"></div><div id="ob"></div><div id="ms"></div><div id="cx"></div><div id="hm"></div>
+<div id="zh"><div id="zr"></div><div id="zpt"></div><div id="zpk"></div><div id="zt"></div></div><div id="zp"></div>
+<div id="bars"><span id="hn">Shield</span><div class="bar"><div id="sh"></div></div><div class="bar"><div id="hp"></div></div></div>
+<div id="hint">WASD move · Shift sprint · Mouse look · LMB fire · RMB aim · V katana · R reload · E frag · Q flash · F use · C crouch · Ctrl prone · 3 kills = UAV (3)</div><div id="am"></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+<script src="js/core.js"></script>
+<script src="js/maps.js"></script>
+<script src="js/systems.js"></script>
+<script src="js/graphics.js"></script>
+<script src="js/interface.js"></script>
+<script src="js/controls.js"></script>
+<script src="js/menus.js"></script>
+<script src="js/streaks.js"></script>
+</body></html>
