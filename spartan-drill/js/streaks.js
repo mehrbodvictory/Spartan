@@ -440,18 +440,20 @@ const HOLD3={AR:[0,0,0,0,.12,-.05,-.03,.008,1.1],MVR:[-.01,0,.02,0,.2,-.08,-.04,
  MP:[.03,.05,.04,.06,.25,.1,0,.005,2],RG:[.02,.04,0,-.08,.1,.12,-.02,.008,2.4],SN:[-.01,0,.04,0,.3,-.05,-.04,.012,.6],RL:[.02,-.02,.1,0,.4,-.15,-.06,.014,.5],MNG:[-.01,.01,.08,0,.3,-.1,-.05,.012,.6],GL:[.02,-.02,.1,0,.35,-.12,-.05,.012,.6],FT:[0,0,.05,0,.2,-.05,-.03,.01,1]};
 function hold3(b,mvf,run,id){const T=HOLD3[b.wk]||HOLD3.AR;b.hr=(b.hr||0)+((run?1:0)-(b.hr||0))*.12;const br=Math.sin(t0*T[8]+id)*T[7]*(1-.6*b.hr);
  return[0,T[0]+br*.5+b.hr*T[6],T[1],T[2]+b.hr*T[4]+br*.8,Math.sin(t0*T[8]*.5+id)*T[7]*.4,T[3]+b.hr*T[5]]}
-const HA={a:null,t:9,w:'',kx:[0,0,0,0]};
+const HA={a:null,t:9,w:'',kx:[0,0,0,0],kv:[0,0,0,0]};
 function holdPose(dt){const o=[0,0,0,0,0,0],w=cw();if(!w||!run||P.dead||xrS)return o;const h=HOLD[w.k]||HOLD.AR,ads=ST.ads||0,spr=P.spr||0,idle=1-ads,mv=Math.min(1,Math.hypot(P.mx||0,P.mz||0)/7);
  for(let n=0;n<6;n++)o[n]+=h.i[n]*idle+(h.s?h.s[n]*spr:0);
  const bs=(1-.7*ads)*(1-mv*.7),sp=h.b[2];o[1]+=Math.sin(t0*sp*2.4)*h.b[0]*bs;o[0]+=Math.sin(t0*sp*1.3+1)*h.b[1]*bs;o[3]+=Math.sin(t0*sp*2.4+.5)*h.b[0]*.6*bs;
  o[5]+=Math.sin(bobP)*.012*h.m*mv*idle;o[4]+=Math.cos(bobP)*.01*h.m*mv*idle;
  HA.t+=dt;const d=h.d,e=Math.min(1,HA.t/d[6]);if(e<1){const rem=Math.pow(1-e,3);o[0]+=d[0]*rem;o[1]+=d[1]*rem;o[2]+=d[2]*rem;o[3]-=d[3]*rem;o[4]+=d[4]*rem;o[5]+=d[5]*rem}
- const kd=Math.exp(-h.k[5]*dt);for(let n=0;n<4;n++)HA.kx[n]*=kd;o[3]+=HA.kx[0]*(1-.3*ads);o[4]+=HA.kx[1];o[5]+=HA.kx[2];o[2]+=HA.kx[3]*(1-.5*ads);return o}
+ const w0=h.k[5],zt=.78,sub=Math.max(1,Math.ceil(dt/.008)),st=dt/sub;for(let s=0;s<sub;s++)for(let n=0;n<4;n++){const a=-w0*w0*HA.kx[n]-2*zt*w0*HA.kv[n];HA.kv[n]+=a*st;HA.kx[n]+=HA.kv[n]*st}
+ o[3]+=HA.kx[0]*(1-.3*ads);o[4]+=HA.kx[1];o[5]+=HA.kx[2];o[2]+=HA.kx[3]*(1-.5*ads);
+ const m=OPT.hold==null?1:OPT.hold;if(m!=1)for(let n=0;n<6;n++)o[n]*=m;return o}
 {const _fu=fpUpdate;fpUpdate=function(dt){const o=holdPose(dt);HA.a=o;gun.position.x+=o[0];gun.position.y+=o[1];gun.position.z+=o[2];gun.rotation.x+=o[3];gun.rotation.y+=o[4];gun.rotation.z+=o[5];return _fu.apply(this,arguments)}}
 /* the offsets are taken off again at the start of the next frame, so the game's own smoothing never sees them */
 {const _u=upd;upd=function(dt){const o=HA.a;if(o){gun.position.x-=o[0];gun.position.y-=o[1];gun.position.z-=o[2];gun.rotation.x-=o[3];gun.rotation.y-=o[4];gun.rotation.z-=o[5];HA.a=null}return _u.apply(this,arguments)}}
-{const _sg=setGun;setGun=function(){const r=_sg.apply(this,arguments),w=cw();if(w&&w.k!=HA.w){HA.w=w.k;HA.t=0;HA.kx=[0,0,0,0]}return r}}
-{const _s=shoot;shoot=function(){const w=cw(),was=w?w.mag:0,r=_s.apply(this,arguments);if(w&&w.mag<was&&HOLD[w.k]){const k=HOLD[w.k].k,sg=Math.random()<.5?-1:1,x=HA.kx;x[0]=Math.min(.35,x[0]+k[0]*(1+Math.random()*.2));x[1]=cl(x[1]+sg*k[1]*Math.random()*2,-.12,.12);x[2]=cl(x[2]+sg*k[2]*(1+k[4]*Math.random()),-.2,.2);x[3]=Math.min(.15,x[3]+k[3])}return r}}
+{const _sg=setGun;setGun=function(){const r=_sg.apply(this,arguments),w=cw();if(w&&w.k!=HA.w){HA.w=w.k;HA.t=0;HA.kx=[0,0,0,0];HA.kv=[0,0,0,0]}return r}}
+{const _s=shoot;shoot=function(){const w=cw(),was=w?w.mag:0,r=_s.apply(this,arguments);if(w&&w.mag<was&&HOLD[w.k]){const k=HOLD[w.k].k,sg=Math.random()<.5?-1:1,v=HA.kv,g=k[5]*2.718;/* a velocity impulse of k*w*e peaks at k */v[0]=Math.min(2.6,v[0]+k[0]*(1+Math.random()*.2)*g);v[1]=cl(v[1]+sg*k[1]*Math.random()*2*g,-1.2,1.2);v[2]=cl(v[2]+sg*k[2]*(1+k[4]*Math.random())*g,-1.6,1.6);v[3]=Math.min(1.2,v[3]+k[3]*g)}return r}}
 
 /* ===================== binds.js ===================== */
 /* ---------- feature 1: rebindable controls. The game reads keys through RB(): a physical key is translated into the key the game expects for that action. Rebinding an action to a key that another action
@@ -478,12 +480,12 @@ addEventListener('keydown',e=>{if(!CAP)return;e.preventDefault();e.stopImmediate
 addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-rb],[data-rbr],#rbreset');if(!b)return;if(b.id=='rbreset'){BIND={};bindSave();CAP=null;bindUI();return}
  if(b.dataset.rbr){delete BIND[b.dataset.rbr];bindSave();bindUI();return}CAP=b.dataset.rb;bindUI()});
 /* ---------- gameplay options saved on this device ---------- */
-const OPT=(()=>{let o={kc:1,chat:1};try{Object.assign(o,JSON.parse(localStorage.getItem('sd-opt')||'{}'))}catch(e){}return o})();
+const OPT=(()=>{let o={kc:1,chat:1,hold:1};try{Object.assign(o,JSON.parse(localStorage.getItem('sd-opt')||'{}'))}catch(e){}return o})();
 const optSave=()=>{try{localStorage.setItem('sd-opt',JSON.stringify(OPT))}catch(e){}};
 (function(){const ps=$('#p-set');if(!ps)return;const d=document.createElement('div');d.id='rebind';
- d.innerHTML=`<h2>Gameplay options</h2><label>Killcam<select id="o-kc"><option value="1">On: watch how you died</option><option value="0">Off</option></select></label><label>Chat<select id="o-chat"><option value="1">On</option><option value="0">Off (hide all messages)</option></select></label>
+ d.innerHTML=`<h2>Gameplay options</h2><label>Killcam<select id="o-kc"><option value="1">On: watch how you died</option><option value="0">Off</option></select></label><label>Chat<select id="o-chat"><option value="1">On</option><option value="0">Off (hide all messages)</option></select></label><label>Weapon hold animations<select id="o-hold"><option value="1">Full</option><option value="0.5">Reduced</option><option value="0">Off (original game motion)</option></select></label>
  <h2>Controls</h2><p class="sub">Click an action, then press the new key. Esc cancels, Backspace (or the arrow) restores the default. If the key is already used, the two actions swap. Mouse buttons and controller bindings are fixed.</p><div id="rbg"></div><button class="btn sm" id="rbreset">Reset all controls</button>`;ps.appendChild(d);
- const kc=$('#o-kc'),ch=$('#o-chat');kc.value=OPT.kc?'1':'0';ch.value=OPT.chat?'1':'0';kc.onchange=()=>{OPT.kc=+kc.value;optSave()};ch.onchange=()=>{OPT.chat=+ch.value;optSave()};bindUI()})();
+ const kc=$('#o-kc'),ch=$('#o-chat');kc.value=OPT.kc?'1':'0';ch.value=OPT.chat?'1':'0';kc.onchange=()=>{OPT.kc=+kc.value;optSave()};ch.onchange=()=>{OPT.chat=+ch.value;optSave()};const hd=$('#o-hold');hd.value=String(OPT.hold==null?1:OPT.hold);hd.onchange=()=>{OPT.hold=+hd.value;optSave()};bindUI()})();
 
 /* ===================== chat.js ===================== */
 /* ---------- feature 2: in-game chat. Enter opens it (team channel in team modes, Tab switches between TEAM and ALL), Z opens quick chat (1-8: callouts, the first two also drop a ping), messages travel
@@ -493,7 +495,7 @@ const QCH=[['Enemy spotted!',1],['Need backup!',1],['Cover me!',0],['Watch the f
 (function(){const hud=$('#hud');if(!hud)return;const c=document.createElement('div');c.id='chat';c.innerHTML='<div id="chlog"></div><div id="chin"><span id="chtag"></span><input id="chtxt" maxlength="120" autocomplete="off" spellcheck="false" placeholder="Type a message, Enter to send, Tab switches channel, Esc cancels"></div><div id="qchat"></div>';hud.appendChild(c)})();
 const chSelf=()=>($('#nm')&&$('#nm').value.trim())||'Player';
 const chTeamOn=()=>{try{return typeof teamMode=='function'&&netOn&&teamMode()}catch(e){return false}};
-function chRender(){const el=$('#chlog');if(!el)return;const now=performance.now(),show=CHT.open?14:7;el.textContent='';for(const l of CHT.log.slice(-show)){const age=now-l.t;if(!CHT.open&&age>9000)continue;const r=document.createElement('div');r.className='chl'+(l.sys?' sys':'')+(!CHT.open&&age>6500?' old':'');if(!l.sys){const t=document.createElement('b');t.className=l.tm=='A'?'tb':l.tm=='B'?'tr':'';t.textContent=(l.ch=='team'?'[TEAM] ':'')+l.n+': ';r.appendChild(t)}const s=document.createElement('span');s.textContent=l.m;r.appendChild(s);el.appendChild(r)}}
+function chRender(){const el=$('#chlog');if(!el)return;const now=performance.now(),show=CHT.open?14:7;el.textContent='';for(const l of CHT.log.slice(-show)){const age=now-l.t;if(!CHT.open&&age>9000)continue;const r=document.createElement('div');r.className='chl'+(l.sys?' sys':'')+(!CHT.open&&age>6500?' old':'');if(!l.sys){const t=document.createElement('b');t.className=l.tm=='A'?'cta':l.tm=='B'?'ctb':'';t.textContent=(l.ch=='team'?'[TEAM] ':'')+l.n+': ';r.appendChild(t)}const s=document.createElement('span');s.textContent=l.m;r.appendChild(s);el.appendChild(r)}}
 function chAdd(n,m,ch,tm,sys){CHT.log.push({n,m,ch,tm,sys,t:performance.now()});if(CHT.log.length>60)CHT.log.shift();chRender()}
 function chTag(){const t=$('#chtag');if(!t)return;t.textContent=CHT.ch=='team'?'TEAM':'ALL';t.className=CHT.ch}
 function chOpen(){if(CHT.open||!run||paused||over||(typeof xrS!='undefined'&&xrS))return;CHT.open=1;CHT.q=0;$('#qchat').style.display='none';for(const k in key)key[k]=0;trig=0;CHT.ch=chTeamOn()?'team':'all';chTag();const i=$('#chin');i.style.display='flex';const x=$('#chtxt');x.value='';x.focus();chRender()}
@@ -533,7 +535,7 @@ function kcStart(k){const live=OPT.kc&&k&&k.m&&k!==null,now=t0,rec=new Map();for
  let dealt=0;if(k)for(const x of KC.deal)if(x.b===k&&now-x.t<8)dealt+=x.d;
  KC.on=1;KC.t=0;KC.b=live?k:null;KC.tp=V(P.x,P.y+1,P.z);KC.cam=null;
  KC.info={nm:k?(k.nm||'Enemy'):'Unknown',wk:k&&k.wk?(W[k.wk]?W[k.wk].n:k.wk):'Explosive',dist:k?Math.round(Math.hypot(k.x-P.x,k.z-P.z)):0,team:k?k.team:0,rec:[...rec.values()].sort((a,b)=>b.d-a.d).slice(0,5),dealt:Math.round(dealt),live,hp0:k?Math.max(0,k.hp+(k.sh||0)):0};
- KC.hist=[];KC.deal=[];P.rt=Math.max(P.rt,live?KC.dur+.5:3.4);kcPanel()}
+ KC.hist=[];KC.deal=[];P.rt=Math.max(P.rt,live?KC.dur+.5:3.4);document.body.classList.add('kc-on');kcPanel()}
 function kcPanel(){const e=$('#kcam'),I=KC.info;if(!e||!I)return;const wn=n=>String(n).replace(/[<>&]/g,'');
  e.innerHTML=`<div class="kc-top">${I.live?'<small>KILLCAM</small>':'<small>ELIMINATED</small>'}<b>${wn(I.nm).toUpperCase()}</b><span>${wn(I.wk)} · ${I.dist} m</span><div class="kc-hp"><i></i></div></div>
  <div class="kc-rec"><h4>DAMAGE TAKEN</h4>${I.rec.length?I.rec.map(r=>`<div><b>${wn(r.nm)}</b><span>${r.wk&&W[r.wk]?W[r.wk].n:'Explosion'}</span><i>${Math.round(r.d)}</i></div>`).join(''):'<div><b>Unknown</b><i>–</i></div>'}<h4>YOU DEALT</h4><div><b>${I.dealt>0?wn(I.nm):'Nothing'}</b><i>${I.dealt}</i></div></div>
@@ -541,10 +543,127 @@ function kcPanel(){const e=$('#kcam'),I=KC.info;if(!e||!I)return;const wn=n=>Str
 function kcCam(dt){KC.t+=dt;const k=KC.b;if(!k||!k.m)return;const T=KC.tp,K=V(k.x,(k.y||0)+1,k.z);let dx=T.x-K.x,dz=T.z-K.z;const L=Math.hypot(dx,dz)||1;dx/=L;dz/=L;
  const want=V(K.x-dx*2.7-dz*.95,K.y+.85,K.z-dz*2.7+dx*.95),o=V(K.x,K.y+.6,K.z),dv=want.clone().sub(o),len=dv.length();dv.divideScalar(len||1);const tw=castW(o,dv,len);if(tw<len)want.copy(o).addScaledVector(dv,Math.max(.4,tw-.25));
  if(!KC.cam)KC.cam=C.position.clone();KC.cam.lerp(want,Math.min(1,dt*6));C.position.copy(KC.cam);C.lookAt(T.x,T.y+.25,T.z)}
-function kcTick(dt){const e=$('#kcam');if(!e)return;if(!KC.on)return;if(!P.dead||over){KC.on=0;e.style.display='none';return}
+function kcTick(dt){const e=$('#kcam');if(!e)return;if(!KC.on)return;if(!P.dead||over){KC.on=0;e.style.display='none';document.body.classList.remove('kc-on');return}
  const rs=$('#kc-rs');if(rs)rs.textContent=KC.info&&KC.info.live?'Killcam · respawn in '+Math.max(0,P.rt).toFixed(1)+'s':'Respawn in '+Math.max(0,P.rt).toFixed(1)+'s';
  const k=KC.b,hp=e.querySelector('.kc-hp i');if(hp&&k)hp.style.width=Math.max(0,Math.min(100,k.hp+(k.sh||0)))+'%';
  if(KC.t>1&&(key.KeyF||key.Space)&&P.rt>.15&&mode!='Survival')P.rt=.1}
+
+/* ===================== notes.js ===================== */
+/* ---------- match notifications, redesigned. msg() (objective and match messages) and popup() (unlocks, streaks earned, level ups) now show as compact stacked toasts that sit BELOW the match bar
+   (their position is measured from it, so they can never slide behind the scoreboard), at most 3 at a time, repeated messages refresh instead of stacking. Kill messages (+1 Kill, Headshot!, Double Kill!...)
+   become small points under the crosshair that rise and fade. The old centre banner is hidden. ---------- */
+const NT={list:[],last:'',lastT:0};
+(function(){const hud=$('#hud');if(!hud)return;const c=document.createElement('div');c.id='notes';hud.appendChild(c);const p=document.createElement('div');p.id='pts';hud.appendChild(p)})();
+const ntKind=t=>/\bflag\b|captur|zone|hill|hardpoint|domination|objective|secured|contested/i.test(t)?'obj':/ready|streak|uav|airstrike|nuke|care package|available|earned|unlocked|prestige|level/i.test(t)?'streak':/warning|danger|low|died|eliminated|lost/i.test(t)?'warn':'info';
+function ntShow(html,kind,secs,key,card){const box=$('#notes');if(!box)return;const now=performance.now();
+ const same=NT.list.find(n=>n.key==key&&!n.gone);if(same){same.t=now;same.life=secs;same.el.classList.remove('old','out');return}
+ const el=document.createElement('div');el.className='nt '+kind+(card?' card':'');el.innerHTML=(card?'':'<i></i>')+html;box.appendChild(el);const n={el,t:now,life:secs,key,gone:0};NT.list.push(n);
+ while(NT.list.filter(x=>!x.gone).length>3){const o=NT.list.find(x=>!x.gone);o.gone=1;o.el.classList.add('out');setTimeout(()=>o.el.remove(),350)}}
+setInterval(()=>{const now=performance.now(),live=NT.list.filter(n=>!n.gone);for(const n of NT.list){if(!n.gone&&now-n.t>n.life*1000){n.gone=1;n.el.classList.add('out');setTimeout(()=>n.el.remove(),350)}}
+ live.forEach((n,i)=>n.el.classList.toggle('old',i<live.length-1&&live.length>1));NT.list=NT.list.filter(n=>!n.gone||now-n.t<n.life*1000+600);
+ const tb=$('#tbar'),r=tb&&tb.firstChild?tb.getBoundingClientRect():null;document.documentElement.style.setProperty('--ntop',((r&&r.height?r.bottom:34)+12)+'px')},180);
+const esc_=x=>String(x).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+msg=function(t,s){t=String(t==null?'':t);if(!t)return;
+ if(/^(\+\d+ Kill|Headshot!|Double Kill!|Triple Kill!|Overkill!|Killing Spree!)/i.test(t)){const p=$('#pts');if(!p)return;p.textContent='';const e=document.createElement('div');e.className='pt'+(/Headshot/i.test(t)?' hs':t[0]=='+'?'':' multi');e.textContent=t;p.appendChild(e);setTimeout(()=>e.remove(),1150);return}
+ ntShow('<span>'+esc_(t)+'</span>',ntKind(t),Math.max(1.6,Math.min(4,(s||2)+.4)),t,0)};
+popup=function(t,sub){ntShow('<strong>'+esc_(t)+'</strong><em>'+esc_(sub)+'</em>',ntKind(t+' '+sub),4,'p:'+t+sub,1);beep(880,.12,'triangle',.05);setTimeout(()=>beep(1320,.16,'triangle',.045),100)};
+
+/* ===================== medals.js ===================== */
+/* ---------- feature 4: medals and challenges. Medals are awarded in the match for how you play (first blood, longshot, revenge, close call, multikills, streaks, melee, explosives, air support, untouchable);
+   each pays a little XP. Challenges: 3 daily and 3 weekly picked for the day / week, plus career challenges with tiers. Progress is saved on the device (signed), XP rewards go through the normal XP path.
+   Screen: Multiplayer, Challenges. ---------- */
+const MST={k:0,hs:0,melee:0,expl:0,streak:0,long:0,best:0,medals:{},dmg:0,t0:0,su:0,mk:[],lastKiller:null,noHit:0,cc:[],xp0:0};
+const MEDALS={'First Blood':[50,'First kill of the match'],'Headshot':[10,'Kill with a headshot'],'Longshot':[40,'Kill from 50 m or more'],'Revenge':[40,'Kill the player who just killed you'],'Close Call':[30,'Kill while under 30 health'],
+ 'Double Kill':[25,'2 kills within 3.5 s'],'Triple Kill':[50,'3 kills within 3.5 s'],'Quad Kill':[100,'4 kills within 3.5 s'],'Killing Spree':[50,'5 kills in a row'],'Rampage':[100,'10 kills in a row'],'Unstoppable':[200,'15 kills in a row'],
+ 'Cold Steel':[30,'Melee kill'],'Frag Out':[25,'Kill with an explosive'],'Air Support':[25,'Kill with a scorestreak'],'Untouchable':[60,'5 kills without taking damage']};
+const dayKey=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const weekKey=()=>{const d=new Date(),t=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate());return'W'+Math.floor((t/86400000+3)/7)};
+const msReset=()=>{Object.assign(MST,{k:0,hs:0,melee:0,expl:0,streak:0,long:0,best:0,medals:{},dmg:0,t0:t0,su:0,mk:[],lastKiller:null,noHit:0,cc:[]})};
+/* challenge definitions: [id, name, description, stat, goal, xp] */
+const CHD=[['d1','Warm-up','Get 15 kills','kills',15,300],['d2','Sharpshooter','Get 8 headshots','headshots',8,400],['d3','Rifleman','12 kills with rifles','k_Rifles',12,350],['d4','Close Quarters','10 kills with SMGs and shotguns','k_Close Quarters',10,350],
+ ['d5','Sidearm Specialist','6 kills with sidearms','k_Sidearms',6,400],['d6','Long Shot','2 kills from 50 m or more','longshots',2,450],['d7','Knife Fight','3 melee kills','melee',3,450],['d8','Frag Out','3 kills with explosives','explosive',3,400],
+ ['d9','Call Down','Use 3 scorestreaks','streaksUsed',3,350],['d10','On a Roll','Play 3 matches','matches',3,300],['d11','Victory Lap','Win 2 matches','wins',2,500],['d12','Medal Hunter','Earn 6 medals','medals',6,300]];
+const CHW=[['w1','Veteran','Get 120 kills','kills',120,1500],['w2','Headhunter','Get 50 headshots','headshots',50,1500],['w3','Winning Streak','Win 8 matches','wins',8,2000],['w4','Air Superiority','15 kills with scorestreaks','streakKills',15,1500],['w5','Marksman','10 kills from 50 m or more','longshots',10,1800],['w6','Sidearm Master','40 kills with sidearms','k_Sidearms',40,1500]];
+const CHC=[['c1','Centurion','kills',[100,500,2500],[500,1500,4000]],['c2','Headshot Hunter','headshots',[50,250,1000],[500,1500,4000]],['c3','Veteran of Arms','wins',[10,50,200],[600,2000,5000]],['c4','Medal Collector','medals',[25,100,400],[500,1500,4000]]];
+const hs2=x=>{let a=0x9e3779b9,b=0x85ebca6b;const t=x+'|ch|sd77';for(let i=0;i<t.length;i++){a=Math.imul(a^t.charCodeAt(i),2654435761);b=Math.imul(b^t.charCodeAt(i),1597334677)}return((a^b)>>>0).toString(36)};
+const rngS=seed=>{let s=0;for(const c of seed)s=(s*31+c.charCodeAt(0))>>>0;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296}};
+const pickS=(pool,seed,n)=>{const r=rngS(seed),a=pool.slice(),o=[];while(o.length<n&&a.length)o.push(a.splice(Math.floor(r()*a.length),1)[0]);return o};
+let CHST=null;
+function chFresh(){return{v:1,day:dayKey(),week:weekKey(),d:{},w:{},done:{},c:{},tier:{},medals:{}}}
+function chLoad(){let o=null;try{const raw=JSON.parse(localStorage.getItem('sd-ch')||'null');if(raw&&raw.g===hs2(JSON.stringify({...raw,g:0})))o=raw}catch(e){}CHST=o||chFresh();chRoll()}
+function chSave(){CHST.g=0;CHST.g=hs2(JSON.stringify(CHST));try{localStorage.setItem('sd-ch',JSON.stringify(CHST))}catch(e){}}
+function chRoll(){const dk=dayKey(),wk=weekKey();let ch=0;if(CHST.day!=dk){CHST.day=dk;CHST.d={};for(const k of Object.keys(CHST.done))if(k[0]=='d')delete CHST.done[k];ch=1}if(CHST.week!=wk){CHST.week=wk;CHST.w={};for(const k of Object.keys(CHST.done))if(k[0]=='w')delete CHST.done[k];ch=1}if(ch)chSave()}
+const chActive=()=>({d:pickS(CHD,CHST.day,3),w:pickS(CHW,CHST.week,3)});
+function chEv(stat,n=1){if(!CHST)chLoad();chRoll();const A=chActive();let any=0;
+ for(const [grp,list] of [['d',A.d],['w',A.w]])for(const c of list){if(c[3]!=stat)continue;const key=grp+':'+c[0];if(CHST.done[key])continue;CHST[grp][c[0]]=Math.min(c[4],(CHST[grp][c[0]]||0)+n);any=1;
+  if(CHST[grp][c[0]]>=c[4]){CHST.done[key]=1;MST.cc.push([c[1],c[5]]);try{giveXP(c[5])}catch(e){}popup('CHALLENGE COMPLETE',c[1]+' · +'+c[5]+' XP')}}
+ for(const c of CHC){if(c[2]!=stat)continue;CHST.c[stat]=(CHST.c[stat]||0)+n;any=1;const t=CHST.tier[c[0]]||0;if(t<3&&CHST.c[stat]>=c[3][t]){CHST.tier[c[0]]=t+1;MST.cc.push([c[1]+' '+['I','II','III'][t],c[4][t]]);try{giveXP(c[4][t])}catch(e){}popup('CAREER · '+c[1].toUpperCase()+' '+['I','II','III'][t],'+'+c[4][t]+' XP')}}
+ if(any)chSave()}
+chLoad();
+function msMedal(name){const m=MEDALS[name];if(!m)return;MST.medals[name]=(MST.medals[name]||0)+1;CHST.medals[name]=(CHST.medals[name]||0)+1;try{giveXP(m[0])}catch(e){}ntShow('<span>★ '+name.toUpperCase()+' · +'+m[0]+' XP</span>','streak',2.6,'m:'+name+performance.now(),0);chEv('medals')}
+function msKill(b,head){const s=String(src||''),stk=!!SK.nok,d=Math.hypot(b.x-P.x,b.z-P.z),cat=!stk&&srcK&&typeof catOf=='function'?catOf(srcK):'';
+ MST.k++;MST.noHit++;MST.best=Math.max(MST.best,ks);chEv('kills');
+ if(head){MST.hs++;chEv('headshots');msMedal('Headshot')}
+ if(stk){MST.streak++;chEv('streakKills');msMedal('Air Support')}else if(s=='Melee'){MST.melee++;chEv('melee');msMedal('Cold Steel')}else if(s=='Explosive'){MST.expl++;chEv('explosive');msMedal('Frag Out')}
+ if(cat)chEv('k_'+cat);
+ if(!stk&&srcK&&d>=50){MST.long++;chEv('longshots');msMedal('Longshot')}
+ if(MST.k==1&&t0-MST.t0<60)msMedal('First Blood');
+ if(MST.lastKiller&&b===MST.lastKiller){MST.lastKiller=null;msMedal('Revenge')}
+ if(P.hp+P.sh<=30&&P.hp>0)msMedal('Close Call');
+ const now=t0;MST.mk=MST.mk.filter(x=>now-x<3.5);MST.mk.push(now);const c=MST.mk.length;if(c==2)msMedal('Double Kill');else if(c==3)msMedal('Triple Kill');else if(c==4)msMedal('Quad Kill');
+ if(ks==5)msMedal('Killing Spree');else if(ks==10)msMedal('Rampage');else if(ks==15)msMedal('Unstoppable');
+ if(MST.noHit==5)msMedal('Untouchable')}
+{const _fk=featKill;featKill=function(b,h){const r=_fk.apply(this,arguments);try{msKill(b,h)}catch(e){console.error(e)}return r}}
+{const _h=hurt;hurt=function(d,b){if(!P.dead&&d>0)MST.noHit=0;return _h.apply(this,arguments)}}
+{const _d=die;die=function(){const was=P.dead,k=lastBot;_d.apply(this,arguments);if(!was){MST.lastKiller=k||null;MST.noHit=0;MST.mk=[]}}}
+{const _hb=hitBot;hitBot=function(b,d,head){if(d>0&&b&&b.al&&run)MST.dmg+=Math.min(d,b.hp+(b.sh||0));return _hb.apply(this,arguments)}}
+{const _us=useStreak;useStreak=function(){const n=q.length,r=_us.apply(this,arguments);if(q.length<n){MST.su++;chEv('streaksUsed')}return r}}
+{const _sg=startGame;startGame=function(){msReset();return _sg.apply(this,arguments)}}
+{const _eg=endGame;endGame=function(t){const was=over,r=_eg.apply(this,arguments);if(!was&&over&&mode!='Zombies'&&mode!='Survival'){chEv('matches');if(won)chEv('wins')}return r}}
+/* challenges screen */
+(function(){const nav=$('#nav'),main=$('main');if(!nav||!main)return;const b=document.createElement('button');b.dataset.p='chal';b.className='mp';b.textContent='Challenges';const ld=nav.querySelector('button[data-p=load]');nav.insertBefore(b,ld?ld.nextSibling:null);
+ const sec=document.createElement('section');sec.id='p-chal';sec.className='pn';main.appendChild(sec);
+ b.onclick=()=>{$$('#nav button').forEach(x=>x.classList.toggle('on',x==b));$$('.pn').forEach(p=>p.classList.toggle('on',p.id=='p-chal'));chRenderUI()}})();
+function chLeft(ms){const m=Math.max(0,Math.floor(ms/60000)),d=Math.floor(m/1440),h=Math.floor(m%1440/60);return d?d+'d '+h+'h':h+'h '+m%60+'m'}
+function chRenderUI(){const e=$('#p-chal');if(!e)return;chRoll();const A=chActive(),now=new Date(),dRes=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1)-now,wDay=(now.getDay()+6)%7,wRes=new Date(now.getFullYear(),now.getMonth(),now.getDate()+(7-wDay))-now;
+ const row=(grp,c)=>{const key=grp+':'+c[0],p=CHST[grp][c[0]]||0,done=!!CHST.done[key];return`<div class="chr ${done?'dn':''}"><div class="cht"><b>${c[1]}</b><span>${c[2]}</span></div><div class="chb"><i style="width:${Math.min(100,p/c[4]*100)}%"></i></div><div class="chn">${done?'COMPLETE':p+' / '+c[4]}<em>+${c[5]} XP</em></div></div>`};
+ const car=c=>{const t=CHST.tier[c[0]]||0,v=CHST.c[c[2]]||0,g=c[3][Math.min(t,2)];return`<div class="chr ${t>=3?'dn':''}"><div class="cht"><b>${c[1]}</b><span>Tier ${Math.min(t+1,3)} of 3${t>=3?' (complete)':''}</span></div><div class="chb"><i style="width:${t>=3?100:Math.min(100,v/g*100)}%"></i></div><div class="chn">${t>=3?'MAX':v+' / '+g}<em>+${c[4][Math.min(t,2)]} XP</em></div></div>`};
+ e.innerHTML=`<h2>Challenges</h2><p class="sub">Daily and weekly challenges rotate automatically. Rewards are XP. Progress is saved on this device.</p><div class="chg"><div class="chc"><h3>Daily <small>resets in ${chLeft(dRes)}</small></h3>${A.d.map(c=>row('d',c)).join('')}</div><div class="chc"><h3>Weekly <small>resets in ${chLeft(wRes)}</small></h3>${A.w.map(c=>row('w',c)).join('')}</div><div class="chc"><h3>Career</h3>${CHC.map(car).join('')}</div></div>
+ <h3 class="chh">Medals</h3><div class="chm">${Object.keys(MEDALS).map(n=>{const c=CHST.medals[n]||0;return`<div class="md ${c?'on':''}" title="${MEDALS[n][1]}"><b>★</b><span>${n}</span><i>${c}</i></div>`}).join('')}</div>`}
+/* ===================== aar.js ===================== */
+/* ---------- feature 5: after action report. The post-match board gets a full report: your result, MVP badge, K/D, accuracy, headshots, damage, best streak, time played, XP, the medals you earned and the challenges you completed. ---------- */
+{const _fs=finStart;finStart=function(t,sc,nb,xp){const r=_fs.apply(this,arguments);try{aarInject(t)}catch(e){console.error(e)}return r}}
+function aarInject(t){const f=$('#fbd'),c=$('#fcont');if(!f||!c)return;const rows=(typeof finInfo!='undefined'&&finInfo&&finInfo.rows)||[],me=rows.findIndex(r=>r.me),mvp=me==0&&rows.length>1,acc=shots?Math.round(hits/shots*100):0,kd=deaths?(kills/deaths).toFixed(2):kills.toFixed(2),mins=Math.max(0,t0-MST.t0),tm=Math.floor(mins/60)+':'+String(Math.floor(mins%60)).padStart(2,'0'),
+ box=(l,v,s)=>`<div class="ab"><i>${l}</i><b>${v}</b>${s?`<em>${s}</em>`:''}</div>`,md=Object.keys(MST.medals);
+ const h=`<div class="aar">${mvp?'<div class="mvp">★ MVP · top of the board</div>':''}<div class="aag">${box('K/D',kd,kills+' / '+deaths)}${box('Accuracy',acc+'%',hits+' of '+shots+' shots')}${box('Headshots',MST.hs,kills?Math.round(MST.hs/kills*100)+'% of kills':'')}${box('Damage',Math.round(MST.dmg))}${box('Best streak',MST.best)}${box('Time',tm)}</div>
+ ${md.length?`<h4>Medals earned</h4><div class="aam">${md.map(n=>`<span><b>★</b>${n}${MST.medals[n]>1?' x'+MST.medals[n]:''}</span>`).join('')}</div>`:''}${MST.cc.length?`<h4>Challenges completed</h4><div class="aac">${MST.cc.map(x=>`<div><span>${x[0]}</span><i>+${x[1]} XP</i></div>`).join('')}</div>`:''}</div>`;
+ f.classList.add('hasaar');c.insertAdjacentHTML('beforebegin',h)}
+/* ===================== threat.js ===================== */
+/* ---------- feature 6: threat awareness. Live grenades near you show a pulsing arrow around the crosshair pointing at them (red for frags, white for flashbangs) with a warning beep, and enemy footsteps are heard
+   in 3D: left/right by direction, louder when closer, muffled behind walls, faster when sprinting, silent when crouched or prone. Both can be switched off in Settings. ---------- */
+(function(){const hud=$('#hud');if(!hud)return;const d=document.createElement('div');d.id='danger';hud.appendChild(d)})();
+const TH={pool:[],fsT:new WeakMap(),warned:new WeakSet()};
+function thArrow(i){let e=TH.pool[i];if(!e){e=document.createElement('div');e.className='dg';e.innerHTML='<i></i><b></b>';$('#danger').appendChild(e);TH.pool[i]=e}return e}
+function thStep(b,dist,ang,blocked){try{ac=ac||new AudioContext();const t=ac.currentTime,g=ac.createGain(),p=ac.createStereoPanner?ac.createStereoPanner():null,f=ac.createBiquadFilter(),len=Math.floor(ac.sampleRate*.07),bf=ac.createBuffer(1,len,ac.sampleRate),d=bf.getChannelData(0);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.2);
+ const s=ac.createBufferSource();s.buffer=bf;f.type='lowpass';f.frequency.value=blocked?320:760+(Math.random()-.5)*160;g.gain.value=Math.max(.0001,(blocked?.5:1)*.2*Math.pow(Math.max(0,1-dist/26),1.5)*(typeof vol=='number'?vol:1));
+ s.connect(f);f.connect(g);if(p){p.pan.value=Math.max(-1,Math.min(1,Math.sin(ang)));g.connect(p);p.connect(ac.destination)}else g.connect(ac.destination);s.start(t);
+ const o=ac.createOscillator(),og=ac.createGain();o.type='sine';o.frequency.setValueAtTime(95,t);o.frequency.exponentialRampToValueAtTime(55,t+.06);og.gain.setValueAtTime(g.gain.value*.9,t);og.gain.exponentialRampToValueAtTime(.0001,t+.07);o.connect(og);og.connect(p||ac.destination);o.start(t);o.stop(t+.08)}catch(e){}}
+function thTick(dt){const box=$('#danger');if(!box)return;const on=OPT.threat!==0,fsOn=OPT.steps!==0;
+ if(!run||P.dead||over||(typeof xrS!='undefined'&&xrS)){for(const e of TH.pool)e.style.display='none';return}
+ const fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw),rel=(dx,dz)=>Math.atan2(dx*rx+dz*rz,dx*fx+dz*fz);
+ /* grenades */
+ let n=0;if(on)for(const g of grs){if(!g||!g.p||!(g.t>0))continue;const dx=g.p.x-P.x,dz=g.p.z-P.z,dist=Math.hypot(dx,dz);if(dist>13||Math.abs(g.p.y-(P.y||0))>6)continue;const e=thArrow(n++),ang=rel(dx,dz),tac=g.g&&g.g.tac,near=1-dist/13;
+  e.style.display='block';e.style.opacity=(.45+.55*near)*(g.t<.8&&Math.floor(g.t*10)%2?.4:1);e.style.transform=`translate(-50%,-50%) rotate(${ang}rad) translateY(-${96+(1-near)*20}px)`;e.className='dg '+(tac?'fl':'fr');e.lastChild.textContent=Math.round(dist)+'m';e.lastChild.style.transform=`rotate(${-ang}rad)`;
+  if(!TH.warned.has(g)){TH.warned.add(g);if(dist<9){beep(1500,.09,'square',.05);setTimeout(()=>beep(1500,.09,'square',.05),130)}}}
+ for(let i=n;i<TH.pool.length;i++)TH.pool[i].style.display='none';
+ /* footsteps */
+ if(fsOn)for(const b of bots){if(!b.al||b.net&&b.local)continue;const lp=TH.fsT.get(b)||{x:b.x,z:b.z,t:0};const v=Math.hypot(b.x-lp.x,b.z-lp.z)/Math.max(dt,.001);lp.x=b.x;lp.z=b.z;
+  const ally=typeof teamMode=='function'&&teamMode()&&b.team&&b.team===myTeam;if(ally||v<1.3||v>16||(b.pc||0)>.5||(b.pp||0)>.5||(b.psl||0)>.3){TH.fsT.set(b,lp);continue}
+  lp.t+=dt;const iv=v>5?.27:v>3.2?.38:.56;if(lp.t>=iv){lp.t=0;const dx=b.x-P.x,dz=b.z-P.z,dist=Math.hypot(dx,dz);if(dist<26){let bl=false;try{const o=V(P.x,(P.y||0)+1.4,P.z),dv=V(dx,0,dz).normalize();bl=castW(o,dv,dist)<dist-.5}catch(e){}thStep(b,dist,rel(dx,dz),bl)}}TH.fsT.set(b,lp)}}
+{const _ft=featTick;featTick=function(dt){_ft.apply(this,arguments);try{thTick(dt)}catch(e){console.error(e)}}}
+(function(){const hd=$('#o-hold');if(!hd||!hd.parentNode)return;const mk=(id,label)=>{const l=document.createElement('label');l.innerHTML=label+'<select id="'+id+'"><option value="1">On</option><option value="0">Off</option></select>';return l};
+ const a=mk('o-threat','Threat indicators (grenade danger arrows)'),b=mk('o-steps','Enemy footstep audio');hd.parentNode.insertAdjacentElement('afterend',a);a.insertAdjacentElement('afterend',b);
+ const sa=$('#o-threat'),sb=$('#o-steps');sa.value=OPT.threat===0?'0':'1';sb.value=OPT.steps===0?'0':'1';sa.onchange=()=>{OPT.threat=+sa.value;optSave()};sb.onchange=()=>{OPT.steps=+sb.value;optSave()}})();
 
 /* ===================== anticheat.js ===================== */
 /* ---------- anti-cheat. Everything lives inside this closure, so it cannot be reached or switched off from the browser console.
@@ -574,9 +693,11 @@ function kcTick(dt){const e=$('#kcam');if(!e)return;if(!KC.on)return;if(!P.dead|
  const strike=why=>{if(flagged)return;flagged=1;store(KF,String(why).slice(0,60));store(KS,'x'+Date.now().toString(36));try{if(run&&!over){run=0;over=1;paused=0;document.exitPointerLock&&document.exitPointerLock();$('#hud').style.display='none';$('#menu').style.display='block'}}catch(e){}
   note(['CHEAT DETECTED','A modified game was detected ('+why+'). The match was ended and this profile will be reset the next time you log in.'])};
  /* gameplay detections that could in theory be a false alarm (health, damage, weapon numbers) end the match with a warning and only count as a strike when they repeat; tampering with progress, the weapon table or game functions is a hard strike */
- const softN=()=>{try{return+localStorage.getItem('sd-gs')||0}catch(e){return 0}};let softHit=0,suitAt=-1e9;
+ const softN=()=>{try{return+localStorage.getItem('sd-gs')||0}catch(e){return 0}};let softHit=0,suitMax=0,suitT0=0,suitReg=0;const SUITS={jugg:[60,300],goliath:[50,520]};
  const endMatch=()=>{try{if(run&&!over){run=0;over=1;paused=0;document.exitPointerLock&&document.exitPointerLock();$('#hud').style.display='none';$('#menu').style.display='block'}}catch(e){}};
  const soft=why=>{if(flagged||softHit)return;softHit=1;const n=softN()+1;store('sd-gs',String(n));if(n>=3){strike('repeated unusual game states: '+why);return}endMatch();note(['MATCH ENDED','An unusual game state was detected ('+why+'). If you did not modify the game this was a false alarm and nothing was changed on your profile. Repeated detections reset it.'])};
+ /* suits are registered when the game starts one: only Juggernaut and Goliath with their real time and health are accepted, and the health caps below follow the registered suit, so nothing is switched off while a suit is active */
+ {const _ss=skStartSuit;skStartSuit=function(k,t,mhp,sp,wk){const d=SUITS[k];if(!d||d[0]!==t||d[1]!==mhp){strike('invalid suit: '+k+' '+t+' '+mhp);return}suitMax=mhp;suitT0=t;suitReg=1;return _ss.apply(this,arguments)}}
  /* on load: flagged last time, stored signature does not match, or an impossible profile */
  {const f=fetch_(KF),sg=fetch_(KS);let why=f?'flagged: '+f:0;if(!why){if(sg==null){why=prof.all?'unlock-all':bad()}else if(sg!==sig()&&sg!==sigOld())why='profile edited outside the game';else why=bad()}
   if(why)wipe(why);else{/* profiles from before unlock tokens existed: prestiges already earned are paid out once */if(prof.tok==null){prof.tok=Math.min(10,prof.pres|0);prof.perm=[];try{save()}catch(e){}}resync()}}
@@ -588,33 +709,34 @@ function kcTick(dt){const e=$('#kcam');if(!e)return;if(!KC.on)return;if(!P.dead|
  {const _h=hurt;hurt=function(d,b){const was=P.dead,pre=P.hp+P.sh;_h.apply(this,arguments);if(!was&&d>1&&run&&!over&&mode!='Zombies'&&!(typeof OI!='undefined'&&OI.on)&&!P.dead){const post=P.hp+P.sh;if(post>=pre-.0001){if(++still>=5)soft('invulnerable')}else{still=0;hist.push([performance.now(),pre-post])}}}}
  /* a single shot can never deal this much (streaks, the nuke and One in the Chamber are excluded) */
  {const _s=shoot;shoot=function(){inShot++;try{return _s.apply(this,arguments)}finally{inShot--}}}
- {const _hb=hitBot;hitBot=function(b,d,head){if(inShot&&d>480&&mode!='Zombies'&&!SK.nok&&!SK.nk&&!SK.suit&&!(typeof OI!='undefined'&&OI.on)&&!(cw()&&cw().heavy))soft('impossible damage');return _hb.apply(this,arguments)}}
+ {const _hb=hitBot;hitBot=function(b,d,head){if(inShot&&d>480&&mode!='Zombies'&&!SK.nok&&!SK.nk&&!(typeof OI!='undefined'&&OI.on)&&!(cw()&&cw().heavy))soft('impossible damage');return _hb.apply(this,arguments)}}
  {const _sg=startGame;startGame=function(){hist=[];still=0;overT=0;softHit=0;return _sg.apply(this,arguments)}}
  {const _eg=endGame;endGame=function(){const r=_eg.apply(this,arguments);if(!softHit&&!flagged){const n=softN();if(n>0)store('sd-gs',String(n-1))}return r}}
  /* references to the functions that decide progress and damage, taken now that every script has loaded */
- const names_=['giveXP','wkill','wzkill','zRoundDone','wpres','doPrestige','tokenSpend','permHas','unlocked','okSet','camos','zcamos','allCamos','wd','hurt','die','hitBot','takeDmg','eff','shoot','respawn','startGame','boom','featKill'],ref=names_.map(n=>globalThis[n]);
+ const names_=['skStartSuit','giveXP','wkill','wzkill','zRoundDone','wpres','doPrestige','tokenSpend','permHas','unlocked','okSet','camos','zcamos','allCamos','wd','hurt','die','hitBot','takeDmg','eff','shoot','respawn','startGame','boom','featKill'],ref=names_.map(n=>globalThis[n]);
  const WSN={};for(const k in W){const w=W[k];WSN[k]=[w.d,w.r,w.m,w.pel,w.sp,w.rc,w.rl,w.ex?w.ex.d:0,w.ex?w.ex.R:0]}
  const wchg=()=>{for(const k in WSN){const w=W[k];if(!w)return k+' removed';const n=[w.d,w.r,w.m,w.pel,w.sp,w.rc,w.rl,w.ex?w.ex.d:0,w.ex?w.ex.R:0],o=WSN[k];for(let i=0;i<n.length;i++)if(n[i]!==o[i])return'weapon table '+k}for(const k in W)if(!WSN[k])return'new weapon '+k;return 0};
  /* cheap checks every frame, the heavy ones about once a second */
  const tick=dt=>{if(flagged)return;
   for(let i=0;i<names_.length;i++)if(globalThis[names_[i]]!==ref[i]){strike('game function replaced: '+names_[i]);return}
-  const nowT=performance.now();if(SK&&SK.suit){suitAt=nowT;hist=[];still=0;overT=0}const suitOn=nowT-suitAt<5000;/* Juggernaut / Goliath: big health pools set by the game itself */
-  if(run&&!over&&P&&!P.dead&&!suitOn){
+  if(!SK.suit)suitReg=0;else if(!suitReg||SK.suit.t>suitT0+1||SK.suit.k&&!SUITS[SK.suit.k]){soft('suit state edited');return}
+  const hpCap=SK.suit?suitMax:400;
+  if(run&&!over&&P&&!P.dead){
    if(P.hp>P.mhp+.5||P.sh>P.msh+.5){overT+=dt||.016;if(overT>3)soft('health above maximum')}else overT=0;
-   if(P.mhp>400||P.msh>400)soft('health maximum edited');
-   const n=performance.now();if(hist.length){hist=hist.filter(x=>n-x[0]<10000);let tot=0;for(const x of hist)tot+=x[1];if(tot>650)soft('took '+Math.round(tot)+' damage without dying')}}
+   if(P.mhp>hpCap||P.msh>400||(SK.suit&&P.mhp<suitMax-.5&&P.mhp>0&&false))soft('health maximum edited');
+   const n=performance.now();if(hist.length){hist=hist.filter(x=>n-x[0]<10000);let tot=0;for(const x of hist)tot+=x[1];if(tot>Math.max(650,hpCap*2.2))soft('took '+Math.round(tot)+' damage without dying')}}
   slowT-=dt||.016;if(slowT>0)return;slowT=.9;
   const b=bad();if(b){strike(b);return}
   if(!legit&&core()!==last){strike('progress edited from outside the game');return}
   const wc=wchg();if(wc){strike(wc);return}
-  if(run&&!over&&mode!='Zombies'&&!(typeof OI!='undefined'&&OI.on)&&wp)for(const w of wp){const bs=W[w.k];if(bs&&!w.heavy&&!suitOn&&w.d>bs.d*1.34+.01){soft('weapon damage edited: '+w.k);return}}};
+  if(run&&!over&&mode!='Zombies'&&!(typeof OI!='undefined'&&OI.on)&&wp)for(const w of wp){const bs=W[w.k];if(bs&&!w.heavy&&w.d>bs.d*1.34+.01){soft('weapon damage edited: '+w.k);return}}};
  setInterval(()=>tick(.9),900);
  {const _ft=featTick;featTick=function(dt){_ft.apply(this,arguments);tick(dt)}}
  ref[names_.indexOf('hurt')]=hurt;ref[names_.indexOf('hitBot')]=hitBot;ref[names_.indexOf('shoot')]=shoot;ref[names_.indexOf('startGame')]=startGame;
 
  /* ---------- secret menu: click the S of SPARTAN five times, then type "ohio". Real clicks and key presses only (scripts cannot open it or press its buttons). Everything it changes is signed, so the anti-cheat accepts it;
     a profile edited here is marked as a dev profile. ---------- */
- {let arm=0,clicks=0,ct=0,buf='';const brand=$('#brand h1');if(brand&&!$('#sS'))brand.innerHTML=brand.innerHTML.replace(/^S/,'<span id="sS">S</span>');
+ {let arm=0,clicks=0,ct=0,buf='';for(const h of document.querySelectorAll('#brand h1,#home header h1'))if(!h.querySelector('.sS'))h.innerHTML=h.innerHTML.replace(/^S/,'<span class="sS">S</span>');
   const lab=k=>k.startsWith('sk:')?((STK[k.slice(3)]||{n:k}).n+' (streak)'):((typeof nm=='function'?nm(k):k)),itm=k=>`${lab(k)}`;
   const el=document.createElement('div');el.id='secret';el.style.display='none';document.body.appendChild(el);
   const apply=fn=>{legit++;devOK=1;try{prof.dev=1;fn();try{save()}catch(e){}}finally{legit--;resync()}for(const f of[()=>showRank(),()=>masteryUI(),()=>ldRender()])try{f()}catch(e){}render()};
@@ -639,7 +761,7 @@ function kcTick(dt){const e=$('#kcam');if(!e)return;if(!KC.on)return;if(!P.dead|
   el.addEventListener('click',e=>{if(!e.isTrusted){strike('secret menu used by a script');return}const b=e.target.closest('[data-s]');if(b&&act[b.dataset.s])act[b.dataset.s]()});
   el.addEventListener('change',e=>{if(!e.isTrusted)return;const c=e.target.closest&&e.target.closest('[data-sp]');if(c){apply(()=>{prof.perm=prof.perm||[];const k=c.dataset.sp,i=prof.perm.indexOf(k);if(c.checked&&i<0)prof.perm.push(k);if(!c.checked&&i>=0)prof.perm.splice(i,1)})}});
   el.addEventListener('keydown',e=>{if(e.key=='Escape')act.close();e.stopPropagation()});el.addEventListener('keyup',e=>e.stopPropagation());
-  const sS=$('#sS');if(sS)sS.addEventListener('click',e=>{if(!e.isTrusted)return;const n=performance.now();if(n-ct>3500)clicks=0;ct=n;if(++clicks>=5){clicks=0;arm=n+20000;buf=''}});
-  addEventListener('keydown',e=>{if(!e.isTrusted||!arm||performance.now()>arm||$('#menu').style.display=='none'||el.style.display!='none')return;buf=(buf+(e.key||'')).toLowerCase().slice(-4);if(buf=='ohio'){arm=0;buf='';render();el.style.display='flex'}})}
+  for(const sS of document.querySelectorAll('.sS'))sS.addEventListener('click',e=>{if(!e.isTrusted)return;e.stopPropagation();const n=performance.now();if(n-ct>3500)clicks=0;ct=n;if(++clicks>=5){clicks=0;arm=n+20000;buf=''}});
+  addEventListener('keydown',e=>{if(!e.isTrusted||!arm||performance.now()>arm||run||el.style.display!='none')return;buf=(buf+(e.key||'')).toLowerCase().slice(-4);if(buf=='ohio'){arm=0;buf='';render();el.style.display='flex'}})}
  document.addEventListener('visibilitychange',()=>{if(!document.hidden){slowT=0;tick(.1)}});
 })();
