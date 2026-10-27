@@ -341,3 +341,24 @@ body.touch #notes{transform:translateX(-50%) scale(.85);transform-origin:top cen
 #danger .dg.fl i{border-bottom-color:#e8f6ff;filter:drop-shadow(0 0 6px #fff)}#danger .dg b{display:block;margin-top:2px;font:700 13px Rajdhani,sans-serif;color:#fff;text-shadow:0 1px 3px #000}
 #fbd.hasaar{padding:16px 24px 18px}#fbd.hasaar h2{margin:0}#fbd.hasaar table td,#fbd.hasaar table th{padding:3px 10px}#fbd.hasaar .fs{margin:4px 0}#fbd.hasaar .aar{margin-top:8px;padding-top:8px}#fbd.hasaar .ab b{font-size:26px}#fbd.hasaar #fcont{margin-top:12px}
 body.kc-on #notes,body.kc-on #hint,body.kc-on #kst,body.kc-on #ob{opacity:0!important}
+
+/* bomb drone camera feed */
+#dfx{position:fixed;inset:0;z-index:11;pointer-events:none;display:none;color:#9dffb0;font:600 18px Rajdhani,sans-serif;text-shadow:0 0 6px #2f8}
+#dfx i{position:absolute;inset:0;display:block}
+#dfx .dgr{background:rgba(30,255,120,.16);mix-blend-mode:screen}
+#dfx .dsc{background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px);animation:dscan .12s steps(2) infinite}
+#dfx .dvg{background:radial-gradient(ellipse at center,transparent 45%,rgba(0,12,4,.85) 100%);box-shadow:inset 0 0 120px #000}
+#dfx .dll{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");opacity:.16;mix-blend-mode:overlay;animation:dnoise .25s steps(4) infinite}
+#dfx .drec{position:absolute;left:24px;top:18px;font:700 26px Teko,sans-serif;letter-spacing:2px;color:#ff4a3a;text-shadow:0 0 8px #f33;animation:dblink 1s steps(2) infinite}
+#dfx .dbat{position:absolute;right:26px;top:16px;width:210px;text-align:right}
+#dfx .dbat div{height:12px;border:1px solid #9dffb0;margin:4px 0;padding:1px}
+#dfx .dbat u{display:block;height:100%;width:100%;background:#7dff9a;box-shadow:0 0 8px #3f8}
+#dfx .dbat em{font:700 30px Teko,sans-serif;font-style:normal}
+#dfx .dret{position:absolute;left:50%;top:50%;width:90px;height:90px;margin:-45px 0 0 -45px;border:2px solid rgba(157,255,176,.7);border-radius:50%}
+#dfx .dret s{position:absolute;background:#9dffb0}
+#dfx .dret s:nth-child(1){left:50%;top:-14px;width:2px;height:22px}#dfx .dret s:nth-child(2){left:50%;bottom:-14px;width:2px;height:22px}#dfx .dret s:nth-child(3){top:50%;left:-14px;height:2px;width:22px}#dfx .dret s:nth-child(4){top:50%;right:-14px;height:2px;width:22px}
+#dfx .dinf{position:absolute;left:24px;bottom:22px;font-size:18px}
+#dfx .dwarn{position:absolute;left:50%;bottom:70px;transform:translateX(-50%);font:700 30px Teko,sans-serif;letter-spacing:3px}
+#dfx.low{color:#ff8a70;text-shadow:0 0 8px #f33;animation:dflick .18s steps(2) infinite}
+#dfx.low .dgr{background:rgba(255,60,30,.18)}#dfx.low .dbat u{background:#ff4a3a;box-shadow:0 0 8px #f33}
+@keyframes dscan{to{transform:translateY(3px)}}@keyframes dnoise{to{background-position:60px -40px}}@keyframes dblink{50%{opacity:0}}@keyframes dflick{50%{opacity:.82;transform:translateX(2px)}}

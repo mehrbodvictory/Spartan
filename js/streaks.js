@@ -18,7 +18,7 @@ const STK_=[
  ['ammo','Ammo Crate',2,3,2,'Drops a supply crate that replenishes ammunition and explosive equipment.'],
  ['sim','S.I.M.',3,5,9,'A deployable explosive module that automatically launches airburst anti-personnel charges when enemies draw near.'],
  ['dcvt','DC-VT',3,5,5,'A small, fast, remote-controlled car packed with explosives that you detonate manually.'],
- ['bombdrone','Bomb Drone',3,6,13,'A low-flying remote quadcopter that explodes on your command.'],
+ ['bombdrone','Bomb Drone',3,6,13,'A remote quadcopter with a 7 second battery. Crashes, enemies and your trigger all detonate it. The camera feed is a grainy night filter.'],
  ['hunter','Hunter Killer Drone',3,5,7,'An autonomous mini-drone that seeks out and crashes into the nearest enemy.'],
  ['sentry','Sentry Gun',4,6,10,'An automated tripod-mounted machine gun that targets enemies in its line of sight.'],
  ['shieldt','Shield Turret',4,7,18,'A heavy machine gun turret fitted with a bulletproof head-shield.'],
@@ -138,7 +138,7 @@ function skRemove(o,boomFx){const i=SK.objs.indexOf(o);if(i>=0)SK.objs.splice(i,
 function skBotsAttack(o,dt){if(!o.hp||o.inv||SK.empT>0&&o.elec)return;let dmg=0;for(const b of foes()){if(b.stun>0)continue;const d=Math.hypot(b.x-o.x,b.z-o.z);if(d>(o.air?26:30)||!navLos(b.x,b.z,o.x,o.z))continue;let f=1;if(o.shield){const a=Math.atan2(b.x-o.x,b.z-o.z),df=Math.abs(((a-o.face+Math.PI*3)%(Math.PI*2))-Math.PI);f=df>2.3?.12:1}dmg+=(o.air?1.1:3.2)*f}
  if(dmg){o.hp-=dmg*dt;if(o.hp<=0){feed('Enemy destroyed your '+(o.n||'streak'));skRemove(o,true)}}}
 /* enemy air support: a hostile helicopter now and then. Flak Guns stop new ones, EMP / PAL / gunships / rockets bring them down. */
-function skEnemyAir(){const m=skModel('achopper');m.scale.setScalar(.8);m.traverse(e=>{if(e.material&&e.material.color)e.material=e.material.clone(),e.material.color.multiplyScalar(.7).add(new THREE.Color(.25,0,0))});const a=Math.random()*6.28;const e={m,x:Math.cos(a)*40,y:17,z:Math.sin(a)*40,hp:230,ang:a,t:60,cd:1};m.position.set(e.x,e.y,e.z);S.add(m);SK.ea.push(e);msg('Enemy chopper inbound',2);beep(180,.4,'sawtooth',.08)}
+function skEnemyAir(){const m=skModel('achopper');m.scale.setScalar(.8);m.traverse(e=>{if(e.material&&e.material.color)e.material=e.material.clone(),e.material.color.multiplyScalar(.7).add(new THREE.Color(.25,0,0))});const a=Math.random()*6.28;const e={m,x:Math.cos(a)*40,y:17,z:Math.sin(a)*40,hp:650,mhp:650,ang:a,t:60,cd:1};m.position.set(e.x,e.y,e.z);S.add(m);SK.ea.push(e);msg('Enemy chopper inbound',2);beep(180,.4,'sawtooth',.08)}
 function skHitEA(p,R,d){for(let i=SK.ea.length-1;i>=0;i--){const e=SK.ea[i];if(Math.hypot(e.x-p.x,e.y-p.y,e.z-p.z)<R+2){e.hp-=d*(SK.nok?1.5:1);if(e.hp<=0)skEaDie(e)}}}
 function skEaDie(e){const i=SK.ea.indexOf(e);if(i<0)return;SK.ea.splice(i,1);S.remove(e.m);burst(V(e.x,e.y,e.z),40,0xff9a30,9,1,.4);noise(.6,300,.25);feed('You ▸ Enemy chopper destroyed');if(typeof popup=='function')popup('CHOPPER DOWN','+300')}
 function skEaTick(dt){if(!run||mode=='Zombies')return;SK.eaT-=dt;if(SK.eaT<=0){SK.eaT=75+Math.random()*50;if(SK.flakT<=0&&SK.ea.length<1&&foes().length>2)skEnemyAir()}
@@ -146,7 +146,7 @@ function skEaTick(dt){if(!run||mode=='Zombies')return;SK.eaT-=dt;if(SK.eaT<=0){S
   e.ang+=dt*.35;e.x+=(P.x+Math.cos(e.ang)*26-e.x)*Math.min(1,dt*.6);e.z+=(P.z+Math.sin(e.ang)*26-e.z)*Math.min(1,dt*.6);e.y=17+Math.sin(SK.t*.8)*1.2;e.m.position.set(e.x,e.y,e.z);e.m.rotation.y=Math.atan2(P.x-e.x,P.z-e.z);
   e.cd-=dt;if(e.cd<=0&&!P.dead&&Math.hypot(P.x-e.x,P.z-e.z)<44&&navLos(e.x,e.z,P.x,P.z)){e.cd=.7;skLine(V(e.x,e.y-.6,e.z),V(P.x+(Math.random()-.5)*2,1.2,P.z+(Math.random()-.5)*2),0xff6a40,.08);if(Math.random()<.55)hurt(7)}}}
 /* the player's own bullets hit enemy air as well */
-function skShotAir(){if(!SK.ea.length)return;const o=C.position.clone(),d=aimDir(),w=cw();for(const e of SK.ea){const v=V(e.x-o.x,e.y-o.y,e.z-o.z),t=v.dot(d);if(t<2||t>90)continue;const off=v.clone().sub(d.clone().multiplyScalar(t)).length();if(off<2.4&&castW(o,d,t)>=t-.5){e.hp-=(w?w.d:20)*.7*skMul(w);if(e.hp<=0)skEaDie(e)}}}
+function skShotAir(){if(!SK.ea.length)return;const o=C.position.clone(),d=aimDir(),w=cw();for(const e of SK.ea){const v=V(e.x-o.x,e.y-o.y,e.z-o.z),t=v.dot(d);if(t<2||t>90)continue;const off=v.clone().sub(d.clone().multiplyScalar(t)).length();if(off<2.4&&castW(o,d,t)>=t-.5){{const hitP=o.clone().add(d.clone().multiplyScalar(Math.max(2,t-1.5)));e.hp-=(w?w.d:20)*.7*skMul(w)*.28;burst(hitP,3,0xffe0a0,5,.2,.05);beep(1900+Math.random()*900,.03,'square',.03);e.fl=.1;if(e.hp<=0)skEaDie(e)}}}}
 /* ---------- radar types ---------- */
 function skRadar(dot,pt,c){for(const b of bots){if(!b.al)continue;if(ally(b)){dot(b.x,b.z,'#62e0f0',3);continue}if(b.out)continue;const d=Math.hypot(b.x-P.x,b.z-P.z);let show=d<28;
   if(SK.advT>0)show=true;else if(SK.prT>0&&d<46)show=true;if(!show&&(b.mvs||0)>1.2)show=SK.objs.some(o=>o.id=='motion'&&Math.hypot(b.x-o.x,b.z-o.z)<o.r);
@@ -252,7 +252,7 @@ const SKB={
  motion(){const p=skSpot();skAdd({id:'motion',n:'Motion Sensor',m:skM('motion',1),x:p.x,y:p.y,z:p.z,hp:60,elec:1,life:60,r:22,tick(o,dt){o.m.children[2]&&(o.m.rotation.y+=dt*1.2)}});msg('Motion Sensor placed',1.5)},
  cuav(){SK.cuavT=30;msg('Counter-UAV: enemy radar jammed',2);beep(300,.4,'sawtooth',.06)},
  emp(){SK.empT=10;ST.flash=Math.max(ST.flash,1.1);msg('EMP: enemy electronics down',2.5);noise(.8,150,.3);for(const e of SK.ea.slice())skEaDie(e)},
- flak(){SK.flakT=50;const pts=[];for(let i=0;i<3;i++){const a=i*2.09+Math.random();const[x,z]=freeNear(P.x+Math.cos(a)*16,P.z+Math.sin(a)*16);pts.push([x,z])}for(const[x,z]of pts)skAdd({id:'flak',n:'Flak Gun',m:skM('flak',1),x,y:skGnd(x,z),z,hp:150,elec:1,life:50,cd:0,tick(o,dt){o.cd-=dt;const e=SK.ea.find(e=>Math.hypot(e.x-o.x,e.z-o.z)<90);if(e){const a=Math.atan2(e.x-o.x,e.z-o.z);o.m.rotation.y=a;if(o.cd<=0){o.cd=.45;skLine(V(o.x,2.4,o.z),V(e.x+(Math.random()-.5)*3,e.y,e.z),0xffd070,.1);e.hp-=45;if(e.hp<=0)skEaDie(e)}}}});msg('Flak Guns active',2)},
+ flak(){skFlakDeploy()},
  care(){const p=skAimPoint(40);skCrate(p.x,p.z,'care',true);msg('Care Package inbound',2)},
  airdrop(){const f=V(-Math.sin(yaw),0,-Math.cos(yaw)),c=skAimPoint(60);const m=skM('airdrop',.9);m.rotation.y=Math.atan2(f.x,f.z);S.add(m);let run=0,n=0,acc=0;const L=H*1.3,sx=c.x-f.x*L,sz=c.z-f.z*L;skAdd({id:'plane',n:'Cargo plane',m,x:sx,y:48,z:sz,life:9,hp:0,tick(o,dt){run+=34*dt;o.x=sx+f.x*run;o.z=sz+f.z*run;acc+=dt;if(acc>.9&&n<5&&Math.abs(o.x)<H-4&&Math.abs(o.z)<H-4){acc=0;n++;skCrate(o.x+(Math.random()-.5)*6,o.z+(Math.random()-.5)*6,'care',true)}}});msg('Emergency Airdrop inbound',2.2);noise(1.4,200,.2)},
  vests(){const p=skAimPoint(40);skCrate(p.x,p.z,'vests',true);msg('Ballistic Vests inbound',2)},
@@ -783,4 +783,93 @@ function actInspect(){if(!run||P.dead||over||paused||INSP.t>0)return;const w=cw(
   if(!INSP.c2&&p>.68){INSP.c2=1;beep(340,.03,'square',.05);beep(210,.05,'square',.05)}
   return o}}
 {const _sg2=setGun;setGun=function(){INSP.t=0;return _sg2.apply(this,arguments)}}
-{const _fk=featKill;featKill=function(){const r=_fk.apply(this,arguments);try{if(L.pk.includes('Quick Fix')&&run&&!P.dead){const heal=P.hp<P.mhp||P.sh<P.msh;P.hp=P.mhp;P.sh=P.msh;if(heal){beep(740,.07,'sine',.07);beep(1100,.1,'sine',.06);const f=$('#flash');if(f){f.style.transition='none';f.style.background='rgba(70,255,140,.35)';f.style.opacity=1;requestAnimationFrame(()=>{f.style.transition='opacity .5s';f.style.opacity=0})}msg('QUICK FIX',1)}}}catch(e){}return r}}
+
+/* ---------- bomb drone 2.0: a kamikaze quadcopter. 7 second battery, camera-feed filter, detonates on trigger / impact / enemy proximity / flat battery, big fireball, shockwave and debris ---------- */
+function bdFx(on){let e=$('#dfx');if(!e){e=document.createElement('div');e.id='dfx';e.innerHTML='<i class="dgr"></i><i class="dsc"></i><i class="dvg"></i><i class="dll"></i><b class="drec">● REC</b><div class="dbat"><span>BATTERY</span><div><u></u></div><em>7.0s</em></div><div class="dret"><s></s><s></s><s></s><s></s></div><small class="dinf"></small><small class="dwarn"></small>';document.body.appendChild(e)}e.style.display=on?'block':'none';if(on)e.classList.remove('low')}
+function bdBoom(r,why){const p=V(r.x,Math.max(.4,r.y),r.z);skBlast(p,r.R,r.dmg,r.n);
+ /* extra fireball layers, shock ring and sparks */
+ for(const[sz,c,l,gr] of[[.8,0xfff2b0,.28,9],[1.2,0xff7a20,.5,13],[1.6,0x502010,.9,8]]){const m=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:.7}));m.position.copy(p);m.scale.setScalar(sz);S.add(m);fx.push({m,l,grow:gr,sph:1})}
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(1,.08,6,28),new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:.8}));ring.position.copy(p);ring.rotation.x=Math.PI/2;ring.scale.setScalar(.6);S.add(ring);fx.push({m:ring,l:.55,grow:r.R*2.6,sph:1});
+ burst(p,30,0xffc060,12,.9,.14);burst(p,18,0x333333,6,1.3,.35);burst(p,14,0xff5522,15,.6,.1);beep(55,.5,'sawtooth',.14);noise(.9,500,.7);shake=Math.max(shake,1.2);flashL=3;if(typeof haptic=='function')haptic(1,260,.8,'both');
+ const f=$('#flash');if(f){f.style.transition='none';f.style.background='rgba(255,230,180,.9)';f.style.opacity=1;requestAnimationFrame(()=>{f.style.transition='opacity .6s';f.style.opacity=0})}
+ rcEnd(why||'')}
+SKB.bombdrone=function(){const o={id:'bombdrone',n:'BOMB DRONE',m:skM('bombdrone',1),x:P.x,y:Math.max(2.4,skGnd(P.x,P.z)+1.8),z:P.z,t:7,R:6.5,dmg:150,turn:2.8,elec:1,v:0,hint:'Mouse steer · W boost · LMB / Space detonate',
+ tick(r,dt,edge){const boost=key.KeyW?1:0,vt=boost?16:7;r.v+=(vt-r.v)*Math.min(1,dt*2.2);const d=V(-Math.sin(r.hy)*Math.cos(r.hp),Math.sin(r.hp),-Math.cos(r.hy)*Math.cos(r.hp)),st=r.v*dt;
+  const t=castW(V(r.x,r.y,r.z),d,st+.5);if(t<=st+.35&&r.v>4){bdBoom(r,'Impact');return}
+  r.x+=d.x*st;r.y+=d.y*st;r.z+=d.z*st;r.x=cl(r.x,-H+1,H-1);r.z=cl(r.z,-H+1,H-1);const g=skGnd(r.x,r.z)+.45;if(r.y<=g){if(d.y<-.05||r.v>6){bdBoom(r,'Impact');return}r.y=g}r.y=Math.min(30,r.y);
+  r.spin=(r.spin||0)+dt*60;if(r.m){r.m.rotation.z=Math.sin(SK.t*5)*.04+Math.sin(r.hy-yaw)*.2;r.m.position.y+=Math.sin(SK.t*18)*.01}
+  let near=null,nd=2.2;for(const b of foes()){const D=Math.hypot(b.x-r.x,(b.y||0)+1-r.y,b.z-r.z);if(D<nd){nd=D;near=b}}if(near){bdBoom(r,'Target hit');return}
+  if(edge||key.Space){bdBoom(r,'Detonated');return}
+  const e=$('#dfx');if(e){const lo=r.t<2.2;e.classList.toggle('low',lo);const f=e.querySelector('.dbat u');f.style.width=Math.max(0,r.t/7*100)+'%';e.querySelector('.dbat em').textContent=Math.max(0,r.t).toFixed(1)+'s';e.querySelector('.dinf').textContent='ALT '+Math.max(0,r.y-g+.45).toFixed(1)+' m   SPD '+r.v.toFixed(0)+' m/s';let tg=null,td=40;for(const b of foes()){const D=Math.hypot(b.x-r.x,b.z-r.z);if(D<td){td=D;tg=b}}e.querySelector('.dwarn').textContent=lo?'LOW BATTERY':tg?'TARGET '+td.toFixed(0)+' m':'';
+   if(lo&&Math.floor(r.t*4)!=r.lb){r.lb=Math.floor(r.t*4);beep(1200,.04,'square',.04)}}},
+ expire(r){msg('BATTERY DEPLETED',1.2);bdBoom(r,'')},end(){bdFx(0)},cam(r){return V(r.x,r.y,r.z)}};
+ if(rcStart(o)){bdFx(1);beep(300,.1,'square',.05);beep(600,.12,'square',.05)}};
+/* the first-person hands and weapon never show through a remote camera */
+{const _fu2=fpUpdate;fpUpdate=function(){const r=_fu2.apply(this,arguments);if(SK.rc){for(const a of[fpArm.r,fpArm.l]){a.up.visible=false;a.fo.visible=false}gun.visible=false}return r}}
+
+/* ---------- flak guns 2.0: three detailed AA turrets that drop in, scan with a spinning radar, track and shoot enemy aircraft and nearby enemies, recoil and flash ---------- */
+function skFlakModel(){const g=new THREE.Group(),root=new THREE.Group();g.add(root);const M=c=>new THREE.MeshLambertMaterial({color:c}),dk=M(0x23262a),gr=M(0x4a4f55),olv=M(0x5a6446),stl=M(0xa7adb3),br=M(0xb08a3a),yel=M(0xd8b030),red=new THREE.MeshBasicMaterial({color:0xff2a1a});
+ const box=(p,w,h,d,x,y,z,m,rx,ry,rz)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.rotation.set(rx||0,ry||0,rz||0);p.add(o);return o},cyl=(p,rt,rb,h,x,y,z,m,ax)=>{const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,12),m);o.position.set(x,y,z);if(ax=='z')o.rotation.x=Math.PI/2;if(ax=='x')o.rotation.z=Math.PI/2;p.add(o);return o};
+ box(root,1.7,.16,1.7,0,.08,0,dk);for(const sx of[-1,1])for(const sz of[-1,1]){box(root,.95,.1,.16,sx*.85,.12,sz*.85,gr,0,sx*sz*.78,0);cyl(root,.2,.24,.08,sx*1.18,.05,sz*1.18,dk);box(root,.1,.3,.1,sx*.55,.25,sz*.55,gr)}
+ cyl(root,.38,.5,.7,0,.5,0,gr);cyl(root,.55,.55,.08,0,.88,0,stl);
+ const head=new THREE.Group();head.position.y=.92;root.add(head);
+ box(head,1.0,.55,1.1,0,.34,0,olv);box(head,1.04,.08,1.14,0,.08,0,dk);for(const sx of[-1,1]){box(head,.04,.42,.92,sx*.52,.36,0,gr);box(head,.3,.34,.5,sx*.66,.3,-.15,dk);for(let i=0;i<5;i++)box(head,.07,.05,.07,sx*.84,.22+i*.05,-.3+i*.12,yel)}
+ box(head,1.12,.5,.06,0,.58,.58,olv,-.35);box(head,.7,.12,.5,0,.68,-.1,gr);box(head,.5,.05,.4,0,.75,-.1,dk);
+ const pit=new THREE.Group();pit.position.set(0,.42,.5);head.add(pit);const bars=[],flash=[];
+ for(const sx of[-1,1]){const b=new THREE.Group();b.position.x=sx*.3;pit.add(b);cyl(b,.07,.07,1.7,0,0,.85,dk,'z');cyl(b,.115,.115,.7,0,0,.4,gr,'z');for(let i=0;i<4;i++)cyl(b,.12,.12,.03,0,0,.18+i*.15,stl,'z');cyl(b,.1,.1,.26,0,0,1.75,stl,'z');for(let i=0;i<3;i++)cyl(b,.108,.108,.025,0,0,1.68+i*.07,dk,'z');cyl(b,.055,.055,.12,0,0,1.92,dk,'z');
+  const f=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:0xffe08a,transparent:true,opacity:.95}));f.position.set(0,0,2.05);f.scale.setScalar(.01);b.add(f);bars.push(b);flash.push(f)}
+ box(pit,.8,.14,.3,0,-.02,-.05,dk);
+ const dishG=new THREE.Group();dishG.position.set(-.3,1.18,-.32);head.add(dishG);cyl(head,.035,.035,.5,-.3,.98,-.32,dk);const dish=cyl(dishG,.3,.07,.08,0,.0,0,stl);dish.rotation.x=-.5;box(dishG,.05,.05,.3,0,.12,.04,gr,-.5);
+ const led=new THREE.Mesh(sg,red);led.scale.setScalar(.06);led.position.set(.35,.95,-.4);head.add(led);
+ g.userData={root,head,pit,bars,flash,dish:dishG,led};return g}
+function skFlakDeploy(){SK.flakT=50;const pts=[];for(let i=0;i<3;i++){const a=i*2.09+Math.random();const[x,z]=freeNear(P.x+Math.cos(a)*16,P.z+Math.sin(a)*16);pts.push([x,z])}
+ for(const[x,z]of pts){const m=skFlakModel(),u=m.userData;u.root.position.y=16;u.pit.rotation.x=-1.0;skAdd({id:'flak',n:'Flak Gun',m,x,y:skGnd(x,z),z,hp:320,elec:1,life:50,cd:0,drop:0,landed:0,bi:0,yaw:Math.random()*6.28,scan:Math.random()*6,
+  end(o){burst(V(o.x,o.y+1,o.z),22,0x555555,3,1.4,.5)},
+  tick(o,dt){const u=o.m.userData;o.scan+=dt;u.dish.rotation.y+=dt*5;u.led.visible=Math.floor(SK.t*3)%2==0;
+   if(!o.landed){o.drop+=dt;const v=Math.min(1,o.drop/.9),h=16*(1-v*v);u.root.position.y=h;if(v>=1){o.landed=1;u.root.position.y=0;burst(V(o.x,o.y+.2,o.z),16,0x8a7a5a,5,.8,.3);noise(.35,200,.2);shake=Math.max(shake,Math.min(.5,6/(1+Math.hypot(P.x-o.x,P.z-o.z))))}return}
+   u.pit.rotation.x+= ((u.pit.userData.tp==null?-.1:u.pit.userData.tp)-u.pit.rotation.x)*Math.min(1,dt*5);
+   o.cd-=dt;for(let i=0;i<2;i++){u.bars[i].position.z*=Math.exp(-13*dt);u.flash[i].scale.setScalar(Math.max(.01,u.flash[i].scale.x*Math.exp(-30*dt)))}
+   const ea=SK.ea.find(e=>Math.hypot(e.x-o.x,e.z-o.z)<95);let tx,ty,tz,tgt=null,air=0;
+   if(ea){tx=ea.x;ty=ea.y;tz=ea.z;air=1;tgt=ea}else{const t=skNearLos(o,48);if(t){tx=t.x;ty=1.2;tz=t.z;tgt=t}}
+   if(tgt){const want=Math.atan2(tx-o.x,tz-o.z),dy=Math.atan2(Math.sin(want-u.head.rotation.y),Math.cos(want-u.head.rotation.y));u.head.rotation.y+=Math.max(-4*dt,Math.min(4*dt,dy));const hd=Math.hypot(tx-o.x,tz-o.z);const pt=Math.atan2(ty-(o.y+2.2),hd);u.pit.userData.tp=-Math.max(-.15,Math.min(1.3,pt));
+    if(Math.abs(dy)<.14&&o.cd<=0){o.cd=air?.16:.14;const i=o.bi++%2,b=u.bars[i];b.position.z=-.28;u.flash[i].scale.setScalar(.55);const mp=V(0,0,2.1);b.localToWorld(mp);const hit=air?V(tx+(Math.random()-.5)*3,ty+(Math.random()-.5)*2,tz+(Math.random()-.5)*3):V(tx+(Math.random()-.5)*.5,1.1+Math.random()*.5,tz+(Math.random()-.5)*.5);skLine(mp,hit,0xffd070,.07);burst(mp,2,0xffcc66,4,.12,.05);burst(V(o.x+Math.cos(u.head.rotation.y)*.6,o.y+2.3,o.z-Math.sin(u.head.rotation.y)*.6),1,0xd8b030,2,.5,.05);beep(160+Math.random()*50,.05,'square',.035);
+     if(air){tgt.hp-=48;tgt.fl=.12;burst(hit,3,0xff9a30,5,.3,.08);if(tgt.hp<=0)skEaDie(tgt)}else if(Math.random()<.85){skHurt(tgt,26,o.n)}}}
+   else{u.head.rotation.y+=Math.sin(o.scan*.7)*dt*.9;u.pit.userData.tp=-.25-Math.sin(o.scan*.9)*.15}}})}
+ msg('Flak Guns deployed',2);beep(320,.1,'square',.05)}
+
+/* ---------- Kill Confirmed (offline team mode) ----------
+   Every fighter that goes down leaves a floating dog tag. Tags of the other side are YELLOW from your point of view: pick one up and your team banks the kill.
+   Tags of your own side are RED: pick one up and you deny the other team that point. Tags fade away if nobody takes them. First team to KC_WIN confirms wins.
+   Points feed your killstreak count and XP: killing 50 (the normal kill), confirming 100, a teammate confirming your kill 25, denying 25 (plus a Retrieved medal for your own tag). */
+const KC_WIN=100,KC_LIFE=16;let kc={A:0,B:0},kcTags=[],kcSt={conf:0,deny:0};
+const kcMat=c=>new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:1});
+function kcReset(){for(const g of kcTags)S.remove(g.m);kcTags=[];kc={A:0,B:0};kcSt={conf:0,deny:0}}
+function kcMake(red){const col=red?0xff2a2a:0xffd21a,g=new THREE.Group(),dk=red?0x8a1010:0xb08a00,
+ plate=new THREE.Mesh(new THREE.BoxGeometry(.2,.3,.025),new THREE.MeshBasicMaterial({color:col})),inner=new THREE.Mesh(new THREE.BoxGeometry(.15,.24,.03),new THREE.MeshBasicMaterial({color:dk})),
+ ring=new THREE.Mesh(new THREE.TorusGeometry(.04,.01,6,12),new THREE.MeshBasicMaterial({color:0xdddddd})),halo=new THREE.Mesh(sg,kcMat(col)),beam=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,3.2,8),kcMat(col)),pad=new THREE.Mesh(new THREE.CylinderGeometry(.55,.55,.03,24),kcMat(col));
+ const tag=new THREE.Group();ring.position.y=.19;tag.add(plate,inner,ring);for(let i=0;i<3;i++){const l=new THREE.Mesh(new THREE.BoxGeometry(.1,.012,.034),new THREE.MeshBasicMaterial({color:col}));l.position.y=.05-i*.05;tag.add(l)}
+ halo.scale.setScalar(.34);halo.material.opacity=.22;beam.position.y=1.6;beam.material.opacity=.22;pad.material.opacity=.3;pad.position.y=.03;
+ tag.position.y=1.0;g.add(tag,halo,beam,pad);g.userData={tag,halo,beam,pad,col};return g}
+function kcDrop(victim,killer){if(mode!='Kill Confirmed'||over||!victim)return;const vp=victim===P?{x:P.x,z:P.z}:victim,vt=tmOf(victim),red=vt==pTeam(),m=kcMake(red);
+ const tg={m,x:vp.x,z:vp.z,vt,red,victim,killer:killer||null,t:KC_LIFE,age:0};m.position.set(tg.x,0,tg.z);m.scale.setScalar(.01);S.add(m);kcTags.push(tg);burst(V(tg.x,1,tg.z),8,red?0xff5a4a:0xffe060,3,.5,.08);
+ if(kcTags.length>30){const o=kcTags.shift();S.remove(o.m)}}
+function kcGive(pts,ksAdd,title,sub){if(typeof giveXP=='function')giveXP(pts);if(ksAdd)ks+=ksAdd;popup(title,sub)}
+function kcCollect(tg,who){const wt=who===P?pTeam():who.team,i=kcTags.indexOf(tg);if(i<0)return;kcTags.splice(i,1);tg.got={who,t:0};kcFly.push(tg);
+ if(wt!=tg.vt){/* confirm */kc[wt]++;const mine=wt==pTeam();if(who===P){kcSt.conf++;kcGive(100,1,'KILL CONFIRMED','+100');beep(880,.08,'triangle',.08);setTimeout(()=>beep(1320,.12,'triangle',.07),80)}
+   else{if(mine){feed(`${who.nm} confirmed a kill`);if(tg.killer===P){kcGive(25,0,'TEAMMATE CONFIRMED','+25')}}else feed(`${tn(wt)} confirmed a kill`)}}
+ else{/* deny */if(who===P){kcSt.deny++;if(tg.victim===P)kcGive(25,0,'RETRIEVED','+25');else kcGive(25,0,'KILL DENIED','+25');beep(520,.08,'sawtooth',.06);setTimeout(()=>beep(300,.14,'sawtooth',.06),80)}else if(wt==pTeam())feed(`${who.nm} denied a kill`);else feed(`${tn(wt)} denied a kill`)}}
+let kcFly=[];
+function kcGoal(b){if(!kcTags.length)return null;let best=null,bd=38;for(const g of kcTags){const d=Math.hypot(g.x-b.x,g.z-b.z);if(d<bd){bd=d;best=g}}return best?[best.x,best.z]:null}
+function kcTick(dt){if(kcTags.length||kcFly.length){
+  for(let i=kcTags.length-1;i>=0;i--){const g=kcTags[i],u=g.m.userData;g.age+=dt;g.t-=dt;
+   const pop=Math.min(1,g.age/.35),sc=pop<1?(1+2.2*Math.pow(pop-1,3)+1.2*Math.pow(pop-1,2))*pop:1,fade=g.t<4?(Math.floor(g.t*7)%2?.25:1):1,end=g.t<.5?g.t/.5:1;
+   g.m.scale.setScalar(Math.max(.01,sc*end));u.tag.rotation.y+=dt*3.2;u.tag.position.y=1.0+Math.sin(g.age*3.3)*.1;u.tag.rotation.z=Math.sin(g.age*2.1)*.12;
+   u.halo.scale.setScalar(.34+Math.sin(g.age*6)*.05);u.halo.material.opacity=.22*fade;u.beam.material.opacity=.2*fade;u.beam.scale.x=u.beam.scale.z=1+Math.sin(g.age*5)*.25;u.pad.material.opacity=.3*fade;u.pad.scale.setScalar(1+((g.age*1.4)%1)*.3);
+   if(g.t<=0){burst(V(g.x,1,g.z),6,u.col,2,.4,.06);S.remove(g.m);kcTags.splice(i,1);continue}
+   if(!P.dead&&Math.hypot(P.x-g.x,P.z-g.z)<1.7&&Math.abs(P.y||0)<2.5){kcCollect(g,P);continue}
+   for(const b of bots){if(!b.al||b.out)continue;if(Math.hypot(b.x-g.x,b.z-g.z)<1.4){kcCollect(g,b);break}}}
+  for(let i=kcFly.length-1;i>=0;i--){const g=kcFly[i];g.got.t+=dt;const k=Math.min(1,g.got.t/.28),w=g.got.who,wx=w===P?P.x:w.x,wz=w===P?P.z:w.z;g.m.position.set(g.x+(wx-g.x)*k,k*1.4,g.z+(wz-g.z)*k);g.m.scale.setScalar(Math.max(.01,1-k*.8));g.m.userData.tag.rotation.y+=dt*18;
+   if(k>=1){burst(V(g.m.position.x,1.2,g.m.position.z),12,g.m.userData.col,5,.5,.09);S.remove(g.m);kcFly.splice(i,1)}}}}
+/* a tag drops wherever a fighter goes down */
+{const _an=announce;announce=function(t,by){const r=_an.apply(this,arguments);try{kcDrop(t,by)}catch(e){}return r}}
+{const _sd=startDeath;startDeath=function(){try{if(mode=='Kill Confirmed'&&!over)kcDrop(P,lastBot||null)}catch(e){}return _sd.apply(this,arguments)}}

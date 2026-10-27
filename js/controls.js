@@ -267,7 +267,8 @@ if(navigator.xr&&navigator.xr.isSessionSupported)navigator.xr.isSessionSupported
    Melee weapons: Katana (two hands on the base of the grip, long reach, cuts up to 3 enemies) and Fists (fast, two punches alternating).
    Also builds the first-person arms: sleeves in the colour of the player character, cuff, gloved hand with palm, knuckle plate, four curled fingers and a thumb. ---------- */
 const MEL={Katana:{n:'Katana',d:100,reach:3.1,cnt:3,cd:.55,zf:1,desc:'Two-handed blade. Long reach, can hit several enemies, very high damage when drawn.'},
- Fists:{n:'Fists',d:72,reach:2.4,cnt:1,cd:.4,zf:.55,desc:'Fast alternating punches. Short reach, but the quickest melee.'}};
+ Fists:{n:'Fists',d:72,reach:2.4,cnt:1,cd:.4,zf:.55,desc:'Fast alternating punches. Short reach, but the quickest melee.'},
+ 'Nitrogen Fists':{n:'Nitrogen Fists',d:96,reach:2.8,cnt:2,cd:.36,zf:.85,desc:'Rocket-assisted gauntlets. Every strike is a thruster-driven forward slash that hits two enemies and gets louder and faster the longer you keep swinging.'}};
 const MV={down:0,h:0,f:0,draw:0,hold:0,eq:0,flair:0},MB={t:0,d:.34},FI={t:0,side:0,d:.3};
 const melName=()=>MEL[L.me]?L.me:'Katana';
 function mvReset(){MV.down=MV.h=MV.f=MV.hold=MV.eq=MV.flair=0;MV.draw=0;MB.t=0;FI.t=0}
@@ -283,8 +284,9 @@ function meleeHit(dmg,reach,cnt,zf,cone){const f=V(-Math.sin(yaw),0,-Math.cos(ya
 function meleeLunge(f,s){mv(P,f.x*s,f.z*s,.45)}
 /* hold V (and RS click / touch button / VR): the selected melee weapon, strong */
 melee=function(){if(t0<mn||P.dead)return;const m=MEL[melName()];mn=t0+m.cd;src='Melee';srcK='';noise(.12,2200,.25);const f=V(-Math.sin(yaw),0,-Math.cos(yaw));
- if(melName()=='Fists'){FI.t=FI.d;FI.side^=1}else if(typeof katSwing=='function')katSwing();
- const n=meleeHit(m.d,m.reach,m.cnt,m.zf,.2);if(n)kick=Math.max(kick,.5);meleeLunge(f,.35)};
+ const nitro=melName()=='Nitrogen Fists';if(melName()=='Fists'||nitro){FI.d=nitro?.27:.3;FI.t=FI.d;FI.side^=1}else if(typeof katSwing=='function')katSwing();
+ if(nitro)nfStrike();
+ const n=meleeHit(m.d,m.reach,m.cnt,m.zf,.2);if(n)kick=Math.max(kick,nitro?.75:.5);meleeLunge(f,nitro?.6:.35);if(nitro&&n)nfImpact(f,n)};
 /* tap V: butt-stroke with the weapon in your hands, about a third of the damage */
 function rifleBash(){if(t0<mn||P.dead||rel>0)return;mn=t0+.42;src='Melee';srcK='';MB.t=MB.d;noise(.08,1800,.2);const f=V(-Math.sin(yaw),0,-Math.cos(yaw));
  const n=meleeHit(40,2.3,1,.3,.35);if(n)kick=Math.max(kick,.3);meleeLunge(f,.2)}
@@ -325,8 +327,9 @@ const _fpu=fpUpdate;
 fpUpdate=function(dt){if(!meleeOut()||!run||P.dead||over){_fpu(dt);return}
  for(const a of[fpArm.r,fpArm.l])a.up.visible=a.fo.visible=true;const pr=gun.userData.prop;if(pr)pr.visible=false;
  const SR=V(.26,-.45,.12),SL=V(-.2,-.45,.12);
- if(melName()=='Fists'){const sw=Math.sin(t0*1.8)*.012,pk=FI.t>0?Math.sin(Math.PI*cl(1-FI.t/FI.d,0,1)):0,pr_=FI.side?1:0;
+ if(melName()=='Fists'||melName()=='Nitrogen Fists'){const nitro=melName()=='Nitrogen Fists',sw=Math.sin(t0*1.8)*.012,pk=FI.t>0?Math.sin(Math.PI*cl(1-FI.t/FI.d,0,1)):0,pr_=FI.side?1:0;
   const R=V(.2,-.3+sw,-.5-(pr_?pk*.6:0)),Lh=V(-.2,-.3-sw,-.5-(pr_?0:pk*.6));if(pr_)R.add(V(-.1*pk,.12*pk,0));else Lh.add(V(.1*pk,.12*pk,0));
+  if(nitro){/* a rocket-driven diagonal slash: starts low and wide, whips across and forward, hand rising through the strike */const u=FI.t>0?cl(1-FI.t/FI.d,0,1):0,e=1-Math.pow(1-u,2.6),sl=Math.sin(Math.PI*e);if(FI.t>0){const a=pr_?R:Lh,sd=pr_?1:-1;a.set(sd*(.42-.62*e),-.52+.46*e+sl*.06,-.42-.78*sl)}else{R.x+=Math.sin(t0*2.3)*.006;Lh.x-=Math.sin(t0*2.1)*.006}}
   const dr=1-MV.draw;R.y-=dr*.4;Lh.y-=dr*.4;ik(SR,R,V(.5,-1,.3),fpArm.r);ik(SL,Lh,V(-.5,-1,.3),fpArm.l);return}
  /* katana: right hand at the pommel end of the grip, left hand just under the guard, both following the blade through every swing */
  katG.updateMatrix();const mt=katG.matrix,Rh=V(0,-.235,0).applyMatrix4(mt),Lh=V(0,-.12,0).applyMatrix4(mt);
@@ -386,6 +389,7 @@ function attMuzzle(g,dir){g.updateMatrixWorld(true);const inv=g.matrixWorld.clon
  g.traverse(m=>{if(!m.isMesh||m.userData.att||!m.visible)return;if(!m.geometry.boundingBox)m.geometry.computeBoundingBox();tmp.copy(m.geometry.boundingBox).applyMatrix4(mm.multiplyMatrices(inv,m.matrixWorld));if(!isFinite(tmp.min.x)||!isFinite(tmp.max.x))return;bb.union(tmp);parts.push(tmp.clone())});
  if(bb.isEmpty())bb.set(new THREE.Vector3(-.03,-.1,-.3),new THREE.Vector3(.03,.1,.3));
  const tip=dir>0?bb.max.z:bb.min.z;let sy=0,n=0;for(const p of parts){const ft=dir>0?p.max.z:p.min.z;if(Math.abs(ft-tip)<.045&&(p.max.x-p.min.x)<.12){sy+=(p.min.y+p.max.y)/2;n++}}return{tip,y:n?sy/n:(bb.min.y+bb.max.y)/2,bb,parts}}
+function attMagGrp(G,mag){if(G.userData.mg)return G.userData.mg;const p=new THREE.Group();p.position.set(mag[0],mag[1],mag[2]);p.userData.att=1;p.userData.mb={x:mag[0],y:mag[1],z:mag[2]};G.add(p);G.userData.mg=p;return p}
 function attRemove(g){for(let i=g.children.length-1;i>=0;i--)if(g.children[i].userData.att)g.remove(g.children[i])}
 function attApply(g,k,list,dir){if(!g)return;attRemove(g);if(!list||!list.length)return;dir=dir||1;let A_=g.userData.a||{};/* the first-person model stores its anchors converted to gun space ([-x,y,pz-z]); the attachments live in the model's own space, so convert them back */
  if(g===fpG&&A_.r){const pz=fpG.position.z,inv=([x,y,z])=>[-x,y,pz-z];A_={r:inv(A_.r),l:inv(A_.l),m:inv(A_.m)}}
@@ -394,15 +398,15 @@ function attApply(g,k,list,dir){if(!g)return;attRemove(g);if(!list||!list.length
  const cov=(z,tol)=>PT.filter(p=>p.min.z-tol<=z&&p.max.z+tol>=z&&Math.abs((p.min.x+p.max.x)/2)<.08&&(p.max.x-p.min.x)<.16),
   lowY=(z,t,d)=>{const c=cov(z,t);return c.length?Math.min(...c.map(p=>p.min.y)):d},topY=(z,t,d)=>{const c=cov(z,t);return c.length?Math.max(...c.map(p=>p.max.y)):d},
   halfW=(z,t,d)=>{const c=cov(z,t);return c.length?Math.max(...c.map(p=>Math.max(p.max.x,-p.min.x))):d};
- const box=(w,h,d,x,y,z,m,rx)=>{const e=new THREE.Mesh(bg,m);e.scale.set(w,h,d);e.position.set(x,y,z);if(rx)e.rotation.x=rx;e.userData.att=1;G.add(e);return e},
-  cyl=(r,len,x,y,z,m,rf)=>{const e=new THREE.Mesh(new THREE.CylinderGeometry(rf==null?r:rf,r,len,14),m);e.rotation.x=Math.PI/2;e.position.set(x,y,z);e.userData.att=1;G.add(e);return e},
-  sph=(r,x,y,z,m)=>{const e=new THREE.Mesh(sg,m);e.scale.setScalar(r);e.position.set(x,y,z);e.userData.att=1;G.add(e);return e},
+ let TG=G;/* TG: where new parts go. Magazine attachments go into a pivot that rides on the magazine (see attMagGrp) */const tgAdd=e=>{TG.add(e);if(TG!==G)e.position.sub(TG.position)},box=(w,h,d,x,y,z,m,rx)=>{const e=new THREE.Mesh(bg,m);e.scale.set(w,h,d);e.position.set(x,y,z);if(rx)e.rotation.x=rx;e.userData.att=1;tgAdd(e);return e},
+  cyl=(r,len,x,y,z,m,rf)=>{const e=new THREE.Mesh(new THREE.CylinderGeometry(rf==null?r:rf,r,len,14),m);e.rotation.x=Math.PI/2;e.position.set(x,y,z);e.userData.att=1;tgAdd(e);return e},
+  sph=(r,x,y,z,m)=>{const e=new THREE.Mesh(sg,m);e.scale.setScalar(r);e.position.set(x,y,z);e.userData.att=1;tgAdd(e);return e},
   mag=A_.m||[0,mz.bb.min.y+.1,(mz.bb.min.z+mz.bb.max.z)/2],grip=A_.r||[0,mz.bb.min.y+.1,0],fore=A_.l||[0,mz.y-.04,mz.tip-dir*.25],dk=attM(0x17181b),gm=attM(0x2d2f34),steel=attM(0x9aa0a8),org=attM(0xd9822b),red=attM(0xff2a20,1);
  let tip=mz.tip;
  if(list.includes('Long Barrel')){cyl(.017,.2,0,mz.y,tip+dir*.1,steel);cyl(.026,.07,0,mz.y,tip+dir*.035,gm);cyl(.022,.012,0,mz.y,tip+dir*.205,dk);tip+=dir*.2}
  if(list.includes('Compensator')){cyl(.027,.085,0,mz.y,tip+dir*.0425,gm);for(let i=0;i<3;i++){box(.03,.008,.012,0,mz.y+.0,tip+dir*(.015+i*.02),dk);cyl(.0285,.006,0,mz.y,tip+dir*(.012+i*.024),steel)}box(.056,.006,.04,0,mz.y+.027,tip+dir*.04,dk);box(.056,.006,.04,0,mz.y-.027,tip+dir*.04,dk)}
- if(list.includes('Extended Mag')){const h=.12,mb=lowY(mag[2],.03,mag[1]-.1),mw=Math.max(.045,Math.min(.07,halfW(mag[2],.03,.025)*2+.004));box(mw,h,.082,mag[0],mb-h/2+.012,mag[2]+.004,attM(0x222428),.06*dir);box(mw+.006,.016,.09,mag[0],mb-h+.004,mag[2]+.008,org,.06*dir);for(let i=0;i<3;i++)box(mw+.002,.004,.084,mag[0],mb-.02-i*.034,mag[2]+.006,gm)}
- if(list.includes('Hollow Point')){const mb=lowY(mag[2],.03,mag[1]-.1),mw=Math.max(.045,Math.min(.07,halfW(mag[2],.03,.025)*2+.004)),my=mb+.03;box(mw,.012,.084,mag[0],my,mag[2],org);box(mw+.002,.004,.086,mag[0],my-.02,mag[2],attM(0x3a3a3e));for(let i=0;i<4;i++){const c=new THREE.Mesh(new THREE.ConeGeometry(.006,.016,8),org);c.position.set(mag[0]+(i-1.5)*.009,my+.012,mag[2]);c.userData.att=1;G.add(c)}}
+ if(list.includes('Extended Mag')){TG=attMagGrp(G,mag);const h=.12,mb=lowY(mag[2],.03,mag[1]-.1),mw=Math.max(.045,Math.min(.07,halfW(mag[2],.03,.025)*2+.004));box(mw,h,.082,mag[0],mb-h/2+.012,mag[2]+.004,attM(0x222428),.06*dir);box(mw+.006,.016,.09,mag[0],mb-h+.004,mag[2]+.008,org,.06*dir);for(let i=0;i<3;i++)box(mw+.002,.004,.084,mag[0],mb-.02-i*.034,mag[2]+.006,gm);TG=G}
+ if(list.includes('Hollow Point')){TG=attMagGrp(G,mag);const mb=lowY(mag[2],.03,mag[1]-.1),mw=Math.max(.045,Math.min(.07,halfW(mag[2],.03,.025)*2+.004)),my=mb+.03;box(mw,.012,.084,mag[0],my,mag[2],org);box(mw+.002,.004,.086,mag[0],my-.02,mag[2],attM(0x3a3a3e));for(let i=0;i<4;i++){const c=new THREE.Mesh(new THREE.ConeGeometry(.006,.016,8),org);c.position.set(mag[0]+(i-1.5)*.009,my+.012,mag[2]);c.userData.att=1;tgAdd(c)}TG=G}
  if(list.includes('Laser Sight')){const sz=fore[2]-dir*.02,hw=halfW(sz,.04,.035),sx=-(hw+.014),lo=lowY(sz,.04,fore[1]-.03),hi=topY(sz,.04,fore[1]+.03),sy=(lo+hi)/2;box(.024,.03,.07,sx,sy,sz,dk);box(.012,.012,.018,sx,sy,sz+dir*.04,red);box(.03,.008,.05,sx+.004,sy+.018,sz,gm);
   /* faint visible beam */
   const bm=new THREE.Mesh(new THREE.CylinderGeometry(.0016,.0016,14,6),new THREE.MeshBasicMaterial({color:0xff3a2a,transparent:true,opacity:.28,depthWrite:false}));bm.rotation.x=Math.PI/2;bm.position.set(sx,sy,sz+dir*7.04);bm.userData.att=1;G.add(bm)}
@@ -415,3 +419,51 @@ function attFpModel(k){return k=='AR'?knG:k=='VMP'?vmpG:k=='RG'?rgG:fpG}
 function attRefresh(){const w=cw();if(!w)return;const g=attFpModel(w.k);if(!g)return;attApply(g,w.k,attsFor(w.k),(w.k=='AR'||w.k=='VMP'||w.k=='RG')?-1:1)}
 {const _sg=setGun;setGun=function(){_sg.apply(this,arguments);try{attRefresh()}catch(e){}}}
 ;
+
+/* ---------- Nitrogen Fists: rocket gauntlets with spiked knuckle plates, side thrusters with blue flames, a glowing coolant canister and a swept blade fin. Modelled in hand space (wrist at the origin, fingers towards -y, palm towards +z). ---------- */
+function mkNitroFist(side){const g=new THREE.Group(),M=c=>new THREE.MeshLambertMaterial({color:c}),
+ B=(w,h,d,x,y,z,m,rx,ry,rz)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.rotation.set(rx||0,ry||0,rz||0);g.add(o);return o},
+ C=(rt,rb,h,x,y,z,m,rx,rz,seg)=>{const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg||14),m);o.position.set(x,y,z);o.rotation.set(rx||0,0,rz||0);g.add(o);return o};
+ const tan=M(0x8d805c),tan2=M(0x6c6246),stl=M(0x9aa1a8),stl2=M(0x585e64),dk=M(0x24272b),rub=M(0x15161a),glow=new THREE.MeshBasicMaterial({color:0x37b8ff}),pale=new THREE.MeshBasicMaterial({color:0xd6f5ff}),glass=new THREE.MeshBasicMaterial({color:0x2a86ff,transparent:true,opacity:.5});
+ /* cuff and body */
+ C(.064,.072,.075,0,.025,0,tan2,0,0,14);C(.068,.068,.014,0,.065,0,stl2,0,0,14);B(.118,.15,.128,0,-.088,-.004,tan);B(.124,.05,.138,0,-.02,-.004,tan2);B(.1,.1,.03,0,-.07,.066,tan2);B(.09,.14,.014,0,-.08,-.07,stl2);
+ for(const sx of[-1,1])for(let i=0;i<3;i++)C(.007,.007,.012,sx*.05,-.04-i*.04,-.074,stl,Math.PI/2,0,8);
+ for(let i=0;i<4;i++)B(.12,.006,.131,0,-.045-i*.032,-.004,dk);
+ /* knuckle plate with ridges and four glowing spikes */
+ B(.136,.062,.146,0,-.18,-.004,stl);B(.142,.014,.152,0,-.15,-.004,stl2);B(.13,.012,.14,0,-.212,-.004,stl2);
+ for(let i=0;i<4;i++){const x=(i-1.5)*.032;B(.027,.048,.034,x,-.2,-.034,stl);C(.018,.018,.012,x,-.232,-.034,dk,0,0,8);const sp=new THREE.Mesh(new THREE.ConeGeometry(.0175,.13,6),glow);sp.position.set(x,-.305,-.034);sp.rotation.x=Math.PI;g.add(sp);const tip=new THREE.Mesh(new THREE.ConeGeometry(.007,.04,6),pale);tip.position.set(x,-.38,-.034);tip.rotation.x=Math.PI;g.add(tip)}
+ B(.14,.008,.016,0,-.152,-.08,glow);
+ /* thrusters */
+ const fl=[];for(const sx of[-1,1]){const x=sx*.092;C(.032,.032,.14,x,-.07,-.018,stl);C(.036,.036,.018,x,-.12,-.018,stl2);C(.036,.036,.018,x,-.025,-.018,stl2);C(.034,.034,.03,x,-.072,-.018,dk);C(.04,.026,.055,x,.04,-.018,dk);C(.032,.032,.008,x,.068,-.018,glow);for(let i=0;i<5;i++)B(.012,.004,.02,x+sx*.026,-.12+i*.012,-.018,dk);
+  const pv=new THREE.Group();pv.position.set(x,.072,-.018);const outer=new THREE.Mesh(new THREE.ConeGeometry(.031,.22,10),new THREE.MeshBasicMaterial({color:0x2d9bff,transparent:true,opacity:.7,depthWrite:false})),inner=new THREE.Mesh(new THREE.ConeGeometry(.017,.14,8),new THREE.MeshBasicMaterial({color:0xe8fbff,transparent:true,opacity:.95,depthWrite:false}));outer.position.y=.11;inner.position.y=.07;pv.scale.y=.5;pv.add(outer,inner);g.add(pv);fl.push({p:pv,ph:Math.random()*6.28})}
+ /* coolant canister on the palm side */
+ C(.034,.034,.09,0,-.012,.076,glass,0,0,14);C(.038,.038,.014,0,.036,.076,stl2,0,0,14);C(.038,.038,.014,0,-.06,.076,stl2,0,0,14);const core=new THREE.Mesh(sg,glow);core.scale.setScalar(.022);core.position.set(0,-.012,.076);g.add(core);for(const a of[0,2.1,4.2])B(.006,.092,.006,Math.cos(a)*.036,-.012,.076+Math.sin(a)*.036,stl2);
+ /* swept blade fin on the outer side */
+ const bl=B(.008,.17,.07,side*.098,-.15,.01,stl,0,0,side*.28),bl2=B(.008,.07,.05,side*.118,-.245,.01,stl,0,0,side*.5);B(.012,.05,.05,side*.092,-.075,.01,stl2);
+ g.userData={fl,core};return g}
+const NF={rev:0,last:-9,boost:0,out:0,al:0,idle:null,rt:0};
+function nfBus(){ac=ac||new AudioContext();if(!NF.bus){const c=ac.createDynamicsCompressor();c.threshold.value=-24;c.knee.value=12;c.ratio.value=10;c.attack.value=.003;c.release.value=.15;c.connect(ac.destination);NF.bus=c;const n=ac.sampleRate*1,b=ac.createBuffer(1,n,ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;NF.nb=b}return NF.bus}
+/* engine: a saw and a square through a rising low-pass with a cylinder-like tremolo, plus an exhaust whoosh; every strike in a chain starts higher and chugs faster */
+function nfEngine(rev){try{const bus=nfBus(),t=ac.currentTime,v=vol*.55;if(v<=0)return;const f0=58+rev*14,dur=.3,o=ac.createOscillator(),o2=ac.createOscillator(),lp=ac.createBiquadFilter(),am=ac.createGain(),g=ac.createGain(),lfo=ac.createOscillator(),lg=ac.createGain();
+ o.type='sawtooth';o2.type='square';o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f0*(2.3+rev*.14),t+dur*.8);o2.frequency.setValueAtTime(f0*.5,t);o2.frequency.exponentialRampToValueAtTime(f0*1.15,t+dur*.8);
+ lp.type='lowpass';lp.Q.value=2.2;lp.frequency.setValueAtTime(340,t);lp.frequency.exponentialRampToValueAtTime(1200+rev*170,t+dur*.7);
+ am.gain.value=.62;lfo.frequency.value=24+rev*5.5;lg.gain.value=.38;lfo.connect(lg).connect(am.gain);
+ g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.07*v,t+.035);g.gain.exponentialRampToValueAtTime(.0001,t+dur+.08);
+ o.connect(lp);o2.connect(lp);lp.connect(am).connect(g).connect(bus);for(const x of[o,o2,lfo]){x.start(t);x.stop(t+dur+.1)}
+ const s=ac.createBufferSource(),bp=ac.createBiquadFilter(),ng=ac.createGain();s.buffer=NF.nb;bp.type='bandpass';bp.Q.value=.9;bp.frequency.setValueAtTime(450+rev*60,t);bp.frequency.exponentialRampToValueAtTime(2300+rev*220,t+.2);ng.gain.setValueAtTime(.0001,t);ng.gain.exponentialRampToValueAtTime(.05*v,t+.03);ng.gain.exponentialRampToValueAtTime(.0001,t+.26);s.connect(bp).connect(ng).connect(bus);s.start(t,Math.random()*.5);s.stop(t+.3)}catch(e){}}
+/* demolishing hit: a sub drop, a gated crunch, two inharmonic metal clanks and a few falling bits of rubble */
+function nfHit(n){try{const bus=nfBus(),t=ac.currentTime,v=vol*.55;if(v<=0)return;const sub=ac.createOscillator(),sg_=ac.createGain();sub.type='sine';sub.frequency.setValueAtTime(130,t);sub.frequency.exponentialRampToValueAtTime(36,t+.24);sg_.gain.setValueAtTime(.0001,t);sg_.gain.exponentialRampToValueAtTime(.12*v,t+.012);sg_.gain.exponentialRampToValueAtTime(.0001,t+.28);sub.connect(sg_).connect(bus);sub.start(t);sub.stop(t+.3);
+ const s=ac.createBufferSource(),bp=ac.createBiquadFilter(),cg=ac.createGain();s.buffer=NF.nb;bp.type='bandpass';bp.frequency.value=1100;bp.Q.value=.7;cg.gain.setValueAtTime(.0001,t);for(let i=0;i<7;i++){const a=t+i*.022;cg.gain.setValueAtTime(.075*v*(1-i*.11),a);cg.gain.exponentialRampToValueAtTime(.006,a+.016)}cg.gain.exponentialRampToValueAtTime(.0001,t+.2);s.connect(bp).connect(cg).connect(bus);s.start(t,Math.random()*.5);s.stop(t+.22);
+ for(const[f,d]of[[412,.12],[689,.09]]){const o=ac.createOscillator(),g=ac.createGain();o.type='triangle';o.frequency.value=f*(.96+Math.random()*.08);g.gain.setValueAtTime(.03*v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(bus);o.start(t);o.stop(t+d+.02)}
+ for(let i=0;i<(n>1?5:3);i++){const a=t+.12+Math.random()*.25,r=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();r.buffer=NF.nb;f.type='highpass';f.frequency.value=2500+Math.random()*2500;g.gain.setValueAtTime(.022*v,a);g.gain.exponentialRampToValueAtTime(.0001,a+.04);r.connect(f).connect(g).connect(bus);r.start(a,Math.random()*.5);r.stop(a+.05)}}catch(e){}}
+function nfIdle(on){try{if(on&&!NF.idle&&vol>0){const bus=nfBus(),t=ac.currentTime,o=ac.createOscillator(),lp=ac.createBiquadFilter(),g=ac.createGain(),l=ac.createOscillator(),lg=ac.createGain();o.type='sawtooth';o.frequency.value=47;lp.type='lowpass';lp.frequency.value=170;l.frequency.value=9;lg.gain.value=3;l.connect(lg).connect(o.frequency);g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(.012*vol,t+.3);o.connect(lp).connect(g).connect(bus);o.start();l.start();NF.idle={o,l,g}}
+ else if(!on&&NF.idle){const t=ac.currentTime,i=NF.idle;NF.idle=null;i.g.gain.cancelScheduledValues(t);i.g.gain.setValueAtTime(i.g.gain.value,t);i.g.gain.linearRampToValueAtTime(.0001,t+.2);i.o.stop(t+.25);i.l.stop(t+.25)}}catch(e){}}
+function nfStrike(){NF.rev=t0-NF.last>1.4?0:Math.min(6,NF.rev+1);NF.last=t0;NF.boost=1;nfEngine(NF.rev);kick=Math.max(kick,.4)}
+function nfImpact(f,n){setTimeout(()=>{nfHit(n);const q=V(P.x+f.x*1.7,1.25,P.z+f.z*1.7);burst(q,22,0x55ccff,9,.5,.1);burst(q,12,0xffffff,12,.35,.07);burst(q,10,0x555a60,6,.8,.2);shake=Math.max(shake,.5);const fl=$('#flash');if(fl){fl.style.transition='none';fl.style.background='rgba(120,200,255,.25)';fl.style.opacity=1;requestAnimationFrame(()=>{fl.style.transition='opacity .25s';fl.style.opacity=0})}if(typeof haptic=='function')haptic(.7,90,.6,'both')},55)}
+/* attach the gauntlets to the first-person hands and animate them */
+{const gnt={};const _fx=fpUpdate;fpUpdate=function(dt){_fx.apply(this,arguments);try{const on=melName()=='Nitrogen Fists'&&run&&!P.dead&&!over&&MV.draw>.03&&!(typeof SK!='undefined'&&SK.rc);
+  for(const[k,a,s]of[['r',fpArm.r,1],['l',fpArm.l,-1]]){if(!a.hand)continue;if(!gnt[k]){gnt[k]=mkNitroFist(s);a.hand.add(gnt[k]);gnt[k].visible=false}const g=gnt[k];g.visible=on;for(const ch of a.hand.children)if(ch!==g)ch.visible=!on;
+   if(on){const u=g.userData,chain=Math.min(1,NF.rev/5),sp=Math.hypot(P.mx||0,P.mz||0)/7;NF.boost=Math.max(0,NF.boost-dt*3.2);const inten=.5+NF.boost*1.5+chain*.35+sp*.2;
+    for(const f of u.fl){const fl=inten*(.78+.28*Math.sin(t0*46+f.ph)+.12*Math.sin(t0*83+f.ph*2));f.p.scale.set(.8+NF.boost*.5,Math.max(.25,fl),.8+NF.boost*.5)}u.core.scale.setScalar(.022+Math.sin(t0*5+(s>0?0:1.5))*.004+NF.boost*.012)}}
+  if(on!==!!NF.out){NF.out=on?1:0;nfIdle(on);if(on){NF.rev=0;beep(90,.2,'sawtooth',.03)}}
+  if(on&&FI.t>0&&NF.al<=0){NF.al=.035;const a=FI.side?fpArm.r.hand:fpArm.l.hand;if(a){const p=new THREE.Vector3();a.getWorldPosition(p);burst(p,2,0x59cdff,3,.22,.05)}}NF.al-=dt}catch(e){}}}

@@ -209,3 +209,12 @@ These changes were checked by running the real scripts in headless Chromium (rea
 - **Loadout**: Coyote label fixed (light machine gun), missing weapon descriptions added. Sniper and Rocket Launcher are intentionally left as they were.
 - **Armor plates removed** (key G, gamepad/VR holds, Ballistic Vest bonus, HUD/inventory text, rebind list).
 - **New Call of Duty features**: Semtex sticky lethal (level 18), Quick Fix perk (level 16, kills restore health and shield), weapon inspect (Y, rebindable).
+
+## Update notes (sixth pass)
+- **Anti-cheat false alarm fixed**: Quick Fix now lives inside `featKill` instead of replacing the function (the anti-cheat treats any replaced guarded function as tampering). Never wrap a function listed in `names_` in the anti-cheat section after it loads.
+- **Sights**: RayGun centre antenna removed from the sight line, TRB-3 carry handle opened up, TUR-9 blade fin and housing slimmed.
+- **Magazine attachments** (Extended Mag, Hollow Point) ride on a pivot that follows the magazine through the reload.
+- **Bomb drone 2.0**: 7 second battery, camera-feed filter (`#dfx`), detonates on trigger / crash / enemy proximity / empty battery, big fireball and shockwave, first-person hands hidden while piloting.
+- **Flak guns 2.0**: three detailed turrets that drop in, scan, track and shoot aircraft and nearby enemies. **Enemy chopper** has 650 HP and takes reduced damage from bullets.
+- **Kill Confirmed** (offline team mode): dog tags (yellow = enemy, red = your side), confirm / deny scoring, first to 100 confirms.
+- **Nitrogen Fists** melee: rocket gauntlets with blue flames, forward slash animation, engine-rev strike sounds that climb with a chain of strikes and a layered demolition hit sound (all through a limiter and your Volume setting).
