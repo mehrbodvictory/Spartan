@@ -28,8 +28,9 @@
    <label>Aim assist<select id="aa"><option value="0">Off</option><option value="0.6">Light</option><option value="1">Strong</option><option value="1.5" selected>Very strong</option></select></label>
    <label>Look sensitivity<input id="sn" type="range" min="0.3" max="2.5" step="0.1" value="1.4"></label>
    <label>Field of view<input id="fv" type="range" min="60" max="110" step="1" value="80"></label>
+   <label>Brightness<input id="br" type="range" min="0.6" max="1.6" step="0.05" value="1"></label>
    <label id="vrL" style="display:none">VR headset mode<select id="vrm"><option value="0">Off</option><option value="1">On (enter VR when a match starts)</option></select></label>
-   <label>Graphics<select id="gq"><option value="high">High (shadows)</option><option value="low">Low (faster)</option></select></label>
+   <label>Graphics<select id="gq"><option value="high">Ultra (HDR lighting, bloom, sun shafts)</option><option value="med">Medium (PBR materials + shadows)</option><option value="low">Low (fastest, original look)</option></select></label>
    <h2>Keyboard and mouse</h2><div class="how"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</span><span><kbd>Space</kbd> jump / stand / mantle</span><span><kbd>Shift</kbd> sprint (double press: tactical sprint)</span><span><kbd>C</kbd> crouch / slide</span><span><kbd>Ctrl</kbd> prone / dive</span><span><kbd>Alt</kbd> walk</span><span><kbd>H</kbd> auto run</span><span><kbd>LMB</kbd> fire</span><span><kbd>RMB</kbd> aim down sights</span><span><kbd>R</kbd> reload</span><span><kbd>V</kbd> / <kbd>Mouse 4</kbd> katana</span><span><kbd>E</kbd> lethal (frag)</span><span><kbd>Q</kbd> tactical (flashbang)</span><span><kbd>F</kbd> interact / buy / revive</span><span><kbd>T</kbd> / <kbd>Mouse 5</kbd> weapon mount (while aiming)</span><span><kbd>B</kbd> fire mode</span><span><kbd>Y</kbd> inspect weapon</span><span><kbd>X</kbd> field upgrade</span><span><kbd>1</kbd> / wheel down next weapon</span><span><kbd>2</kbd> / wheel up previous weapon</span><span><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd><kbd>6</kbd> killstreak slots</span><span><kbd>Tab</kbd> scoreboard</span><span><kbd>M</kbd> / <kbd>Caps</kbd> map</span><span><kbd>MMB</kbd> ping</span><span><kbd>N</kbd> night vision</span><span><kbd>Esc</kbd> / <kbd>F1</kbd> / <kbd>F3</kbd> / <kbd>F6</kbd> menu</span></div>
    <h2>Controller</h2><div class="how"><span>LS move</span><span>RS look</span><span>LS click sprint (twice: tactical sprint, or steady aim while aiming)</span><span>RS click katana (LT + RS click: weapon mount)</span><span>LT aim</span><span>RT fire</span><span>LB tactical</span><span>RB lethal</span><span>LB + RB field upgrade</span><span>A jump / stand / mantle</span><span>B crouch / slide, hold: prone / dive</span><span>X reload, hold: interact</span><span>Y swap weapon</span><span>D-pad up ping</span><span>D-pad down inventory, hold: night vision</span><span>D-pad left fire mode</span><span>D-pad right killstreak</span><span>View: map, hold: scoreboard</span><span>Menu: pause</span><span>Menus: D-pad / stick + A, B back, on-screen keyboard for names and codes</span></div>
    <h2>VR (Quest and other WebXR headsets)</h2><div class="how"><span>Right controller aims and holds the weapon</span><span>Right trigger fire</span><span>Left trigger lethal</span><span>Left grip tactical</span><span>Both grips field upgrade</span><span>Right grip reload, hold: interact</span><span>A jump</span><span>B swap</span><span>X crouch / slide, hold: prone / dive</span><span>Y pause menu</span><span>Left stick move</span><span>Left stick click sprint (twice: tactical)</span><span>Right stick click katana</span><span>Right stick left/right snap turn, up ping, down fire mode</span></div><p class="sub">In VR the menus appear on a panel in front of you: point with the right controller, pull the trigger to press (grip changes a drop-down backwards, right stick scrolls). Health, ammo and score are on your left wrist.</p>
@@ -45,6 +46,7 @@
  <label>Aim assist<select id="aa2"><option value="0">Off</option><option value="0.6">Light</option><option value="1">Strong</option><option value="1.5">Very strong</option></select></label>
  <label>Look sensitivity<input id="sn2" type="range" min="0.3" max="2.5" step="0.1"></label>
  <label>Field of view<input id="fv2" type="range" min="60" max="110" step="1"></label>
+ <label>Brightness<input id="br2" type="range" min="0.6" max="1.6" step="0.05"></label>
  <label>Volume<input id="vl" type="range" min="0" max="1" step="0.05" value="1"></label>
  <label>Screen shake<input id="sk" type="range" min="0" max="1" step="0.1" value="1"></label>
  <button id="exit" class="big alt">Exit match</button></div></div>
@@ -61,6 +63,7 @@
 <div id="hint">WASD move · Shift sprint · Mouse look · LMB fire · RMB aim · V katana · R reload · E frag · Q flash · F use · C crouch · Ctrl prone · 3 kills = UAV (3)</div><div id="am"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+<script src="js/lumen.js"></script>
 <script src="js/core.js"></script>
 <script src="js/maps.js"></script>
 <script src="js/systems.js"></script>
@@ -68,5 +71,6 @@
 <script src="js/interface.js"></script>
 <script src="js/controls.js"></script>
 <script src="js/menus.js"></script>
+<script src="js/juice.js"></script>
 <script src="js/streaks.js"></script>
 </body></html>

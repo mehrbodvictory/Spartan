@@ -12,7 +12,7 @@ const PRI=['AR','SMG','BR','SG'],SEC=['MG','MP'];
 const A={'Extended Mag':{m:1.5,t:'+50% magazine'},'Compensator':{rc:.55,t:'Less kick'},'Laser Sight':{sp:.5,t:'Tighter spread'},'Long Barrel':{d:1.12,t:'+12% damage'},'Fast Hands':{rl:.65,t:'Faster reload'},'Hollow Point':{d:1.18,rc:1.25,t:'+18% damage, more kick'},'Quickdraw Grip':{ad:1.9,t:'Aim down sights almost twice as fast'}};
 const K={'Marathon':'Move 15% faster','Overshield':'+50 shield','Scavenger':'Kills refill ammo','Spring Legs':'Jump higher','Second Wind':'Shield recharges much faster','Hardline':'Killstreaks need 1 fewer kill','Run & Gun':'Shoot while sprinting','Quick Fix':'Kills instantly restore health and shield'};
 const GR={'Frag':{fuse:1.8,R:7,d:110,imp:0,t:'Bounces, 1.8s fuse'},'Impact':{fuse:4,R:5,d:85,imp:1,t:'Explodes on contact'},'Semtex':{fuse:2.6,R:6,d:105,imp:0,stk:1,t:'Sticks to walls, floors and enemies, 2.6s fuse'}};
-const MODES={'Slayer':'First to 20 kills. Bots respawn.','One in the Chamber':'A pistol with one bullet and three lives. Every hit kills and every kill earns a bullet, melee kills too. Last one standing wins.','Survival':'One life. Endless waves.','Time Attack':'Most kills in 90 seconds.','Team Deathmatch':'5v5 with bot teammates. First team to 50 kills wins.','Capture the Flag':'5v5 with bot teams. Steal the red flag, bring it to your base. First to 3 captures.','Kill Confirmed':'5v5 with bot teams. Every fallen fighter drops a tag: grab enemy tags to bank the kill, grab your own side\'s tags to deny theirs. First team to 100 confirms.','Hardpoint':'Hold the rotating zone to score. First team to 250 wins.','Domination':'5v5 with bot teams. Hold the three zones: every owned zone earns points. First team to 350 wins.','Zombies':'Survive endless rounds of the undead. Earn points, open doors, use the mystery box, Pack-a-Punch and perks. Solo.'};
+const MODES={'Slayer':'First to 20 kills. Bots respawn.','One in the Chamber':'A pistol with one bullet and three lives. Every hit kills and every kill earns a bullet, melee kills too. Last one standing wins.','Survival':'One life. Endless waves.','Time Attack':'Most kills in 90 seconds.','Team Deathmatch':'5v5 with bot teammates. First team to 50 kills wins.','Capture the Flag':'5v5 with bot teams. Steal the red flag, bring it to your base. First to 3 captures.','Kill Confirmed':'5v5 with bot teams, or with your friends in a private match. Every fallen fighter drops a tag: grab enemy tags to bank the kill, grab your own side\'s tags to deny theirs. First team to 100 confirms.','Hardpoint':'Hold the rotating zone to score. First team to 250 wins.','Domination':'5v5 with bot teams. Hold the three zones: every owned zone earns points. First team to 350 wins.','Zombies':'Survive endless rounds of the undead. Earn points, open doors, use the mystery box, Pack-a-Punch and perks. Solo.'};
 /* open maps have no tall walls: the play area is enclosed by one continuous fence (with an invisible tall collision wall above it) */
 function barrierLine(a,x0,z0,x1,z1,seed){const hz=Math.abs(x1-x0)>=Math.abs(z1-z0),L=hz?Math.abs(x1-x0):Math.abs(z1-z0),cx=(x0+x1)/2,cz=(z0+z1)/2;
  /* one continuous painted fence with a top rail, plus an invisible tall collision wall above it so nobody can mantle, wall jump or squeeze over */
@@ -130,7 +130,7 @@ try{const sv=JSON.parse(localStorage.getItem('sd-load'));if(sv&&sv.sel&&(sv.sel.
 
 /* ===================== engine.js ===================== */
 /* ---------- engine ---------- */
-const R=new THREE.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,1.5));R.setSize(innerWidth,innerHeight);document.body.prepend(R.domElement);
+const R=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});R.setPixelRatio(Math.min(devicePixelRatio,LX.q=='high'?1.75:1.5));R.setSize(innerWidth,innerHeight);document.body.prepend(R.domElement);
 const S=new THREE.Scene(),C=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.03,200);C.rotation.order='YXZ';S.add(C);
 const hemi=new THREE.HemisphereLight(0xffffff,0x445566,.85);S.add(hemi);const sun=new THREE.DirectionalLight(0xffffff,.7);sun.position.set(30,50,20);S.add(sun);
 addEventListener('resize',()=>{R.setSize(innerWidth,innerHeight);C.aspect=innerWidth/innerHeight;C.updateProjectionMatrix()});
@@ -145,7 +145,7 @@ function eff(k,at){const w={...W[k],ad:1};for(const a of at)for(const p in A[a])
 function hitPts(b){const pc=b.pc||0,psl=b.psl||0,pp=b.pp||0,y=b.y||0,ry=b.ry==null?0:b.ry,fx=Math.sin(ry),fz=Math.cos(ry);
  const sh=(1-pp),hy=y+(1.75-.34*pc-.62*psl)*sh+.34*pp,by=y+(.95-.26*pc-.42*psl)*sh+.26*pp,hf=.8*pp;
  return[V(b.x+fx*hf,hy,b.z+fz*hf),V(b.x,by,b.z),.3,.65-.3*pp-.08*pc]}
-function buildMap(){if(mapG)S.remove(mapG);const M=MAPS[sel.map];H=M.H;mapG=new THREE.Group();S.add(mapG);S.background=new THREE.Color(M.sky);S.fog=new THREE.Fog(M.sky,30,M.fogF||(M.open?170:110));bx=[];
+function buildMap(){if(mapG){S.remove(mapG);if(typeof gfxDispose=='function')gfxDispose(mapG)}const M=MAPS[sel.map];H=M.H;mapG=new THREE.Group();S.add(mapG);S.background=new THREE.Color(M.sky);S.fog=new THREE.Fog(M.sky,30,M.fogF||(M.open?170:110));bx=[];
  M._v=[];const list=M.b();for(const [x,z,w,d,h,y0=0,_c,_k] of list)bx.push({x0:x-w/2,x1:x+w/2,z0:z-d/2,z1:z+d/2,h,y0,pl:_k=='n'?1:0});
  gfxMap(M,list)}
 function mv(o,dx,dz,r){o.x+=dx;o.z+=dz;for(const b of bx){if((o.y||0)>=b.h-.31||(o.y||0)+1.8<=(b.y0||0))continue;if(o.x>b.x0-r&&o.x<b.x1+r&&o.z>b.z0-r&&o.z<b.z1+r){const c=[o.x-(b.x0-r),b.x1+r-o.x,o.z-(b.z0-r),b.z1+r-o.z],i=c.indexOf(Math.min(...c));if(i==0)o.x=b.x0-r;else if(i==1)o.x=b.x1+r;else if(i==2)o.z=b.z0-r;else o.z=b.z1+r}}o.x=cl(o.x,-H+r,H-r);o.z=cl(o.z,-H+r,H-r)}
@@ -203,7 +203,7 @@ function startGame(){fixZM();buildMap();ctlReset();for(const b of bots)S.remove(
  const[x,z]=mode=='Zombies'&&MAPS[sel.map].ps?MAPS[sel.map].ps:spawnPt(0,pTeam());P.x=x;P.z=z;yaw=pitch=kick=0;
  setupBots();zStart();
  $('#menu').style.display=$('#end').style.display='none';$('#hud').style.display='block';over=0;paused=0;run=1;juiceReset();featReset();endDeath();gun.visible=true;if(typeof finStop=='function')finStop();lockPtr()}
-function modeTick(dt){if(mode=='Private')return privTick();if(netOn&&!isHost){$('#ob').textContent=obText;if(mode=='Zombies')zcTick(dt);return}
+function modeTick(dt){if(mode=='Private')return privTick();if(netOn&&!isHost){$('#ob').textContent=obText;if(mode=='Zombies')zcTick(dt);if(mode=='Kill Confirmed')kcTick(dt);return}
  if(mode=='Zombies')return zomTick(dt);
  if(mode=='One in the Chamber')return oiTick(dt);
  if(mode=='Slayer'||teamMode())return pvpTick(dt);
@@ -237,7 +237,7 @@ function upd(dt){t0+=dt;ctlTick(dt);
  $('#cx').className=(tg?'t':'')+(ST.ads>.4?' h':'');$('#sh').style.width=P.sh/P.msh*100+'%';$('#hp').style.width=Math.max(0,P.hp/P.mhp*100)+'%';
  $('#am').innerHTML=P.dead?(mode=='Zombies'?'Downed':'Respawning…'):`${cw().mag}<small>${rel>0?'Reloading…':'/ '+cw().res} · ${cw().pn||W[cw().k].n}${L.g?' · Grenades '+gc:''}</small>`}
 const clk=new THREE.Clock();
-function gameFrame(){const dt=Math.min(clk.getDelta(),.05);if(typeof inputTick=='function')inputTick(dt);if(run&&(!paused||(typeof netOn!='undefined'&&netOn)))upd(dt);else if(!run&&typeof menuCam=='function')menuCam(dt);if(typeof netOn!='undefined'&&netOn)netTick(dt);if(typeof vrPost=='function')vrPost(dt);if(!document.hidden)R.render(S,C);if(typeof vrAfter=='function')vrAfter()}
+function gameFrame(){const dt=Math.min(clk.getDelta(),.05);if(typeof inputTick=='function')inputTick(dt);if(run&&(!paused||(typeof netOn!='undefined'&&netOn)))upd(dt);else if(!run&&typeof menuCam=='function')menuCam(dt);if(typeof netOn!='undefined'&&netOn)netTick(dt);if(typeof vrPost=='function')vrPost(dt);if(!document.hidden)LX.render(S,C);if(typeof vrAfter=='function')vrAfter()}
 (function loop(){requestAnimationFrame(loop);if(!(R.xr&&R.xr.isPresenting)&&!document.hidden)gameFrame()})();
 /* browsers freeze requestAnimationFrame and slow timers in background tabs, which made a host or guest look disconnected. A worker timer is not throttled, so while the tab is hidden it keeps the match (and the network traffic) running */
 try{const wk=new Worker(URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),25)'],{type:'text/javascript'})));wk.onmessage=()=>{if(document.hidden&&typeof netOn!='undefined'&&netOn&&!(R.xr&&R.xr.isPresenting))gameFrame()}}catch(e){}

@@ -529,7 +529,7 @@ const KC={on:0,t:0,dur:3.4,b:null,tp:null,cam:null,hist:[],deal:[],info:null};
 {const _hb=hitBot;hitBot=function(b,d,head){if(d>0&&b&&b.al&&run&&!SK.nok){KC.deal.push({b,d:Math.min(d,b.hp+(b.sh||0)),t:t0});if(KC.deal.length>80)KC.deal.shift()}return _hb.apply(this,arguments)}}
 {const _d=die;die=function(){const was=P.dead,k=lastBot;_d.apply(this,arguments);if(was||mode=='Zombies'||mode=='Survival'||over)return;try{kcStart(k)}catch(e){}}}
 {const _dc=deathCam;deathCam=function(dt){_dc.apply(this,arguments);if(KC.on)try{kcCam(dt)}catch(e){}}}
-{const _ft=featTick;featTick=function(dt){_ft.apply(this,arguments);try{kcTick(dt)}catch(e){}}}
+{const _ft=featTick;featTick=function(dt){_ft.apply(this,arguments);try{kcamTick(dt)}catch(e){}}}
 (function(){const hud=$('#hud');if(!hud)return;const k=document.createElement('div');k.id='kcam';hud.appendChild(k)})();
 function kcStart(k){const live=OPT.kc&&k&&k.m&&k!==null,now=t0,rec=new Map();for(const h of KC.hist)if(now-h.t<6&&h.d>0){const key=h.nm||'Explosion';const r=rec.get(key)||{nm:key,d:0,wk:h.wk};r.d+=h.d;if(h.wk)r.wk=h.wk;rec.set(key,r)}
  let dealt=0;if(k)for(const x of KC.deal)if(x.b===k&&now-x.t<8)dealt+=x.d;
@@ -543,10 +543,10 @@ function kcPanel(){const e=$('#kcam'),I=KC.info;if(!e||!I)return;const wn=n=>Str
 function kcCam(dt){KC.t+=dt;const k=KC.b;if(!k||!k.m)return;const T=KC.tp,K=V(k.x,(k.y||0)+1,k.z);let dx=T.x-K.x,dz=T.z-K.z;const L=Math.hypot(dx,dz)||1;dx/=L;dz/=L;
  const want=V(K.x-dx*2.7-dz*.95,K.y+.85,K.z-dz*2.7+dx*.95),o=V(K.x,K.y+.6,K.z),dv=want.clone().sub(o),len=dv.length();dv.divideScalar(len||1);const tw=castW(o,dv,len);if(tw<len)want.copy(o).addScaledVector(dv,Math.max(.4,tw-.25));
  if(!KC.cam)KC.cam=C.position.clone();KC.cam.lerp(want,Math.min(1,dt*6));C.position.copy(KC.cam);C.lookAt(T.x,T.y+.25,T.z)}
-function kcTick(dt){const e=$('#kcam');if(!e)return;if(!KC.on)return;if(!P.dead||over){KC.on=0;e.style.display='none';document.body.classList.remove('kc-on');return}
+function kcamTick(dt){const e=$('#kcam');if(!e)return;if(!KC.on)return;if(!P.dead||over){KC.on=0;e.style.display='none';document.body.classList.remove('kc-on');return}
  const rs=$('#kc-rs');if(rs)rs.textContent=KC.info&&KC.info.live?'Killcam · respawn in '+Math.max(0,P.rt).toFixed(1)+'s':'Respawn in '+Math.max(0,P.rt).toFixed(1)+'s';
  const k=KC.b,hp=e.querySelector('.kc-hp i');if(hp&&k)hp.style.width=Math.max(0,Math.min(100,k.hp+(k.sh||0)))+'%';
- if(KC.t>1&&(key.KeyF||key.Space)&&P.rt>.15&&mode!='Survival')P.rt=.1}
+ if(KC.t>1&&(key.KeyF||key.Space||key[bindOf('use')])&&P.rt>.15&&mode!='Survival')P.rt=.1}
 
 /* ===================== notes.js ===================== */
 /* ---------- match notifications, redesigned. msg() (objective and match messages) and popup() (unlocks, streaks earned, level ups) now show as compact stacked toasts that sit BELOW the match bar
@@ -837,39 +837,76 @@ function skFlakDeploy(){SK.flakT=50;const pts=[];for(let i=0;i<3;i++){const a=i*
    else{u.head.rotation.y+=Math.sin(o.scan*.7)*dt*.9;u.pit.userData.tp=-.25-Math.sin(o.scan*.9)*.15}}})}
  msg('Flak Guns deployed',2);beep(320,.1,'square',.05)}
 
-/* ---------- Kill Confirmed (offline team mode) ----------
+/* ---------- Kill Confirmed (team mode: solo vs bots AND private matches with friends) ----------
    Every fighter that goes down leaves a floating dog tag. Tags of the other side are YELLOW from your point of view: pick one up and your team banks the kill.
    Tags of your own side are RED: pick one up and you deny the other team that point. Tags fade away if nobody takes them. First team to KC_WIN confirms wins.
-   Points feed your killstreak count and XP: killing 50 (the normal kill), confirming 100, a teammate confirming your kill 25, denying 25 (plus a Retrieved medal for your own tag). */
-const KC_WIN=100,KC_LIFE=16;let kc={A:0,B:0},kcTags=[],kcSt={conf:0,deny:0};
-const kcMat=c=>new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:1});
-function kcReset(){for(const g of kcTags)S.remove(g.m);kcTags=[];kc={A:0,B:0};kcSt={conf:0,deny:0}}
-function kcMake(red){const col=red?0xff2a2a:0xffd21a,g=new THREE.Group(),dk=red?0x8a1010:0xb08a00,
- plate=new THREE.Mesh(new THREE.BoxGeometry(.2,.3,.025),new THREE.MeshBasicMaterial({color:col})),inner=new THREE.Mesh(new THREE.BoxGeometry(.15,.24,.03),new THREE.MeshBasicMaterial({color:dk})),
- ring=new THREE.Mesh(new THREE.TorusGeometry(.04,.01,6,12),new THREE.MeshBasicMaterial({color:0xdddddd})),halo=new THREE.Mesh(sg,kcMat(col)),beam=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,3.2,8),kcMat(col)),pad=new THREE.Mesh(new THREE.CylinderGeometry(.55,.55,.03,24),kcMat(col));
- const tag=new THREE.Group();ring.position.y=.19;tag.add(plate,inner,ring);for(let i=0;i<3;i++){const l=new THREE.Mesh(new THREE.BoxGeometry(.1,.012,.034),new THREE.MeshBasicMaterial({color:col}));l.position.y=.05-i*.05;tag.add(l)}
- halo.scale.setScalar(.34);halo.material.opacity=.22;beam.position.y=1.6;beam.material.opacity=.22;pad.material.opacity=.3;pad.position.y=.03;
- tag.position.y=1.0;g.add(tag,halo,beam,pad);g.userData={tag,halo,beam,pad,col};return g}
-function kcDrop(victim,killer){if(mode!='Kill Confirmed'||over||!victim)return;const vp=victim===P?{x:P.x,z:P.z}:victim,vt=tmOf(victim),red=vt==pTeam(),m=kcMake(red);
- const tg={m,x:vp.x,z:vp.z,vt,red,victim,killer:killer||null,t:KC_LIFE,age:0};m.position.set(tg.x,0,tg.z);m.scale.setScalar(.01);S.add(m);kcTags.push(tg);burst(V(tg.x,1,tg.z),8,red?0xff5a4a:0xffe060,3,.5,.08);
- if(kcTags.length>30){const o=kcTags.shift();S.remove(o.m)}}
+   Points feed your killstreak count and XP: killing 50 (the normal kill), confirming 100, a teammate confirming your kill 25, denying 25 (plus a Retrieved medal for your own tag).
+   Networking: the HOST owns the tags and the score. Every death the host sees (its own bots, its own death, and the 'dead' message of a guest) drops a tag and is announced with 'kd'.
+   The host decides who picks a tag up (it knows every player's position) and announces it with 'kg'; each client then plays the effect and pays out its own rewards. Guests never create tags. */
+const KC_WIN=100,KC_LIFE=16;let kc={A:0,B:0},kcTags=[],kcFly=[],kcSt={conf:0,deny:0},kcSeq=0,kcSeen={},kcA=null;
+const kcMe=()=>netOn?myId:'me',kcNid=e=>e===P?kcMe():e?(e.net?e.id:'b'+e.i):'',kcByNid=id=>id==kcMe()?P:(id?bots.find(b=>(b.net?b.id:'b'+b.i)==id):null)||null;
+/* shared assets, built once: beveled dog tag plates, chain beads, glow and beam textures */
+function kcAssets(){if(kcA)return kcA;
+ const rr=(w,h,r)=>{const s=new THREE.Shape();s.moveTo(-w/2+r,-h/2);s.lineTo(w/2-r,-h/2);s.quadraticCurveTo(w/2,-h/2,w/2,-h/2+r);s.lineTo(w/2,h/2-r);s.quadraticCurveTo(w/2,h/2,w/2-r,h/2);s.lineTo(-w/2+r,h/2);s.quadraticCurveTo(-w/2,h/2,-w/2,h/2-r);s.lineTo(-w/2,-h/2+r);s.quadraticCurveTo(-w/2,-h/2,-w/2+r,-h/2);return s};
+ const sh=rr(.2,.31,.055),hole=new THREE.Path();hole.absarc(0,.118,.0175,0,Math.PI*2,true);sh.holes.push(hole);
+ const plate=new THREE.ExtrudeGeometry(sh,{depth:.01,bevelEnabled:true,bevelThickness:.006,bevelSize:.006,bevelSegments:3,curveSegments:8});plate.translate(0,0,-.005);
+ const stamp=new THREE.ExtrudeGeometry(rr(.15,.19,.028),{depth:.003,bevelEnabled:true,bevelThickness:.0016,bevelSize:.0016,bevelSegments:1,curveSegments:5});stamp.translate(0,-.032,.011);
+ const cv=(w,h,fn)=>{const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);return t};
+ const glow=cv(64,64,(g,w,h)=>{const r=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.25,'rgba(255,255,255,.55)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,w,h)});
+ const grad=cv(4,128,(g,w,h)=>{const l=g.createLinearGradient(0,h,0,0);l.addColorStop(0,'#fff');l.addColorStop(.35,'#777');l.addColorStop(1,'#000');g.fillStyle=l;g.fillRect(0,0,w,h)});
+ const std=(c,m,r,e)=>new THREE.MeshStandardMaterial({color:c,metalness:m,roughness:r,emissive:e||0,emissiveIntensity:.9}),mk=(col,dk,em)=>({plate:std(col,.92,.26,em),stamp:std(dk,.85,.38,0),bead:std(0xcfd3d8,1,.22,0)});
+ return kcA={plate,stamp,glow,grad,mat:{y:mk(0xffd21a,0xb08a00,0x4a3600),r:mk(0xff3b30,0x8a1010,0x4a0808)},bead:new THREE.SphereGeometry(.0085,8,6),
+  line:new THREE.BoxGeometry(.088,.008,.005),beam:new THREE.CylinderGeometry(.1,.1,4.2,18,1,true),ring:new THREE.RingGeometry(.46,.52,48),disc:new THREE.CircleGeometry(.5,32)}}
+function kcMake(red){const A=kcAssets(),mt=A.mat[red?'r':'y'],col=red?0xff3b30:0xffc61a,g=new THREE.Group(),tag=new THREE.Group();
+ const mkTag=(dx,dz,rz)=>{const t=new THREE.Group(),p=new THREE.Mesh(A.plate,mt.plate),s=new THREE.Mesh(A.stamp,mt.stamp);p.castShadow=true;t.add(p,s);for(let i=0;i<3;i++){const l=new THREE.Mesh(A.line,mt.plate);l.position.set(0,.02-i*.035,.0145);t.add(l)}t.position.set(dx,0,dz);t.rotation.z=rz;return t};
+ tag.add(mkTag(-.02,-.012,.1),mkTag(.045,.016,-.07));const chain=new THREE.Group();for(let i=0;i<9;i++){const a=i/8*Math.PI,b=new THREE.Mesh(A.bead,mt.bead);b.position.set(Math.cos(a)*.085,.17+Math.sin(a)*.1,0);chain.add(b)}tag.add(chain);
+ const add=(m,o)=>{const x=m.clone();x.transparent=true;x.depthWrite=false;x.blending=THREE.AdditiveBlending;x.opacity=o;return x};
+ const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:A.glow,color:col,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:.9})),
+  beam=new THREE.Mesh(A.beam,new THREE.MeshBasicMaterial({map:A.grad,color:col,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,opacity:.5,fog:false})),
+  r1=new THREE.Mesh(A.ring,new THREE.MeshBasicMaterial({color:col,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:.7,side:THREE.DoubleSide})),r2=new THREE.Mesh(A.ring,r1.material.clone()),
+  pad=new THREE.Mesh(A.disc,new THREE.MeshBasicMaterial({color:col,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:.28,side:THREE.DoubleSide}));
+ for(const m of[r1,r2,pad]){m.rotation.x=-Math.PI/2;m.position.y=.04;m.scale.setScalar(1.25)}pad.scale.setScalar(1.15);beam.position.y=2.1;halo.scale.setScalar(1.15);
+ g.add(tag,halo,beam,r1,r2,pad);g.userData={tag,halo,beam,r1,r2,pad,col};return g}
+function kcFree(g){g.traverse(o=>{if(o.isSprite||o.material&&o.material.transparent){try{o.material.dispose()}catch(e){}}})}
+function kcReset(){for(const g of kcTags){S.remove(g.m);kcFree(g.m)}for(const g of kcFly){S.remove(g.m);kcFree(g.m)}kcTags=[];kcFly=[];kc={A:0,B:0};kcSt={conf:0,deny:0};kcSeen={};kcSeq=0}
+/* create the visual + record for one tag (host, solo, and guests when told by the host) */
+function kcAdd(o){const red=o.vt==pTeam(),m=kcMake(red),tg={m,id:o.id,x:o.x,z:o.z,vt:o.vt,red,kid:o.kid||'',vid:o.vid||'',t:o.life==null?KC_LIFE:o.life,age:0};
+ m.position.set(tg.x,0,tg.z);m.scale.setScalar(.01);S.add(m);kcTags.push(tg);burst(V(tg.x,1,tg.z),10,red?0xff5a4a:0xffe060,3.4,.55,.08);burst(V(tg.x,.2,tg.z),6,0xffffff,2,.35,.05);
+ if(kcTags.length>30){const q=kcTags.shift();S.remove(q.m);kcFree(q.m)}return tg}
+function kcDrop(victim,killer){if(mode!='Kill Confirmed'||over||!victim)return;if(netOn&&!isHost)return;const vid=kcNid(victim);if(kcSeen[vid]!=null&&t0-kcSeen[vid]<.6)return;kcSeen[vid]=t0;
+ const vp=victim===P?{x:P.x,z:P.z}:victim,o={id:++kcSeq,x:vp.x,z:vp.z,vt:tmOf(victim),kid:kcNid(killer),vid,life:KC_LIFE};kcAdd(o);
+ if(netOn&&isHost)netSend({t:'kd',i:o.id,x:+o.x.toFixed(2),z:+o.z.toFixed(2),vt:o.vt,k:o.kid,v:o.vid,l:o.life})}
+/* host: a guest told everybody it died, so its tag drops where its body is */
+function kcNetDeath(d){if(mode!='Kill Confirmed'||over||!isHost||!netOn)return;const v=bots.find(b=>b.net&&!b.hb&&b.id==d.v);if(!v)return;kcDrop(v,d.by?kcByNid(d.by):null)}
+/* guest: host announcements */
+function kcNetRecv(d){if(isHost||mode!='Kill Confirmed'||!run)return;
+ if(d.t=='kd')kcAdd({id:d.i,x:d.x,z:d.z,vt:d.vt,kid:d.k,vid:d.v,life:d.l});
+ else if(d.t=='kg'){if(d.s)kc=d.s;const tg=kcTags.find(g=>g.id==d.i);if(!tg)return;kcTags.splice(kcTags.indexOf(tg),1);kcResolve(tg,kcByNid(d.w),d.wt,d.w)}}
 function kcGive(pts,ksAdd,title,sub){if(typeof giveXP=='function')giveXP(pts);if(ksAdd)ks+=ksAdd;popup(title,sub)}
-function kcCollect(tg,who){const wt=who===P?pTeam():who.team,i=kcTags.indexOf(tg);if(i<0)return;kcTags.splice(i,1);tg.got={who,t:0};kcFly.push(tg);
- if(wt!=tg.vt){/* confirm */kc[wt]++;const mine=wt==pTeam();if(who===P){kcSt.conf++;kcGive(100,1,'KILL CONFIRMED','+100');beep(880,.08,'triangle',.08);setTimeout(()=>beep(1320,.12,'triangle',.07),80)}
-   else{if(mine){feed(`${who.nm} confirmed a kill`);if(tg.killer===P){kcGive(25,0,'TEAMMATE CONFIRMED','+25')}}else feed(`${tn(wt)} confirmed a kill`)}}
- else{/* deny */if(who===P){kcSt.deny++;if(tg.victim===P)kcGive(25,0,'RETRIEVED','+25');else kcGive(25,0,'KILL DENIED','+25');beep(520,.08,'sawtooth',.06);setTimeout(()=>beep(300,.14,'sawtooth',.06),80)}else if(wt==pTeam())feed(`${who.nm} denied a kill`);else feed(`${tn(wt)} denied a kill`)}}
-let kcFly=[];
+/* every client plays the pickup: the collector gets rewards, everybody else gets a feed line */
+function kcResolve(tg,who,wt,wid){tg.got={who,t:0};kcFly.push(tg);const confirm=wt!=tg.vt,mine=wt==pTeam(),me=who===P||wid==kcMe(),nm=who&&who!==P?(who.nm||'Someone'):'Someone';
+ if(confirm){if(me){kcSt.conf++;kcGive(100,1,'KILL CONFIRMED','+100');beep(880,.08,'triangle',.08);setTimeout(()=>beep(1320,.12,'triangle',.07),80)}
+  else if(mine){feed(`${nm} confirmed a kill`);if(tg.kid&&tg.kid==kcMe())kcGive(25,0,'TEAMMATE CONFIRMED','+25')}else feed(`${tn(wt)} confirmed a kill`)}
+ else{if(me){kcSt.deny++;if(tg.vid==kcMe())kcGive(25,0,'RETRIEVED','+25');else kcGive(25,0,'KILL DENIED','+25');beep(520,.08,'sawtooth',.06);setTimeout(()=>beep(300,.14,'sawtooth',.06),80)}
+  else if(mine)feed(`${nm} denied a kill`);else feed(`${tn(wt)} denied a kill`)}}
+/* host / solo: somebody walked over a tag */
+function kcCollect(tg,who){const i=kcTags.indexOf(tg);if(i<0)return;kcTags.splice(i,1);const wt=who===P?pTeam():who.team,wid=kcNid(who);if(wt!=tg.vt)kc[wt]++;
+ if(netOn&&isHost)netSend({t:'kg',i:tg.id,w:wid,wt,s:kc});kcResolve(tg,who,wt,wid)}
 function kcGoal(b){if(!kcTags.length)return null;let best=null,bd=38;for(const g of kcTags){const d=Math.hypot(g.x-b.x,g.z-b.z);if(d<bd){bd=d;best=g}}return best?[best.x,best.z]:null}
-function kcTick(dt){if(kcTags.length||kcFly.length){
-  for(let i=kcTags.length-1;i>=0;i--){const g=kcTags[i],u=g.m.userData;g.age+=dt;g.t-=dt;
-   const pop=Math.min(1,g.age/.35),sc=pop<1?(1+2.2*Math.pow(pop-1,3)+1.2*Math.pow(pop-1,2))*pop:1,fade=g.t<4?(Math.floor(g.t*7)%2?.25:1):1,end=g.t<.5?g.t/.5:1;
-   g.m.scale.setScalar(Math.max(.01,sc*end));u.tag.rotation.y+=dt*3.2;u.tag.position.y=1.0+Math.sin(g.age*3.3)*.1;u.tag.rotation.z=Math.sin(g.age*2.1)*.12;
-   u.halo.scale.setScalar(.34+Math.sin(g.age*6)*.05);u.halo.material.opacity=.22*fade;u.beam.material.opacity=.2*fade;u.beam.scale.x=u.beam.scale.z=1+Math.sin(g.age*5)*.25;u.pad.material.opacity=.3*fade;u.pad.scale.setScalar(1+((g.age*1.4)%1)*.3);
-   if(g.t<=0){burst(V(g.x,1,g.z),6,u.col,2,.4,.06);S.remove(g.m);kcTags.splice(i,1);continue}
-   if(!P.dead&&Math.hypot(P.x-g.x,P.z-g.z)<1.7&&Math.abs(P.y||0)<2.5){kcCollect(g,P);continue}
-   for(const b of bots){if(!b.al||b.out)continue;if(Math.hypot(b.x-g.x,b.z-g.z)<1.4){kcCollect(g,b);break}}}
-  for(let i=kcFly.length-1;i>=0;i--){const g=kcFly[i];g.got.t+=dt;const k=Math.min(1,g.got.t/.28),w=g.got.who,wx=w===P?P.x:w.x,wz=w===P?P.z:w.z;g.m.position.set(g.x+(wx-g.x)*k,k*1.4,g.z+(wz-g.z)*k);g.m.scale.setScalar(Math.max(.01,1-k*.8));g.m.userData.tag.rotation.y+=dt*18;
-   if(k>=1){burst(V(g.m.position.x,1.2,g.m.position.z),12,g.m.userData.col,5,.5,.09);S.remove(g.m);kcFly.splice(i,1)}}}}
+function kcTick(dt){if(!kcTags.length&&!kcFly.length)return;const auth=!netOn||isHost;
+ for(let i=kcTags.length-1;i>=0;i--){const g=kcTags[i],u=g.m.userData;g.age+=dt;g.t-=dt;
+  const pop=Math.min(1,g.age/.4),sc=pop<1?(1+2.4*Math.pow(pop-1,3)+1.4*Math.pow(pop-1,2))*pop:1,low=g.t<4,blink=low?(Math.floor(g.t*7)%2?.3:1):1,end=g.t<.5?Math.max(0,g.t/.5):1,pulse=.5+.5*Math.sin(g.age*5);
+  g.m.scale.setScalar(Math.max(.01,sc*end));u.tag.rotation.y+=dt*(2.6+(low?2:0));u.tag.position.y=1.05+Math.sin(g.age*3.1)*.09+(1-pop)*.5;u.tag.rotation.z=Math.sin(g.age*2)*.1;u.tag.rotation.x=Math.sin(g.age*1.6)*.07;
+  u.halo.position.y=u.tag.position.y+.04;u.halo.scale.setScalar(1.05+pulse*.35);u.halo.material.opacity=(.55+pulse*.35)*blink;u.beam.material.opacity=(.38+pulse*.14)*blink;u.beam.scale.x=u.beam.scale.z=1+Math.sin(g.age*4)*.18;
+  const p1=(g.age*.9)%1,p2=(g.age*.9+.5)%1;u.r1.scale.setScalar(.6+p1*1.3);u.r1.material.opacity=(1-p1)*.7*blink;u.r2.scale.setScalar(.6+p2*1.3);u.r2.material.opacity=(1-p2)*.7*blink;u.pad.material.opacity=(.16+pulse*.1)*blink;
+  if(g.age<.45&&!g.sp){g.sp=1}
+  if(g.t<=0){burst(V(g.x,1,g.z),6,u.col,2,.4,.06);S.remove(g.m);kcFree(g.m);kcTags.splice(i,1);continue}
+  if(!auth)continue;
+  if(!P.dead&&!(g.age<1.5&&g.vid==kcMe())&&Math.hypot(P.x-g.x,P.z-g.z)<1.7&&Math.abs(P.y||0)<2.5){kcCollect(g,P);continue}
+  for(const b of bots){if(!b.al||b.out||b.hb)continue;if(g.age<1.5&&kcNid(b)==g.vid)continue;const R=b.net?2:1.4;if(Math.hypot(b.x-g.x,b.z-g.z)<R&&Math.abs(b.y||0)<2.5){kcCollect(g,b);break}}}
+ for(let i=kcFly.length-1;i>=0;i--){const g=kcFly[i],u=g.m.userData;g.got.t+=dt;const k=Math.min(1,g.got.t/.32),e=k*k*(3-2*k),w=g.got.who,wx=w?(w===P?P.x:w.x):g.x,wz=w?(w===P?P.z:w.z):g.z;
+  g.m.position.set(g.x+(wx-g.x)*e,e*1.5,g.z+(wz-g.z)*e);g.m.scale.setScalar(Math.max(.01,1-e*.85));u.tag.rotation.y+=dt*20;u.halo.scale.setScalar(1.4+k*1.6);u.halo.material.opacity=.9*(1-k*.6);u.beam.material.opacity*=.8;u.r1.material.opacity*=.8;u.r2.material.opacity*=.8;u.pad.material.opacity*=.8;
+  if(k>=1){burst(V(g.m.position.x,1.2,g.m.position.z),16,u.col,5.5,.55,.09);burst(V(g.m.position.x,1.2,g.m.position.z),6,0xffffff,4,.3,.05);S.remove(g.m);kcFree(g.m);kcFly.splice(i,1)}}}
 /* a tag drops wherever a fighter goes down */
 {const _an=announce;announce=function(t,by){const r=_an.apply(this,arguments);try{kcDrop(t,by)}catch(e){}return r}}
 {const _sd=startDeath;startDeath=function(){try{if(mode=='Kill Confirmed'&&!over)kcDrop(P,lastBot||null)}catch(e){}return _sd.apply(this,arguments)}}
