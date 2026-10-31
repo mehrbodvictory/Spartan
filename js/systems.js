@@ -91,7 +91,7 @@ function grab(p){const t=p.t;p.on=0;p.m.visible=false;p.rt=t=='RL'||t=='SN'?45:2
  if(t=='OS')giveOS();else if(t=='HP')P.hp=Math.min(P.mhp,P.hp+30);else if(t=='AM'){for(const w of wp)if(!w.pw){w.mag=w.m;w.res=w.m*(w.rs==null?4:w.rs)}}
  else{let i=wp.findIndex(w=>w.k==t);if(i<0){wp.push({k:t,...eff(t,[]),pw:1,mag:0,res:0});i=wp.length-1}const w=wp[i];w.mag=w.m;w.res=w.m*2;cur=i;rel=0;setGun()}}
 function feed(t){const e=document.createElement('div');e.textContent=t;$('#kf').prepend(e);while($('#kf').children.length>4)$('#kf').lastChild.remove();setTimeout(()=>e.remove(),4500)}
-function featKill(b,head){ks++;if(L.pk.includes('Quick Fix')&&run&&!P.dead){const heal=P.hp<P.mhp||P.sh<P.msh;P.hp=P.mhp;P.sh=P.msh;if(heal){beep(740,.07,'sine',.07);beep(1100,.1,'sine',.06);const f=$('#flash');if(f){f.style.transition='none';f.style.background='rgba(70,255,140,.35)';f.style.opacity=1;requestAnimationFrame(()=>{f.style.transition='opacity .5s';f.style.opacity=0})}msg('QUICK FIX',1)}}wkill(srcK);const x=killXP(head);feed(`You ▸ ${b.hb?b.nm:b.net?names[b.id]:b.nm||'Grunt'}  [${src}]${head?' ★':''}  +${x}`);
+function featKill(b,head){ks++;if(PK('Quick Fix')&&run&&!P.dead){const heal=P.hp<P.mhp||P.sh<P.msh;P.hp=P.mhp;P.sh=P.msh;if(heal){beep(740,.07,'sine',.07);beep(1100,.1,'sine',.06);const f=$('#flash');if(f){f.style.transition='none';f.style.background='rgba(70,255,140,.35)';f.style.opacity=1;requestAnimationFrame(()=>{f.style.transition='opacity .5s';f.style.opacity=0})}msg('QUICK FIX',1)}}wkill(srcK);const x=killXP(head);feed(`You ▸ ${b.hb?b.nm:b.net?names[b.id]:b.nm||'Grunt'}  [${src}]${head?' ★':''}  +${x}`);
  if(typeof skAward=='function')skAward()}
 function useStreak(i){i=i||0;if(mode=='Zombies')return zUse();if(q.length<=i||P.dead)return;const s=q.splice(i,1)[0];beep(500,.2,'sine',.1);
  if(s=='UAV'){uav=20;msg('UAV online',1.5)}else if(s=='Shield Boost'){giveOS();msg('Shield Boost!',1.5)}
@@ -388,9 +388,10 @@ function animBot(b,dt){const r=b.rig,g=b.hg;if(!r)return;const mdx=b.x-(b.px==nu
  const sp=Math.min(9,Math.hypot(b.x-(b.px==null?b.x:b.px),b.z-(b.pz==null?b.z:b.pz))/Math.max(dt,.001)),mvf=Math.min(1,sp/3);b.px=b.x;b.pz=b.z;
  const tgt=b.tyaw!=null?b.tyaw:b.m.rotation.y;if(b.ry==null)b.ry=tgt;b.ry+=angD(tgt,b.ry)*Math.min(1,dt*(b.zom?7:11));b.m.rotation.y=b.ry;
  b.ph=(b.ph||0)+sp*dt*(b.zom?1.05:1.3)*(back?-1:1);const ph=b.ph,s=Math.sin(ph),c=Math.cos(ph),sh=r.sh,id=b.i*1.7,run=sp>3.2,zb=!!b.zom;
- const lean=(zb?(run?.5:.3):.04+.12*mvf)-(b.fl>0?b.fl*1.2:0),twS=-s*(zb?.22:.16)*mvf,bob=Math.abs(c)*.025*mvf;
+ const za=zb&&typeof zAtkPose=='function'?zAtkPose(b,dt):null,lean=(zb?(run?.5:.3):.04+.12*mvf)-(b.fl>0?b.fl*1.2:0)+(za?za.lean:0),twS=-s*(zb?.22:.16)*mvf+(za?za.tw:0),bob=Math.abs(c)*.025*mvf+(za?za.bob:0);
  sh.rotation.set(lean+(zb?Math.sin(t0*1.6+id)*.05:Math.sin(t0*1.7+id)*.008),twS,zb?s*.12*mvf+Math.sin(t0*.9+id)*.03:Math.sin(t0*1.3+id)*.01);sh.position.y=1+bob;sh.scale.y=1+.006*Math.sin(t0*2+id);r.lean=lean;r.tw=twS;r.bob=bob;
  if(r.head)r.head.rotation.set(zb?.25+Math.sin(t0*2.1+id)*.08:-lean*.6,zb?Math.sin(t0*1.3+id)*.25:0,zb?.2+Math.sin(t0*.8+id)*.1:0);
+ if(za&&r.head){r.head.rotation.x+=za.hx;r.head.rotation.y+=za.hy}
  const amp=zb?(run?.95:.6):.8;r.legL.rotation.x=s*amp*mvf;r.legR.rotation.x=-s*amp*mvf*(zb?.75:1)-(zb?.1*mvf:0);r.shinL.rotation.x=Math.max(0,c)*(zb?.6:1)*mvf;r.shinR.rotation.x=Math.max(0,-c)*(zb?.4:1)*mvf;r.legL.position.y=r.legR.position.y=.98+Math.abs(c)*.01*mvf;
  /* stance and air poses for other players: crouch, slide, jump (legs tucked), prone / dive (whole body tilts, see netTick), looking up and down */
  r.dr=0;if(!zb&&b.net){const T=b.st||0,tk=Math.min(1,dt*11),up=(k,v)=>{b[k]=(b[k]||0)+(v-(b[k]||0))*tk};up('pc',T==1?1:0);up('psl',T==3?1:0);up('pj',b.aj&&T!=2&&T!=4?1:0);up('pp',T==2||T==4?1:0);up('pis',cl(b.pi||0,-1.2,1.2));
@@ -399,8 +400,8 @@ function animBot(b,dt){const r=b.rig,g=b.hg;if(!r)return;const mdx=b.x-(b.px==nu
   r.dr=dr;if(dr>0||r.hipD){for(const h of r.hip||[]){if(h.userData.y0==null)h.userData.y0=h.position.y;h.position.y=h.userData.y0-dr}r.hipD=dr>.001}
   r.legL.position.y-=dr;r.legR.position.y-=dr;sh.position.y-=dr;r.bob-=dr;sh.rotation.x+=.14*pc-.5*psl+.07*pj-b.pis*.22;if(r.head)r.head.rotation.x+=-b.pis*.55;g&&(g.userData.pis=b.pis)}
  const sL=shPos(r,-1),sR=shPos(r,1);
- if(zb){const sw=Math.sin(t0*3+id)*.07,lg=b.lunge>0?.22:0;if(lg)b.lunge-=dt;const ay=run?s*.3:sw;
-  ik(sR,V(sR.x+.02,sR.y-.12+ay,sR.z+.58+lg+(run?.1:0)),V(.6,-1,-.3),r.armR);ik(sL,V(sL.x-.02,sL.y-.12-ay,sL.z+.58+lg),V(-.6,-1,-.3),r.armL);if(r.jaw)r.jaw.rotation.x=.2+.18*Math.sin(t0*5+id)+(lg?.3:0);return}
+ if(zb){const sw=Math.sin(t0*3+id)*.07,lg=b.lunge>0?.22:0;if(lg)b.lunge-=dt;const ay=run?s*.3:sw;let aR=[.02,-.12+ay,.58+lg+(run?.1:0)],aL=[-.02,-.12-ay,.58+lg];if(za){aR=za.R;aL=za.L}
+  ik(sR,V(sR.x+aR[0],sR.y+aR[1],sR.z+aR[2]),za?V(za.hR[0],za.hR[1],za.hR[2]):V(.6,-1,-.3),r.armR);ik(sL,V(sL.x+aL[0],sL.y+aL[1],sL.z+aL[2]),za?V(za.hL[0],za.hL[1],za.hL[2]):V(-.6,-1,-.3),r.armL);if(r.jaw)r.jaw.rotation.x=za?za.jaw:.2+.18*Math.sin(t0*5+id)+(lg?.3:0);return}
  if(!g)return;
  const w=W[b.wk]||W.AR,A=g.userData.a||{r:[0,-.1,.1],l:[0,-.05,.5],m:[0,-.15,.3]};let rp=-1;
  if(b.net){if(b.rlOn){b.rlt=(b.rlt||0)+dt;rp=Math.min(1,b.rlt/Math.max(.4,w.rl))}else b.rlt=0}else if(b.rl>0)rp=1-b.rl/Math.max(.4,w.rl);
@@ -412,7 +413,7 @@ function phys(dt,f,s,spd){if(P.mt){P.mx=P.mz=0;mantleStep(dt);return}
  const spc=key.Space&&!ST.sj,jp=spc&&!P.jh;P.jh=!!spc;const n=Math.hypot(f,s)||1,cy=Math.cos(yaw),sy=Math.sin(yaw);const ac_=Math.min(1,dt*(P.on?((f||s)?12:16):5));P.mx=(P.mx||0)+((-sy*f+cy*s)/n*spd-(P.mx||0))*ac_;P.mz=(P.mz||0)+((-cy*f-sy*s)/n*spd-(P.mz||0))*ac_;let dx=P.mx*dt,dz=P.mz*dt;
  if(P.wvx||P.wvz){dx+=P.wvx*dt;dz+=P.wvz*dt;const k=Math.exp(-4.5*dt);P.wvx*=k;P.wvz*=k;if(Math.hypot(P.wvx,P.wvz)<.3)P.wvx=P.wvz=0}
  mv(P,dx,dz,.4);
- if(spc&&P.on){P.vy=L.pk.includes('Spring Legs')?9.4:7.6;P.on=0}else if(jp&&!P.on)tryWall();
+ if(spc&&P.on){P.vy=PK('Spring Legs')?9.4:7.6;P.on=0}else if(jp&&!P.on)tryWall();
  P.vy-=20*dt;P.y+=P.vy*dt;const g=gnd(P);if(P.y<=g){P.y=g;P.vy=0;P.on=1;P.wj=0}else P.on=0;
  if(!P.on&&key.KeyW&&P.vy<5&&t0>=(P.mcd||0))tryMantle()}
 function tryMantle(){const fx_=-Math.sin(yaw),fz_=-Math.cos(yaw),px=P.x+fx_*.65,pz=P.z+fz_*.65;
@@ -429,7 +430,7 @@ function tryWall(){if(mode=='Zombies'||(P.wj||0)>=3||t0<(P.wcd||0))return;
 /* ===================== pvp.js ===================== */
 /* ---------- simulated PvP (bots fight each other), Team Deathmatch, Capture the Flag, popups, killstreak panel; solo and private matches ---------- */
 let ts={},lastBot=null,ksC='',flags=[],cs={A:0,B:0},myTeam='A',mpTeams={},obText='',fcc=0,zones=[],ds={A:0,B:0},dtk=0,zcc=0;
-const teamMode=()=>mode=='Team Deathmatch'||mode=='Kill Confirmed'||mode=='Capture the Flag'||mode=='Domination'||mode=='Hardpoint',pTeam=()=>teamMode()?myTeam:'p',ally=b=>mode=='Zombies'?!b.zom:teamMode()&&b.team==pTeam(),hl=()=>L.pk.includes('Hardline')?1:0,tmOf=e=>e===P?pTeam():e.team,fl=t=>flags.find(f=>f.team==t),tn=t=>t=='A'?'Blue':'Red';
+const teamMode=()=>mode=='Team Deathmatch'||mode=='Kill Confirmed'||mode=='Capture the Flag'||mode=='Domination'||mode=='Hardpoint',pTeam=()=>teamMode()?myTeam:'p',ally=b=>mode=='Zombies'?!b.zom:teamMode()&&b.team==pTeam(),hl=()=>PK('Hardline')?1:0,tmOf=e=>e===P?pTeam():e.team,fl=t=>flags.find(f=>f.team==t),tn=t=>t=='A'?'Blue':'Red';
 const hname=()=>netOn?myName:'You',feedAll=t=>{feed(t);if(netOn&&isHost)netSend({t:'feed',s:t})},popAll=(a,b)=>{popup(a,b);if(netOn&&isHost)netSend({t:'pop',a,b})};
 function leader(){const c=[{nm:hname(),k:kills,me:1},...bots.map(b=>({nm:b.nm,k:b.k||0}))];return c.reduce((a,b)=>b.k>a.k?b:a)}
 function clearFlags(){for(const f of flags){S.remove(f.m);S.remove(f.ring)}flags=[];clearZones()}

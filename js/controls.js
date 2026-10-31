@@ -31,7 +31,7 @@ const sprinting=()=>(P.spr||0)>.55;
 function actCrouch(){if(P.dead)return;if(sprinting()&&ST.slide<=0){ST.slide=.85;ST.crouch=0;ST.prone=0;return}ST.prone=0;ST.crouch=ST.crouch?0:1}
 function actProne(){if(P.dead)return;if(sprinting()&&ST.dive<=0){ST.dive=.5;ST.crouch=0;ST.prone=0;P.vy=3.5;P.on=0}else{ST.crouch=0;ST.prone=ST.prone?0:1}}
 function actJumpPress(){if(ST.crouch||ST.prone){ST.crouch=ST.prone=0;ST.sj=1}}
-function actAds(on){ST.adsIn=on?1:0}
+function actAds(on){ST.adsIn=on?1:0;if(typeof zDashIn=='function')zDashIn(on)}
 function actTactical(){if(P.dead||ST.tN<=0)return;ST.tN--;const d=aimDir(),m=new THREE.Mesh(sg,new THREE.MeshLambertMaterial({color:0xeeeeee,emissive:0x555555}));m.scale.setScalar(.1);S.add(m);grs.push({m,p:C.position.clone(),v:d.multiplyScalar(14).add(V(0,3,0)),t:1.3,g:{fuse:1.3,R:0,d:0,imp:0,tac:1}});msg('Flashbang · '+ST.tN+' left',1)}
 function flashBoom(p){burst(p,40,0xffffff,9,.5,.25);beep(2400,.5,'sine',.08);for(const b of bots){if(!b.al||(typeof ally=='function'&&ally(b)&&b.team!='z')||b.net)continue;const d=Math.hypot(b.x-p.x,b.z-p.z);if(d<18&&navLos(p.x,p.z,b.x,b.z))b.stun=Math.max(b.stun||0,3.5*(1-d/26))}
  const d=Math.hypot(P.x-p.x,P.z-p.z);if(d<22&&!P.dead){const v=V(p.x-C.position.x,p.y-C.position.y,p.z-C.position.z).normalize(),dot=aimDir().dot(v);ST.flash=Math.max(ST.flash,2.4*(1-d/22)*(dot>0?1:.35))}}
@@ -143,7 +143,7 @@ function bumpers(dt,lb,rb,tactical,lethal,field){const e1=gpEdgeOf('bl',lb),e2=g
 /* ---------- controller in a match ---------- */
 function padPlay(g,dt){const lx=gpDz(g.axes[0],.2),ly=gpDz(g.axes[1],.2),rx=gpDz(g.axes[2],.14),ry=gpDz(g.axes[3],.14);
  key.KeyA=lx<-.2;key.KeyD=lx>.2;key.KeyW=ly<-.2;key.KeyS=ly>.2;if(key.KeyS)ST.auto=0;
- if(gpEdgeOf('l3',gpBtn(g,10))){if(ST.ads>.4)actSteady();else{if(t0-ST.lastShift<.32&&ST.tacCd<=0)ST.tac=4;ST.lastShift=t0;gpSprint=!gpSprint}}if(!(ly<-.2))gpSprint=0;key.ShiftLeft=!!gpSprint;
+ {const l3=gpBtn(g,10);if(gpEdgeOf('l3',l3)){if(ST.ads>.4)actSteady();else{if(t0-ST.lastShift<.32&&ST.tacCd<=0)ST.tac=4;ST.lastShift=t0}}gpSprint=(l3&&ST.ads<=.4)?1:0}key.ShiftLeft=!!gpSprint;
  const cv=v=>Math.sign(v)*Math.pow(Math.abs(v),1.7);yaw-=cv(rx)*dt*3.4*sens*fr;pitch=cl(pitch-cv(ry)*dt*2.5*sens*fr,-1.45,1.45);
  const lt=gpVal(g,6)>.4;actAds(lt);const rt=gpVal(g,7)>.35;if(rt&&!gpTrig){gpTrig=1;trig=1;fresh=1}else if(!rt&&gpTrig){gpTrig=0;trig=0}
  key.Space=gpBtn(g,0);if(gpEdgeOf('a',key.Space))actJumpPress();
@@ -232,7 +232,7 @@ function vrPre(dt){const rh=vrHand('right'),lh=vrHand('left'),gr=rh&&rh.userData
  xrRig.position.set(P.x,P.y||0,P.z);xrRig.rotation.y=rigYaw;xrRig.updateMatrixWorld(true);
  if(rh){const m=new THREE.Matrix4().multiplyMatrices(xrRig.matrixWorld,rh.matrix),d=new THREE.Vector3(0,0,-1).transformDirection(m);yaw=Math.atan2(-d.x,-d.z);pitch=cl(Math.asin(Math.max(-1,Math.min(1,d.y))),-1.45,1.45)}
  const lx=gl?gpDz(gl.axes[2]||0,.25):0,ly=gl?gpDz(gl.axes[3]||0,.25):0;key.KeyA=lx<-.2;key.KeyD=lx>.2;key.KeyW=ly<-.2;key.KeyS=ly>.2;if(key.KeyS)ST.auto=0;
- if(gl&&gpEdgeOf('lsc',b4(gl,3))){if(t0-ST.lastShift<.32&&ST.tacCd<=0)ST.tac=4;ST.lastShift=t0;gpSprint=!gpSprint}if(!(ly<-.2))gpSprint=0;key.ShiftLeft=!!gpSprint;
+ {const lsc=!!gl&&!!b4(gl,3);if(gpEdgeOf('lsc',lsc)){if(t0-ST.lastShift<.32&&ST.tacCd<=0)ST.tac=4;ST.lastShift=t0}gpSprint=lsc?1:0}key.ShiftLeft=!!gpSprint;
  const tx=gr?gr.axes[2]||0:0,ty=gr?gr.axes[3]||0:0;if(Math.abs(tx)>.7){if(!xrSnap){rigYaw-=Math.sign(tx)*Math.PI/6;xrSnap=1}}else xrSnap=0;
  if(gpEdgeOf('vru',ty<-.8))actPing();if(gpEdgeOf('vrd',ty>.8))actFireMode();
  const rt=gpVal(gr,0)>.4;if(rt&&!gpTrig){gpTrig=1;trig=1;fresh=1}else if(!rt&&gpTrig){gpTrig=0;trig=0}
@@ -270,20 +270,20 @@ const MEL={Katana:{n:'Katana',d:100,reach:3.1,cnt:3,cd:.55,zf:1,desc:'Two-handed
  Fists:{n:'Fists',d:72,reach:2.4,cnt:1,cd:.4,zf:.55,desc:'Fast alternating punches. Short reach, but the quickest melee.'},
  'Nitrogen Fists':{n:'Nitrogen Fists',d:96,reach:2.8,cnt:2,cd:.36,zf:.85,desc:'Rocket-assisted gauntlets. Every strike is a thruster-driven forward slash that hits two enemies and gets louder and faster the longer you keep swinging.'}};
 const MV={down:0,h:0,f:0,draw:0,hold:0,eq:0,flair:0},MB={t:0,d:.34},FI={t:0,side:0,d:.3};
-const melName=()=>MEL[L.me]?L.me:'Katana';
+const melName=()=>zomOn()?zMelKey():(MEL[L.me]?L.me:'Katana');
 function mvReset(){MV.down=MV.h=MV.f=MV.hold=MV.eq=MV.flair=0;MV.draw=0;MB.t=0;FI.t=0}
 /* V: tap = quick strike with the weapon in your hands (or put the melee weapon away if it is out), hold = whip the melee weapon out; it then stays in your hands like any weapon and the fire button swings it */
 function mvDown(){if(!run||paused||over||P.dead)return;MV.down=1;MV.h=0;MV.f=0}
-function mvUp(){if(MV.down&&!MV.f){if(MV.eq)MV.eq=0;else rifleBash()}MV.down=0}
+function mvUp(){if(MV.down&&!MV.f){if(MV.eq)MV.eq=0;else if(zomOn())zQuickMelee();else rifleBash()}MV.down=0}
 function meleeDraw(){MV.eq=1;MV.flair=.6;noise(.14,2600,.22);beep(1500,.06,'triangle',.05);if(typeof haptic=='function')haptic(.4,90,.5,'right')}
 /* damage a cone in front of the player. Returns true when something was hit */
 function meleeHit(dmg,reach,cnt,zf,cone){const f=V(-Math.sin(yaw),0,-Math.cos(yaw));let hit=0;
  const list=bots.filter(b=>b.al&&!ally(b)).map(b=>{const dx=b.x-P.x,dz=b.z-P.z,D=Math.hypot(dx,dz);return{b,D,dt:D>0?(dx*f.x+dz*f.z)/D:1}}).filter(o=>o.D<reach&&o.dt>cone&&Math.abs((o.b.y||0)-(P.y||0))<2.2).sort((a,b)=>a.D-b.D);
- for(const o of list){if(hit>=cnt)break;const b=o.b,wk=mode=='Zombies'?(zf<1?Math.max(1,Math.ceil(zMel(b)*zf)):zMel(b)):dmg;hitBot(b,wk,0);beep(1400,.06,'square',.05);if(typeof burst=='function')burst(V(b.x,1.2,b.z),8,0xaa2222,4,.4,.1);hit++}
+ for(const o of list){if(hit>=cnt)break;const b=o.b,wk=mode=='Zombies'?zMeleeDmg(b,zf):dmg;hitBot(b,wk,0);beep(1400,.06,'square',.05);if(typeof burst=='function')burst(V(b.x,1.2,b.z),8,0xaa2222,4,.4,.1);hit++}
  return hit}
 function meleeLunge(f,s){mv(P,f.x*s,f.z*s,.45)}
 /* hold V (and RS click / touch button / VR): the selected melee weapon, strong */
-melee=function(){if(t0<mn||P.dead)return;const m=MEL[melName()];mn=t0+m.cd;src='Melee';srcK='';noise(.12,2200,.25);const f=V(-Math.sin(yaw),0,-Math.cos(yaw));
+melee=function(){if(t0<mn||P.dead)return;const m=zomOn()?zMeleeStats(MEL[melName()]):MEL[melName()];mn=t0+m.cd;src='Melee';srcK='';noise(.12,2200,.25);const f=V(-Math.sin(yaw),0,-Math.cos(yaw));
  const nitro=melName()=='Nitrogen Fists';if(melName()=='Fists'||nitro){FI.d=nitro?.27:.3;FI.t=FI.d;FI.side^=1}else if(typeof katSwing=='function')katSwing();
  if(nitro)nfStrike();
  const n=meleeHit(m.d,m.reach,m.cnt,m.zf,.2);if(n)kick=Math.max(kick,nitro?.75:.5);meleeLunge(f,nitro?.6:.35);if(nitro&&n)nfImpact(f,n)};
@@ -330,7 +330,7 @@ fpUpdate=function(dt){if(!meleeOut()||!run||P.dead||over){_fpu(dt);return}
  if(melName()=='Fists'||melName()=='Nitrogen Fists'){const nitro=melName()=='Nitrogen Fists',sw=Math.sin(t0*1.8)*.012,pk=FI.t>0?Math.sin(Math.PI*cl(1-FI.t/FI.d,0,1)):0,pr_=FI.side?1:0;
   const R=V(.2,-.3+sw,-.5-(pr_?pk*.6:0)),Lh=V(-.2,-.3-sw,-.5-(pr_?0:pk*.6));if(pr_)R.add(V(-.1*pk,.12*pk,0));else Lh.add(V(.1*pk,.12*pk,0));
   if(nitro){/* a rocket-driven diagonal slash: starts low and wide, whips across and forward, hand rising through the strike */const u=FI.t>0?cl(1-FI.t/FI.d,0,1):0,e=1-Math.pow(1-u,2.6),sl=Math.sin(Math.PI*e);if(FI.t>0){const a=pr_?R:Lh,sd=pr_?1:-1;a.set(sd*(.42-.62*e),-.52+.46*e+sl*.06,-.42-.78*sl)}else{R.x+=Math.sin(t0*2.3)*.006;Lh.x-=Math.sin(t0*2.1)*.006}}
-  const dr=1-MV.draw;R.y-=dr*.4;Lh.y-=dr*.4;ik(SR,R,V(.5,-1,.3),fpArm.r);ik(SL,Lh,V(-.5,-1,.3),fpArm.l);return}
+  const dr=1-Math.max(MV.draw,FI.t>0?1:0);R.y-=dr*.4;Lh.y-=dr*.4;ik(SR,R,V(.5,-1,.3),fpArm.r);ik(SL,Lh,V(-.5,-1,.3),fpArm.l);return}
  /* katana: right hand at the pommel end of the grip, left hand just under the guard, both following the blade through every swing */
  katG.updateMatrix();const mt=katG.matrix,Rh=V(0,-.235,0).applyMatrix4(mt),Lh=V(0,-.12,0).applyMatrix4(mt);
  const ka=V(0,1,0).transformDirection(mt);gripArm(SR,Rh,V(.5,-1,.35),fpArm.r,ka,1);gripArm(SL,Lh,V(-.5,-1,.35),fpArm.l,ka,-1)};
@@ -382,7 +382,7 @@ function strikeReset(){for(const p of STR.planes)S.remove(p.m);for(const b of ST
    Quickdraw Grip (angled foregrip). They are added to whichever model is in use (first person, the loadout and customize previews, other players) and follow the weapon. ---------- */
 const ATT_MAT={};
 function attM(c,e){const k=c+(e?'e':'');return ATT_MAT[k]||(ATT_MAT[k]=e?new THREE.MeshBasicMaterial({color:c}):new THREE.MeshLambertMaterial({color:c}))}
-function attsFor(k){return k==L.p?L.pa:k==L.s?L.sa:[]}
+function attsFor(k){return zomOn()?[]:k==L.p?L.pa:k==L.s?L.sa:[]}
 /* y of the barrel at the muzzle, measured from the model itself: the mean height of the parts that reach the front */
 function attMuzzle(g,dir){g.updateMatrixWorld(true);const inv=g.matrixWorld.clone().invert(),bb=new THREE.Box3(),tmp=new THREE.Box3(),mm=new THREE.Matrix4(),parts=[];
  /* everything is measured in the weapon's own space (not world space), so it is right in first person, in previews and on other players */

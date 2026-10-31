@@ -441,7 +441,7 @@ const HOLD3={AR:[0,0,0,0,.12,-.05,-.03,.008,1.1],MVR:[-.01,0,.02,0,.2,-.08,-.04,
 function hold3(b,mvf,run,id){const T=HOLD3[b.wk]||HOLD3.AR;b.hr=(b.hr||0)+((run?1:0)-(b.hr||0))*.12;const br=Math.sin(t0*T[8]+id)*T[7]*(1-.6*b.hr);
  return[0,T[0]+br*.5+b.hr*T[6],T[1],T[2]+b.hr*T[4]+br*.8,Math.sin(t0*T[8]*.5+id)*T[7]*.4,T[3]+b.hr*T[5]]}
 const HA={a:null,t:9,w:'',kx:[0,0,0,0],kv:[0,0,0,0]};
-function holdPose(dt){const o=[0,0,0,0,0,0],w=cw();if(!w||!run||P.dead||xrS)return o;const h=HOLD[w.k]||HOLD.AR,ads=ST.ads||0,spr=P.spr||0,idle=1-ads,mv=Math.min(1,Math.hypot(P.mx||0,P.mz||0)/7);
+function holdPose(dt){const o=[0,0,0,0,0,0],w=cw();if(!w||!run||P.dead||xrS)return o;const h=HOLD[w.k]||HOLD.AR,ads=ST.ads||0,spr=P.sprG==null?(P.spr||0):P.sprG,idle=1-ads,mv=Math.min(1,Math.hypot(P.mx||0,P.mz||0)/7);
  for(let n=0;n<6;n++)o[n]+=h.i[n]*idle+(h.s?h.s[n]*spr:0);
  const bs=(1-.7*ads)*(1-mv*.7),sp=h.b[2];o[1]+=Math.sin(t0*sp*2.4)*h.b[0]*bs;o[0]+=Math.sin(t0*sp*1.3+1)*h.b[1]*bs;o[3]+=Math.sin(t0*sp*2.4+.5)*h.b[0]*.6*bs;
  o[5]+=Math.sin(bobP)*.012*h.m*mv*idle;o[4]+=Math.cos(bobP)*.01*h.m*mv*idle;

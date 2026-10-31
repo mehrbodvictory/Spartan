@@ -161,6 +161,42 @@ function haptic(strong,ms,weak,hand){if(!HAP.on)return;strong=Math.max(0,Math.mi
 {const _fu=actField;actField=function(){const n=ST.fieldCd;_fu.apply(this,arguments);if(ST.fieldCd>n)haptic(.5,220,.5,'both')}}
 /* settings control */
 {const l=document.createElement('label');l.innerHTML='Controller vibration<select id="vib"><option value="1">On</option><option value="0">Off</option></select>';const s=document.querySelector('#p-set');if(s){const g=document.querySelector('#gq');g&&g.parentElement?g.parentElement.after(l):s.appendChild(l);const v=l.querySelector('select');v.value=HAP.on?'1':'0';v.onchange=()=>{HAP.on=+v.value;try{localStorage.setItem('sdrill-vib',v.value)}catch(e){}if(HAP.on)haptic(.6,120,.6,'both')}}}
+/* ---------- every setting is in BOTH the main Settings panel and the pause menu, always in sync and saved on this device ----------
+   Aim assist, Look sensitivity, Field of view, Brightness, Volume, Screen shake, Graphics, Motion blur, FPS counter, Controller vibration and (when a headset is present) VR mode. ---------- */
+{const q=s=>document.querySelector(s),sv=(k,v)=>{try{localStorage.setItem(k,String(v))}catch(e){}},ld=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}};
+ const SP=q('#p-set'),PC=q('#pause .card'),EX=q('#exit');
+ const mkSel=(label,id,opts)=>{const l=document.createElement('label');l.innerHTML=label+'<select id="'+id+'">'+opts.map(o=>'<option value="'+o[0]+'">'+o[1]+'</option>').join('')+'</select>';return l};
+ const mkRng=(label,id,min,max,step)=>{const l=document.createElement('label');l.innerHTML=label+'<input id="'+id+'" type="range" min="'+min+'" max="'+max+'" step="'+step+'">';return l};
+ const OO=[['1','On'],['0','Off']];
+ /* ties several controls together: change any of them and all show the same value and set() runs */
+ const link=(ids,set,init)=>{const els=ids.map(i=>q('#'+i)).filter(Boolean),apply=v=>{set(v);for(const e of els)e.value=String(v)};for(const e of els)e.addEventListener(e.type=='range'?'input':'change',()=>apply(e.value));if(init!=null)for(const e of els)e.value=String(init);return apply};
+ /* --- the FPS counter overlay (its own frame loop, only runs while it is on) --- */
+ const fe=document.createElement('div');fe.id='fpsc';document.body.appendChild(fe);let fOn=0,fRaf=0,fLast=0,fAcc=0,fN=0,fWorst=0;
+ const fLoop=t=>{if(!fOn)return;fRaf=requestAnimationFrame(fLoop);if(fLast){const d=t-fLast;fAcc+=d;fN++;if(d>fWorst)fWorst=d;if(fAcc>=500){const f=fN*1000/fAcc;fe.innerHTML='<b>'+Math.round(f)+'</b> FPS<small>'+(fAcc/fN).toFixed(1)+' ms · worst '+fWorst.toFixed(0)+' ms</small>';fAcc=0;fN=0;fWorst=0}}fLast=t};
+ const fcRead=()=>{const a=String(ld('sdrill-fpscol','125,255,176')).split(',').map(n=>Math.max(0,Math.min(255,+n|0)));return a.length==3?a:[125,255,176]},fc=fcRead();
+ const fcApply=()=>{const c='rgb('+fc[0]+','+fc[1]+','+fc[2]+')';fe.style.color=c;fe.style.borderColor='rgba('+fc[0]+','+fc[1]+','+fc[2]+',.4)';for(const w of document.querySelectorAll('.fcsw'))w.style.background=c;for(const w of document.querySelectorAll('.fcv'))w.textContent=fc.join(' · ')};
+ let fcPv=0;const fcPreview=()=>{if(fOn)return;fe.style.display='block';fe.innerHTML='<b>60</b> FPS<small>16.7 ms · worst 18 ms</small>';clearTimeout(fcPv);fcPv=setTimeout(()=>{if(!fOn)fe.style.display='none'},1800)};
+ const fpsSet=v=>{fOn=+v?1:0;fe.style.display=fOn?'block':'none';cancelAnimationFrame(fRaf);fLast=0;fAcc=fN=fWorst=0;if(fOn){fe.textContent='… FPS';fRaf=requestAnimationFrame(fLoop)}};
+ /* --- build the missing controls --- */
+ const gq=q('#gq'),brL=q('#br')&&q('#br').parentElement,vlOld=q('#vl'),skOld=q('#sk');
+ const gqOpts=gq?[...gq.options].map(o=>[o.value,o.textContent]):[['high','Ultra'],['med','Medium'],['low','Low']];
+ const mbl=mkSel('Motion blur','mbl',OO),mbl2=mkSel('Motion blur','mbl2',OO),fps=mkSel('FPS counter','fps',OO),fps2=mkSel('FPS counter','fps2',OO),vib2=mkSel('Controller vibration','vib2',OO),gq2=mkSel('Graphics','gq2',gqOpts),
+  vl3=mkRng('Volume','vl3',0,1,.05),sk3=mkRng('Screen shake','sk3',0,1,.1);
+ const mkRgb=sfx=>{const d=document.createElement('div');d.className='rgbrow';d.innerHTML='FPS counter colour <span class="fcsw"></span><div class="rgb3"><input id="fpcr'+sfx+'" class="cr" type="range" min="0" max="255" step="1" aria-label="Red"><input id="fpcg'+sfx+'" class="cg" type="range" min="0" max="255" step="1" aria-label="Green"><input id="fpcb'+sfx+'" class="cb" type="range" min="0" max="255" step="1" aria-label="Blue"></div><em class="fcv"></em>';return d},rgbM=mkRgb(''),rgbP=mkRgb('2');
+ const vrL2=mkSel('VR headset mode','vrm2',[['0','Off'],['1','On (enter VR when a match starts)']]);vrL2.id='vrL2';vrL2.style.display='none';
+ if(SP){if(brL){brL.after(vl3);vl3.after(sk3)}else{SP.appendChild(vl3);SP.appendChild(sk3)}const anchor=gq&&gq.parentElement;if(anchor){anchor.after(mbl);mbl.after(fps);fps.after(rgbM)}else{SP.appendChild(mbl);SP.appendChild(fps);SP.appendChild(rgbM)}}
+ if(PC&&EX){for(const l of[gq2,mbl2,fps2,rgbP,vib2,vrL2])EX.before(l)}
+ /* --- values: restore what was saved, then link every pair --- */
+ vol=+ld('sdrill-vol',vol);shk=+ld('sdrill-shk',shk);
+ link(['vl','vl3'],v=>{vol=+v;sv('sdrill-vol',v)},vol);link(['sk','sk3'],v=>{shk=+v;sv('sdrill-shk',v)},shk);
+ if(gq){gq.onchange=null;link(['gq','gq2'],v=>setGfx(v),gq.value||gfxQ)}else link(['gq2'],v=>setGfx(v),gfxQ);
+ link(['mbl','mbl2'],v=>{LX.mblur=+v;sv('sdrill-mblur',v)},LX.mblur?1:0);
+ const fv0=ld('sdrill-fps','0');link(['fps','fps2'],v=>{fpsSet(v);sv('sdrill-fps',v)},fv0);fpsSet(+fv0);
+ for(const[i,id]of[[0,'fpcr'],[1,'fpcg'],[2,'fpcb']])link([id,id+'2'],v=>{fc[i]=Math.max(0,Math.min(255,+v|0));sv('sdrill-fpscol',fc.join(','));fcApply();fcPreview()},fc[i]);fcApply();
+ const vb=q('#vib');if(vb)vb.onchange=null;link(['vib','vib2'],v=>{HAP.on=+v;sv('sdrill-vib',v);if(HAP.on&&typeof haptic=='function')haptic(.6,120,.6,'both')},HAP.on?1:0);
+ link(['vrm','vrm2'],v=>{vrMode=+v;sv('sd-vr',v)},null);
+ /* every time the pause menu opens: bring the controls up to date (the VR option only exists on devices with a headset) */
+ const _sp=showPause;showPause=function(){_sp.apply(this,arguments);const vl=q('#vrL'),m=q('#vrm'),m2=q('#vrm2');if(vl&&m2){vrL2.style.display=vl.style.display;if(m)m2.value=m.value}const g=q('#gq'),g2=q('#gq2');if(g&&g2)g2.value=g.value;const b=q('#br'),b2=q('#br2');if(b&&b2)b2.value=b.value;const v=q('#vl');if(v)v.value=String(vol);const k=q('#sk');if(k)k.value=String(shk)}}
 ;
 /* ######## oitc.js ######## */
 /* ===================== oitc.js ===================== */
@@ -189,3 +225,17 @@ function oiTick(dt){const aiLeft=bots.filter(b=>!b.net&&!b.out).length,humans=bo
 /* private match: the bot slider is shown for every mode except players-only free-for-all and zombies */
 {const sl=$('#pbots'),pm=$('#pmode');if(sl){sl.oninput=()=>{$('#pbv').textContent=sl.value};const upd=()=>{const L_=$('#pbL');if(L_&&pm&&pm.value=='Private')L_.style.opacity=.45;else if(L_)L_.style.opacity=1};if(pm)pm.addEventListener('change',upd);upd()}}
 ;
+
+/* ---------- the pause menu always has EVERY setting: whatever other parts of the game add to the main Settings panel (Killcam, Chat, weapon hold animations,
+   threat indicators, enemy footstep audio, ...) is mirrored into the pause menu too, kept in sync both ways, and the original control's own handler still runs ---------- */
+{const q=s=>document.querySelector(s),mirrors=[];
+ const keyOf=l=>{let t='';for(const n of l.childNodes)if(n.nodeType==3)t+=n.textContent;t=t.trim();return t||l.textContent.trim().slice(0,40)};
+ const pull=()=>{for(const m of mirrors){const[c,cc,l,cp]=m;if(c.type=='checkbox')cc.checked=c.checked;else cc.value=c.value;cp.style.display=l.style.display}};
+ const mirrorRest=()=>{const SP=q('#p-set'),PC=q('#pause .card'),EX=q('#exit');if(!SP||!PC||!EX)return;const have=new Set([...PC.querySelectorAll('label,.rgbrow')].map(keyOf));
+  for(const l of SP.querySelectorAll('label')){const k=keyOf(l);if(!k||have.has(k)||l.dataset.mir)continue;const c=l.querySelector('select,input');if(!c)continue;l.dataset.mir='1';have.add(k);
+   const cp=l.cloneNode(true);cp.removeAttribute('id');const cc=cp.querySelector('select,input');cc.removeAttribute('id');if(c.type=='checkbox')cc.checked=c.checked;else cc.value=c.value;cp.style.display=l.style.display;
+   const ev=c.type=='range'?'input':'change';
+   cc.addEventListener(ev,()=>{if(c.type=='checkbox')c.checked=cc.checked;else c.value=cc.value;c.dispatchEvent(new Event(ev,{bubbles:true}))});
+   c.addEventListener(ev,()=>{if(c.type=='checkbox')cc.checked=c.checked;else cc.value=c.value});
+   EX.before(cp);mirrors.push([c,cc,l,cp])}};
+ addEventListener('load',mirrorRest);const _sp3=showPause;showPause=function(){mirrorRest();_sp3.apply(this,arguments);pull()}}

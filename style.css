@@ -460,3 +460,44 @@ body.gfx-low *{backdrop-filter:none!important}
 body.gfx-low #menu::before,body.gfx-low #menu::after,body.gfx-low #xpf::after{display:none}
 body.gfx-low .c.on,body.gfx-low #go,body.gfx-low #brand h1,body.gfx-low #brand h1 b,body.gfx-low #home h1,body.gfx-low #home h1 b{animation:none}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}}
+
+/* ---- Zombies additions: Nitrogen dash gauge, power-up chips, gore splat, insta-kill vignette ---- */
+#zdash{position:absolute;right:calc(26px + env(safe-area-inset-right,0px));bottom:150px;width:74px;height:74px;display:none;pointer-events:none;text-align:center;filter:drop-shadow(0 0 8px rgba(80,200,255,.35))}
+#zdash svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+#zdash circle{fill:rgba(8,14,22,.55);stroke-width:4}
+#zdash .bg{stroke:rgba(255,255,255,.15)}#zdash .fg{fill:none;stroke:#55ccff;stroke-dasharray:113;stroke-dashoffset:0;stroke-linecap:round;transition:stroke-dashoffset .1s linear}
+#zdash b{position:absolute;left:0;right:0;top:19px;font:700 17px Teko,sans-serif;letter-spacing:.14em;color:#d8f2ff}
+#zdash em{position:absolute;left:0;right:0;top:38px;font:600 14px Rajdhani,sans-serif;font-style:normal;color:#9ad8f0}
+#zdash.rdy .fg{stroke:#7dffb0;animation:zdr 1.1s ease-in-out infinite}#zdash.act .fg{stroke:#fff}
+@keyframes zdr{50%{filter:drop-shadow(0 0 6px #7dffb0)}}
+#zpus{position:absolute;left:50%;top:116px;transform:translateX(-50%);display:flex;gap:12px;pointer-events:none}
+#zpus .pu{position:relative;width:74px;height:54px;border-radius:10px;background:rgba(10,12,18,.7);border:2px solid var(--c);box-shadow:0 0 14px var(--c),inset 0 0 14px rgba(255,255,255,.05);text-align:center;overflow:hidden;animation:zpin .35s cubic-bezier(.2,1.6,.4,1)}
+#zpus .pu span{position:absolute;left:0;right:0;top:2px;font:900 24px Teko,sans-serif;color:var(--c);text-shadow:0 0 8px var(--c);line-height:1}
+#zpus .pu b{position:absolute;left:0;right:0;top:25px;font:700 20px Teko,sans-serif;color:#fff;line-height:1}
+#zpus .pu i{position:absolute;left:0;bottom:0;height:5px;background:var(--c);box-shadow:0 0 8px var(--c);transition:width .25s linear}
+#zpus .pu.lo{animation:zplo .45s steps(2) infinite}
+@keyframes zpin{from{transform:scale(.2);opacity:0}}@keyframes zplo{50%{opacity:.35}}
+#zgore{position:fixed;inset:0;pointer-events:none;opacity:0;z-index:5;background:
+ radial-gradient(ellipse 22% 16% at 18% 30%,rgba(110,14,24,.85),transparent 70%),radial-gradient(ellipse 14% 20% at 80% 24%,rgba(80,10,40,.8),transparent 72%),radial-gradient(ellipse 26% 14% at 56% 74%,rgba(104,120,30,.6),transparent 70%),
+ radial-gradient(ellipse 16% 22% at 30% 66%,rgba(120,16,28,.8),transparent 70%),radial-gradient(ellipse 12% 12% at 70% 52%,rgba(90,14,26,.85),transparent 70%);background-size:140% 140%}
+body.zinsta #hud::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 55%,rgba(255,30,50,.28) 100%);animation:zinsta 1.1s ease-in-out infinite}
+@keyframes zinsta{50%{opacity:.55}}
+
+/* ---- FPS counter and the complete pause menu ---- */
+#fpsc{position:fixed;left:calc(8px + env(safe-area-inset-left,0px));top:calc(6px + env(safe-area-inset-top,0px));z-index:60;display:none;pointer-events:none;font:700 18px Rajdhani,Teko,monospace;line-height:1.05;color:#7dffb0;background:rgba(6,10,14,.62);border:1px solid rgba(125,255,176,.25);padding:4px 10px 5px;border-radius:6px;text-shadow:0 0 6px rgba(0,0,0,.85);letter-spacing:.04em}
+#fpsc b{font:700 22px Teko,Rajdhani,monospace;margin-right:2px}#fpsc small{display:block;font:600 11px Rajdhani,monospace;color:#9db8c0;letter-spacing:.05em}
+#fpsc.mid{color:#ffd24a;border-color:rgba(255,210,74,.3)}#fpsc.low{color:#ff6a5a;border-color:rgba(255,106,90,.35)}
+#pause{padding-top:5vh}
+@media(min-width:820px){#pause .card{display:inline-grid;grid-template-columns:repeat(2,minmax(250px,1fr));column-gap:36px;row-gap:2px;max-width:min(94vw,780px)}#pause .card>h2,#pause .card>button{grid-column:1/-1}}
+
+/* ---- FPS counter colour: three RGB sliders with a live swatch ---- */
+.rgbrow{display:block;margin:6px 0;color:var(--mu);font:inherit;position:relative}
+.rgbrow .fcsw{position:absolute;right:0;top:4px;width:44px;height:16px;border-radius:4px;border:1px solid rgba(255,255,255,.35);box-shadow:0 0 8px rgba(0,0,0,.5)}
+.rgbrow .fcv{display:block;text-align:right;font:600 11px Rajdhani,monospace;font-style:normal;color:#6f8a92;letter-spacing:.06em;margin-top:1px}
+.rgbrow .rgb3{display:flex;flex-direction:column;gap:2px;margin-top:4px}
+.rgbrow input[type=range]{width:100%;margin:2px 0;height:18px;background:transparent;-webkit-appearance:none;appearance:none}
+.rgbrow input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(90deg,#000,var(--tc))}
+.rgbrow input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:linear-gradient(90deg,#000,var(--tc))}
+.rgbrow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;margin-top:-5px;background:var(--tc);border:2px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.6)}
+.rgbrow input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--tc);border:2px solid #fff}
+.rgbrow .cr{--tc:#ff3a3a}.rgbrow .cg{--tc:#3aff5a}.rgbrow .cb{--tc:#3a7aff}

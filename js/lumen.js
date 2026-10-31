@@ -11,6 +11,7 @@
                    filmic shoulder, vignette, grain. Every stage has a fallback: broken shaders or missing GPU features switch the effect off instead of breaking the game.
    Quality (Settings > Graphics): high = everything, med = PBR + shadows but no post-processing, low = the original cheap look. Add ?safe=1 to the address to force low. ---------- */
 var LX=window.LX={ver:3,fx:{hit:0,boom:0,shot:0,speed:0,flash:0,dmg:0,heal:0,ca:0,pulse:0,blur:0},ctx:'',scale:1,frames:0,rbc:{}};
+LX.mblur=1;try{LX.mblur=localStorage.getItem('sdrill-mblur')=='0'?0:1}catch(e){}
 LX.bright=1;try{LX.bright=Math.max(.6,Math.min(1.6,parseFloat(localStorage.getItem('sdrill-bright'))||1))}catch(e){}
 LX.q='high';try{LX.q=localStorage.getItem('sdrill-gfx')||(matchMedia('(pointer:coarse)').matches?'low':'high')}catch(e){}
 if(!/^(high|med|low)$/.test(LX.q))LX.q='high';
@@ -215,7 +216,7 @@ LX.render=function(sc,cam){
    if(v.z<1){const e=1-Math.min(1,Math.max(0,(Math.max(Math.abs(v.x),Math.abs(v.y))-.8)/1.2));ray=m.ray*e;const R_=LX.mRays.uniforms;R_.uSun.value.set(v.x*.5+.5,v.y*.5+.5);R_.tScene.value=LX.rtS.texture;qd(LX.mRays,LX.rtR)}}
   U.tScene.value=LX.rtS.texture;U.tBloom.value=LX.rtU[0].texture;U.tRays.value=LX.rtR.texture;U.uTime.value=LX.U.time.value;
   U.uExp.value=m.ex*LX.bright;U.uBloom.value=m.bl*.5*(1+fx.boom*.9+fx.shot*.15);U.uRay.value=ray*(1+fx.flash*.5);U.uVig.value=m.vig+fx.dmg*.12;U.uGrain.value=(m.gr==null?.03:m.gr);U.uCA.value=.0011+fx.ca*.012+fx.boom*.006+fx.dmg*.004;
-  U.uSharp.value=.2;U.uSpeed.value=Math.min(1,fx.speed+fx.blur);U.uDmg.value=Math.min(1,fx.dmg);U.uHeal.value=fx.heal;U.uFlash.value=fx.flash;U.uPulse.value=fx.pulse;U.uSat.value=m.sat*(1-fx.dmg*.2);U.uCon.value=m.con;
+  U.uSharp.value=.2;U.uSpeed.value=LX.mblur?Math.min(1,fx.speed+fx.blur):0;U.uDmg.value=Math.min(1,fx.dmg);U.uHeal.value=fx.heal;U.uFlash.value=fx.flash;U.uPulse.value=fx.pulse;U.uSat.value=m.sat*(1-fx.dmg*.2);U.uCon.value=m.con;
   U.uRayCol.value.set(m.rc[0],m.rc[1],m.rc[2]);U.uTintS.value.set(m.ts[0],m.ts[1],m.ts[2]);U.uTintH.value.set(m.th[0],m.th[1],m.th[2]);U.uFlashCol.value.set(1,.97,.9);
   LX.quad.material=LX.mComp;R.setRenderTarget(null);R.render(LX.qs,LX.qc);
   LX.frames++;if(LX.frames==4||LX.frames%240==0)LX.verify()}catch(e){R.setRenderTarget(null);LX.fail('render',e);R.render(sc,cam)}};
