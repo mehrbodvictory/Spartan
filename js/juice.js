@@ -36,10 +36,37 @@ JX.explode=function(p,g){if(!hi)return;const R_=Math.max(3,g&&g.R||6),near=C.pos
  for(let i=0;i<9;i++){const a=rnd(0,6.28),d=rnd(.1,R_*.35);addSp({p:V(p.x+Math.cos(a)*d,p.y+rnd(0,R_*.3),p.z+Math.sin(a)*d),s0:R_*.35,s1:R_*rnd(1.2,2),life:rnd(1.6,2.6),c:[.2,.2,.21],op:rnd(.28,.45),add:false,tex:puffTex,v:V(rnd(-.5,.5),rnd(.8,1.8),rnd(-.5,.5)),dr:.96,vr:rnd(-.4,.4),rot:rnd(0,6)})}
  for(let i=0;i<14;i++){const a=rnd(0,6.28),sp=rnd(3,10);addSp({p:p.clone(),s0:.22,s1:.02,life:rnd(.5,1.1),c:[3,1.6,.5],op:1,v:V(Math.cos(a)*sp,rnd(2,9),Math.sin(a)*sp),g:-14,dr:.99})}
  scorch(p,R_*.55)};
+/* ---------- RayGun ooze: ONE shared effect for the player, bots, other players and zombie co-op (rgImpact). A small, bright, glossy crimson-pink burst, not blood:
+   luminous (it blooms), a hot pale core, round gel blobs that arc out and land as glowing puddles that bubble and shrink away, with a few drifting glowing spores. ---------- */
+{const gm=[2.3,1.8,1.35].map(k=>{const m=new THREE.MeshBasicMaterial({color:0xff2f66});m.color.multiplyScalar(k);return m}),
+ hot=(()=>{const m=new THREE.MeshBasicMaterial({color:0xffb0c8});m.color.multiplyScalar(2.2);return m})(),
+ pt=cv(128,128,(g,w,h)=>{const r=g.createRadialGradient(64,64,3,64,64,62);r.addColorStop(0,'rgba(255,190,205,.95)');r.addColorStop(.3,'rgba(255,60,110,.9)');r.addColorStop(.75,'rgba(215,20,80,.6)');r.addColorStop(.93,'rgba(255,110,150,.5)');r.addColorStop(1,'rgba(160,0,60,0)');g.fillStyle=r;g.fillRect(0,0,w,h)}),
+ pm=()=>{const m=new THREE.MeshBasicMaterial({map:pt,transparent:true,depthWrite:false,opacity:.9});m.color.setRGB(1.5,1.1,1.2);return m},
+ pg_=new THREE.CircleGeometry(1,18);JX.goops=[];JX.puds=[];
+ JX.goop=function(p,g){if(!hi)return;const R_=Math.max(2,(g&&g.R)||3.2),near=C.position.distanceTo(p),prox=Math.max(0,1-near/(R_*3.4));
+  F.boom=Math.min(1,Math.max(F.boom,.12+prox*.5));F.ca=Math.min(1,F.ca+prox*.35);if(near<R_*1.2)F.flash=Math.max(F.flash,.18*prox);
+  JX.flash(p,0xff3a6a,12,.4,R_*3.6);
+  addSp({p:p.clone(),s0:R_*.28,s1:R_*.95,life:.34,c:[3.2,.5,1.1],op:1,tex:flareTex});addSp({p:p.clone(),s0:R_*.14,s1:R_*.55,life:.2,c:[4,2.4,2.8],op:1});
+  addSp({p:p.clone().add(V(0,R_*.12,0)),s0:R_*.5,s1:R_*1.2,life:.5,c:[1.5,.2,.55],op:.5,tex:flareTex});
+  ring(V(p.x,Math.max(.08,p.y),p.z),.4,R_*1.05,.38,0xff6a98,.85);ring(V(p.x,Math.max(.1,p.y),p.z),.2,R_*.6,.26,0xffd0de,.6);
+  const n=Math.min(JX.goops.length>44?6:20,26);for(let i=0;i<n;i++){const a=rnd(0,6.283),sp=rnd(2,6.5),m=new THREE.Mesh(sg,i%5==0?hot:gm[i%3]),s=rnd(.045,.12);m.scale.set(s,s*rnd(.8,1.25),s);m.position.copy(p);S.add(m);JX.goops.push({m,v:V(Math.cos(a)*sp,rnd(2.2,6.8),Math.sin(a)*sp),s,t:0})}
+  for(let i=0;i<7;i++){const a=rnd(0,6.283),d=rnd(.1,R_*.4);addSp({p:V(p.x+Math.cos(a)*d,p.y+rnd(0,.5),p.z+Math.sin(a)*d),s0:.1,s1:.34,life:rnd(.9,1.6),c:[2.6,.45,1],op:.8,tex:glowTex,v:V(rnd(-.4,.4),rnd(.5,1.4),rnd(-.4,.4)),dr:.95})}
+  JX.pud(p.x,Math.max(.05,Math.min(p.y,.3)),p.z,R_*.55)};
+ /* a glowing gel puddle on the floor: it spreads, bubbles, then shrinks away */
+ JX.pud=function(x,y,z,r){if(y>.4&&JX.puds.length>10)return;if(JX.puds.length>16){const o=JX.puds.shift();S.remove(o.m);o.m.material.dispose()}const m=new THREE.Mesh(pg_,pm());m.rotation.x=-Math.PI/2;m.rotation.z=rnd(0,6.28);m.position.set(x,.05+rnd(0,.012),z);m.scale.setScalar(.1);S.add(m);JX.puds.push({m,r:r*rnd(.8,1.15),t:0,b:0})};
+ JX.tickG=function(dt){const G=JX.goops;for(let i=G.length-1;i>=0;i--){const o=G[i];o.t+=dt;o.v.y-=17*dt;o.m.position.addScaledVector(o.v,dt);o.m.scale.y=o.s*(1+Math.min(.5,Math.abs(o.v.y)*.05));
+   let hit=0;const q=o.m.position;if(q.y<=.06){hit=1}else if(o.t>.12&&typeof bx!='undefined'){for(const b of bx){if(b.pl)continue;if(q.x>b.x0&&q.x<b.x1&&q.z>b.z0&&q.z<b.z1&&q.y<b.h&&q.y>(b.y0||0)){hit=2;break}}}
+   if(hit||o.t>2.4){S.remove(o.m);G.splice(i,1);if(hit==1&&Math.random()<.5)JX.pud(q.x,.06,q.z,o.s*rnd(5,9));if(hit&&Math.random()<.3)addSp({p:q.clone(),s0:.08,s1:.3,life:.3,c:[3,.9,1.4],op:.9})}}
+  const P_=JX.puds;for(let i=P_.length-1;i>=0;i--){const o=P_[i];o.t+=dt;const u=o.t,g=Math.min(1,u/.22),e=1-Math.pow(1-g,3),sh=u<2.2?1:Math.max(0,1-(u-2.2)/1.1);o.m.scale.setScalar(Math.max(.01,o.r*e*(.85+.15*sh)));o.m.material.opacity=.9*sh*(.88+.12*Math.sin(u*11));
+   o.b-=dt;if(o.b<=0&&u<2&&u>.2){o.b=rnd(.12,.3);const a=rnd(0,6.28),d=rnd(0,o.r*.8);addSp({p:V(o.m.position.x+Math.cos(a)*d,.14,o.m.position.z+Math.sin(a)*d),s0:.04,s1:.2,life:.28,c:[3,1.2,1.6],op:.85,v:V(0,.5,0),dr:.9})}
+   if(sh<=0){S.remove(o.m);o.m.material.dispose();P_.splice(i,1)}}};
+ JX.goopClear=function(){for(const o of JX.goops)S.remove(o.m);for(const o of JX.puds){S.remove(o.m);o.m.material.dispose()}JX.goops.length=JX.puds.length=0};
+ /* everyone's RayGun impact: the same visual, plus a squelch that fades with distance (the player's own shot gets its sound from boom) */
+ window.rgImpact=function(p){try{JX.goop(p,W.RG.ex);const d=C.position.distanceTo(p),v=Math.max(0,1-d/45);if(v>.05){noise(.28,650,.3*v);beep(190,.2,'sawtooth',.06*v);beep(430,.14,'sine',.05*v)}}catch(e){}}}
 /* ---------- shooting ---------- */
-JX.muzzle=function(p,k){const d=C.position.distanceTo(p);if(d>70)return;const sg_=k=='SG',rg=k=='RG',col=rg?[.4,1.5,3]:[3,1.9,.8];
+JX.muzzle=function(p,k){const d=C.position.distanceTo(p);if(d>70)return;const sg_=k=='SG',rg=k=='RG',col=rg?[3.2,.45,.85]:[3,1.9,.8];
  addSp({p:p.clone(),s0:sg_?.7:.42,s1:sg_?1.2:.7,life:.055,c:col,op:1,tex:flareTex,rot:rnd(0,6.28)});
- if(d<45&&d>2.5)JX.flash(p,rg?0x66ccff:0xffc070,sg_?5:3.2,.075,rg?16:13);
+ if(d<45&&d>2.5)JX.flash(p,rg?0xff3a6a:0xffc070,sg_?5:3.2,.075,rg?16:13);
  if(d<30&&!rg)addSp({p:p.clone(),s0:.12,s1:.55,life:rnd(.5,.8),c:[.75,.75,.78],op:.22,add:false,tex:puffTex,v:V(rnd(-.2,.2),rnd(.2,.5),rnd(-.2,.2)),dr:.9,vr:rnd(-.5,.5)})};
 JX.tracer=function(o,d,len,col,life,raw){if(!hi||len<1)return;const a=raw?o.clone():o.clone().add(d.clone().multiplyScalar(.6)).add(V(0,-.12,0)),b=o.clone().add(d.clone().multiplyScalar(len)),dv=b.clone().sub(a),L=dv.length();if(L<.3)return;
  const m=new THREE.Mesh(cyHi,new THREE.MeshBasicMaterial({color:col,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:.9}));m.material.color.multiplyScalar(2.4);
@@ -66,7 +93,7 @@ gl_PointSize=clamp(uSize*(0.5+aS.z)*uPx/d,1.0,26.0);float edge=1.0-smoothstep(uB
  JX.amb=new THREE.Points(g,m);JX.amb.frustumCulled=false;JX.amb.renderOrder=2;(typeof mapG!='undefined'&&mapG?mapG:S).add(JX.amb)};
 /* ---------- the per-frame update ---------- */
 let lastShots=0,lastTot=null,wasDead=0,lowC=-1,ammoC=-1;
-JX.tick=function(dt){const t=T();
+JX.tick=function(dt){const t=T();if(JX.tickG)JX.tickG(dt);
  for(const x of JX.lights){if(x.t>0){x.t-=dt;x.l.intensity=x.I*Math.pow(Math.max(0,x.t/x.d),1.4)}else if(x.l.intensity)x.l.intensity=0}
  for(let i=JX.sp.length-1;i>=0;i--){const o=JX.sp[i];o.a+=dt;const k=o.a/o.L;if(k>=1){S.remove(o.s);o.m.dispose();JX.sp.splice(i,1);continue}
   const e=1-Math.pow(1-k,2.2);o.s.scale.setScalar(o.s0+(o.s1-o.s0)*e);o.m.opacity=o.op*(o.io?Math.min(1,k*5)*(1-k):(1-k)*(1-k)*(k<.08?k/.08:1));
@@ -96,13 +123,13 @@ JX.tick=function(dt){const t=T();
 /* ---------- wrap the game functions (none of these are on the anti-cheat list) ---------- */
 const wrap=(name,fn)=>{try{const o=globalThis[name];if(typeof o=='function')globalThis[name]=fn(o);else console.warn('juice: no function '+name)}catch(e){console.warn('juice hook '+name,e)}};
 /* models: guns are metal, people are cloth and skin, small boxes get rounded edges */
-const ctxWrap=(ctx,pick)=>o=>function(){const old=LX.ctx;LX.ctx=ctx;try{const r=o.apply(this,arguments);LX.bevel(pick(r,arguments));return r}finally{LX.ctx=old}};
+const ctxWrap=(ctx,pick)=>o=>function(){const old=LX.ctx;LX.ctx=ctx;try{const r=o.apply(this,arguments);LX.bevel(pick(r,arguments));if(ctx=='char'&&LX.mergeRig)LX.mergeRig(pick(r,arguments),r);return r}finally{LX.ctx=old}};
 if(hi){wrap('buildGun',ctxWrap('gun',(r,a)=>r&&r.traverse?r:a[2]));wrap('attFpModel',ctxWrap('gun',r=>r&&r.traverse?r:null));wrap('mkHuman',ctxWrap('char',(r,a)=>a[0]))}
 /* particles: hot colours glow (the HDR target keeps values above 1, so bloom picks them up) */
 if(hi&&typeof mc!='undefined'){for(const[c,k]of[[0xffd24a,2.6],[0xffffff,1.8],[0xffa040,2.6],[0x62e0f0,2.2],[0xffdd66,2.4],[0xffe08a,2.4],[0xff4040,1.8]])if(!mc[c]){mc[c]=new THREE.MeshBasicMaterial({color:c});mc[c].color.multiplyScalar(k)}}
 wrap('muzzleFlash',o=>function(p,k){const r=o.apply(this,arguments);try{JX.muzzle(p,k)}catch(e){}return r});
 wrap('tr',o=>function(a,d,len,col,life,raw){const r=o.apply(this,arguments);try{JX.tracer(a,d,len,col,life,raw)}catch(e){}return r});
-wrap('boom',o=>function(p,g){const r=o.apply(this,arguments);try{if(g&&!g.tac)JX.explode(p,g);else if(g&&g.tac)JX.flash(p,0xffffff,10,.25,24)}catch(e){}return r});
+wrap('boom',o=>function(p,g){const r=o.apply(this,arguments);try{if(g&&!g.tac){if(g.w=='RG')JX.goop(p,g);else JX.explode(p,g)}else if(g&&g.tac)JX.flash(p,0xffffff,10,.25,24)}catch(e){}return r});
 wrap('juiceHit',o=>function(b,d,head){const r=o.apply(this,arguments);try{F.hit=1;F.ca=Math.min(1,F.ca+.12);const h=document.getElementById('hm');if(h){h.style.animation='none';void h.offsetWidth;h.style.animation=''}if(hi&&b)addSp({p:V(b.x,head?1.75:1.1,b.z),s0:.3,s1:head?.9:.55,life:.16,c:head?[3,2.2,.6]:[2.2,2.2,2.2],op:.9})}catch(e){}return r});
 wrap('juiceKill',o=>function(b,head){const r=o.apply(this,arguments);try{F.pulse=Math.max(F.pulse,.14);F.ca=Math.min(1,F.ca+.5);if(hi&&b){JX.flash(V(b.x,1.2,b.z),head?0xffd24a:0xff9060,5,.2,10);ring(V(b.x,.1,b.z),.3,2.2,.4,head?0xffd24a:0xff7a50,.7);addSp({p:V(b.x,1.1,b.z),s0:.5,s1:1.5,life:.28,c:[3,1.4,.6],op:.8})}}catch(e){}return r});
 wrap('gfxTick',o=>function(dt){o.apply(this,arguments);try{JX.tick(dt)}catch(e){if(!JX.err){JX.err=1;console.warn('juice tick',e)}}});
@@ -110,5 +137,5 @@ wrap('buildMap',o=>function(){const r=o.apply(this,arguments);try{JX.setMap(sel.
 wrap('setGfx',o=>function(q){const r=o.apply(this,arguments);document.body.classList.remove('gfx-high','gfx-med','gfx-low');document.body.classList.add('gfx-'+q);return r});
 document.body.classList.add('gfx-'+LX.q);LX.initBright();
 /* clear the effects of the last match when a new one starts */
-wrap('juiceReset',o=>function(){const r=o.apply(this,arguments);try{for(const a of[JX.sp,JX.rings,JX.scorch,JX.cas])for(const x of a)S.remove(x.m||x.s);JX.sp.length=JX.rings.length=JX.scorch.length=JX.cas.length=0;lastTot=null;wasDead=0;lastShots=typeof shots!='undefined'?shots:0;F.dmg=F.boom=F.flash=F.blur=0}catch(e){}return r});
+wrap('juiceReset',o=>function(){const r=o.apply(this,arguments);try{if(JX.goopClear)JX.goopClear();for(const a of[JX.sp,JX.rings,JX.scorch,JX.cas])for(const x of a)S.remove(x.m||x.s);JX.sp.length=JX.rings.length=JX.scorch.length=JX.cas.length=0;lastTot=null;wasDead=0;lastShots=typeof shots!='undefined'?shots:0;F.dmg=F.boom=F.flash=F.blur=0}catch(e){}return r});
 })();

@@ -44,7 +44,7 @@ const perkN=i=>L.pk[i]||null;
 function slotHtml(id,cls,label,name,body,extra){return `<button class="ls ${cls} ${LSL.sel==id?'sel':''}" data-slot="${id}"><u>${label}</u>${body||''}<b>${name}</b>${extra||''}</button>`}
 function statBar(n,v){return `<div class="sb"><span>${n}</span><i><em style="width:${Math.max(4,Math.min(100,v*100))}%"></em></i></div>`}
 function wStats(k){const w=W[k],dps=w.d*(w.pel||1)/w.r;return statBar('Damage',Math.min(1,w.d*(w.pel>1?2.2:1)/50))+statBar('Fire rate',Math.min(1,(60/w.r)/900))+statBar('Accuracy',Math.min(1,1/(1+w.sp*22)))+statBar('Control',Math.min(1,1.15/w.rc))+statBar('Magazine',Math.min(1,w.m/40))}
-function attChips(a){return Object.keys(A).map(k=>chip(a,k,k,A[k].t,L[a].includes(k))).join('')}
+function attChips(a){return Object.keys(A).filter(k=>typeof ATT_ONLY=='undefined'||!ATT_ONLY[k]||(a=='pa'&&L.p==ATT_ONLY[k])).map(k=>chip(a,k,k,A[k].t,L[a].includes(k))).join('')}
 function detailWeapon(k,isP){const w=W[k];return `<div class="dh"><em>${CLS[k]||'WEAPON'}</em><h3>${w.n}</h3>${ring(wlvS(k),20)}</div><p class="dd">${WDS[k]||desc(w)}</p><div class="dimg">${wImg(k)?`<img src="${wImg(k)}" alt="">`:''}</div><div class="stats">${wStats(k)}</div>
  <div class="row"><button class="big cust" data-cust="${isP?'p':'s'}">Customize weapon</button></div><h4>${isP?'Primary':'Secondary'} weapons</h4><div class="row">${(isP?PRI:SEC).map(x=>chip(isP?'p':'s',x,W[x].n,desc(W[x]),(isP?L.p:L.s)==x)).join('')}</div>
  <h4>Attachments (up to ${isP?3:2})</h4><div class="row">${attChips(isP?'pa':'sa')}</div>`}
@@ -60,7 +60,7 @@ function detailHtml(){const s=LSL.sel;
  if(s[0]=='k'){return `<div class="dh"><em>PERKS</em><h3>Choose up to 3</h3></div><p class="dd">Perks are shared between the three slots; every perk you pick fills the next free slot.</p><div class="row">${Object.keys(K).map(k=>chip('pk',k,k,K[k],L.pk.includes(k))).join('')}</div>`}
  return ''}
 function ldRender(){const e=$('#ld');if(!e)return;sanitizeMe();
- const pw=L.p,sw=L.s,tabs=[0,1,2,3,4,5].map(i=>`<button class="lt ${LSL.cur==i?'on':''}" data-lt="${i}">${(i<9?'0':'')+(i+1)}${i==LSL.cur?' - '+(LSL.slots[i]&&LSL.slots[i].nm||'CUSTOM LOADOUT '+(i+1)):''}</button>`).join('');
+ const pw=L.p=='SMG'&&L.pa.includes('Dual Wield')?'DS':L.p,sw=L.s,tabs=[0,1,2,3,4,5].map(i=>`<button class="lt ${LSL.cur==i?'on':''}" data-lt="${i}">${(i<9?'0':'')+(i+1)}${i==LSL.cur?' - '+(LSL.slots[i]&&LSL.slots[i].nm||'CUSTOM LOADOUT '+(i+1)):''}</button>`).join('');
  const wImgT=k=>`<span class="wi">${wImg(k)?`<img src="${wImg(k)}" alt="">`:''}</span>`,pk=i=>{const n=perkN(i),c=PERKC[i];return slotHtml('k'+i,'perk',`PERK ${i+1}`,n||'Empty',`<span class="hex" style="--hc:${c}">${n?n[0]:'+'}</span>`)};
  e.innerHTML=`<div class="lo"><div class="lo-tabs"><kbd>LB</kbd>${tabs}<kbd>RB</kbd></div><div class="lo-main"><div class="lo-grid">
   ${slotHtml('p','w4',`${CLS[pw]||'PRIMARY'} <s>|</s> ${nm_(pw)}`,nm_(pw),wImgT(pw),ring(wlvS(pw),20))}

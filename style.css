@@ -501,3 +501,12 @@ body.zinsta #hud::after{content:"";position:absolute;inset:0;pointer-events:none
 .rgbrow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;margin-top:-5px;background:var(--tc);border:2px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.6)}
 .rgbrow input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--tc);border:2px solid #fff}
 .rgbrow .cr{--tc:#ff3a3a}.rgbrow .cg{--tc:#3aff5a}.rgbrow .cb{--tc:#3a7aff}
+
+/* controller button prompts (Xbox / PlayStation / Nintendo / Ouya labels) */
+kbd.pg{font-family:system-ui,"Segoe UI Symbol","Apple Symbols",sans-serif;font-weight:800;letter-spacing:.02em;border-radius:999px;padding:.05em .55em;min-width:1.7em;text-align:center;background:linear-gradient(#3b4252,#232833);color:#fff;border:1px solid rgba(255,255,255,.35);box-shadow:0 1px 0 rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.18)}
+/* controller / keyboard focus ring in every menu */
+#menu :focus,#pause :focus,#end :focus,#home :focus,#dev :focus,#osk :focus{outline:3px solid #ffd24a;outline-offset:2px;box-shadow:0 0 0 6px rgba(255,210,74,.18)}
+#menu :focus:not(:focus-visible):not([tabindex]),#pause :focus:not(:focus-visible):not([tabindex]){outline-color:#ffd24a}
+/* crosshair: the ring and the centre dot share one exact centre (border-box, dot centred by its own half size) */
+#cx{box-sizing:border-box;width:24px;height:24px;margin:-12px 0 0 -12px}
+#cx:after{box-sizing:border-box;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:#fff;box-shadow:0 0 3px #000c}

@@ -137,7 +137,7 @@ const _sg=setGun;setGun=function(){_sg();const k=cw().k;vmpG.visible=k=='VMP';kn
 /* ===================== raygun.js ===================== */
 /* ---------- RayGun: retro sci-fi blaster secondary. One click = one big red beam with splash damage. 20 rounds max. ---------- */
 W.CY={n:'Coyote',d:26,r:.085,m:60,sp:.018,rc:1.3,pel:1,au:1,rl:4.2,len:.7,col:0x2e3238};PRI.push('CY');
-W.RG={n:'RayGun',d:48,r:.38,m:20,rs:0,sp:.002,rc:3.5,pel:1,au:0,rl:1.6,len:.45,col:0xb02a22,ex:{R:4.4,d:62,imp:0,w:'RG',c:0xff2a2a}};SEC.push('RG');W.CT={n:'1911',d:30,r:.16,m:8,sp:.006,rc:2.2,pel:1,au:0,rl:1.5,len:.32,col:0x1d2128};SEC.push('CT');
+W.RG={n:'RayGun',d:48,r:.38,m:20,rs:0,sp:.002,rc:3.5,pel:1,au:0,rl:1.6,len:.45,col:0xb02a22,ex:{R:3.2,d:62,imp:0,w:'RG',c:0xff3a6a}};SEC.push('RG');W.CT={n:'1911',d:30,r:.16,m:8,sp:.006,rc:2.2,pel:1,au:0,rl:1.5,len:.32,col:0x1d2128};SEC.push('CT');
 const rgG=new THREE.Group(),rm=gb.material,rgSteel=new THREE.MeshLambertMaterial({color:0x9aa0a6}),rgBrass=new THREE.MeshLambertMaterial({color:0xc9a94d}),rgGlow=new THREE.MeshBasicMaterial({color:0xff3030}),rgGauge=new THREE.MeshBasicMaterial({color:0xffb454});
 const rp=(g,x,y,z,m,rx,ry,rz,glow)=>{const p=new THREE.Mesh(g,m);p.position.set(x,y,z);p.rotation.set(rx||0,ry||0,rz||0);if(glow)p.userData.glow=1;rgG.add(p);return p},
  rbx=(w,h,d,x,y,z,m,rx)=>{const p=rp(bg,x,y,z,m,rx);p.scale.set(w,h,d)},cy=(a,b,h)=>new THREE.CylinderGeometry(a,b,h,12),tor=(r,t)=>new THREE.TorusGeometry(r,t,6,14),P2=Math.PI/2;
@@ -226,12 +226,12 @@ function buildGun(k,rm,g){const[l,c,st]=WG[k]||WG.AR;g=g||new THREE.Group();if(k
 function mkWorldGun(k){return buildGun(k)}
 /* where a held weapon sits on a character: scaled so the distance from the stock (or grip, for pistols) to the foregrip is within the arm's reach, stock in the shoulder pocket for rifles, arms extended for pistols */
 function holdFit(g){const bb=new THREE.Box3().setFromObject(g),A=g.userData.a||{},rz=(A.r||[0,0,0])[2],lz=(A.l||[0,0,rz+.4])[2],minz=bb.min.z,len=Math.max(.2,bb.max.z-minz),s=Math.min(1,.62/Math.max(.3,lz-minz),1.0/len),stock=minz<-.18;return{s,gz:stock?.1-minz*s:.46-rz*s,mz:bb.max.z}}
-function setHeld(b,k,cm,at){cm=cm||'';const ak=(at||[]).join(',');if(!k||(b.wk==k&&b.hg&&(b.cm||'')==cm&&(b.at||'')==ak))return;if(b.hg)b.m.remove(b.hg);b.wk=k;b.cm=cm;b.at=ak;b.hg=buildGun(k,typeof camoRm=='function'?camoRm(k,cm):undefined);try{b.hold=holdFit(b.hg)}catch(e){b.hold=null}if(at&&at.length&&typeof attApply=='function')try{attApply(b.hg,k,at,1)}catch(e){}b.hg.position.set(.12,1.3,.18);b.m.add(b.hg)}
+function setHeld(b,k,cm,at){cm=cm||'';const ak=(at||[]).join(',');if(!k||(b.wk==k&&b.hg&&(b.cm||'')==cm&&(b.at||'')==ak))return;if(b.hg)b.m.remove(b.hg);b.wk=k;b.cm=cm;b.at=ak;b.hg=buildGun(k,typeof camoRm=='function'?camoRm(k,cm):undefined);try{LX.mergeRig&&LX.mergeRig(b.hg,{hip:[...(b.hg.userData.mags||[]),...(b.hg.userData.pump||[])]})}catch(e){}try{b.hold=holdFit(b.hg)}catch(e){b.hold=null}if(at&&at.length&&typeof attApply=='function')try{attApply(b.hg,k,at,1)}catch(e){}b.hg.position.set(.12,1.3,.18);b.m.add(b.hg)}
 function muzzle(b){const l=(WG[b.wk]||WG.AR)[0],r=b.m.rotation.y,ox=.12,oz=b.hold?b.hold.gz+b.hold.mz*b.hold.s:.18+l*1.05,s=Math.sin(r),c=Math.cos(r);return V(b.x+ox*c+oz*s,(b.y||0)+1.36-.3*(b.pc||0)-.42*(b.psl||0)-1.05*(b.pp||0)+(b.net?(b.pis||0)*.5:0),b.z-ox*s+oz*c)}
 function muzzleFlash(p,k){const m=new THREE.Mesh(sg,k=='RG'?fMatR:fMat);m.scale.setScalar(k=='SG'?.22:.13);m.position.copy(p);S.add(m);fx.push({m,l:.05})}
 function otherSnd(k,p){const v=Math.max(0,1-p.distanceTo(C.position)/55);if(v<.06)return;if(k=='RG')return pew(v);if(GS[k])return snd(GS[k],v*.8);noise(k=='SG'?.22:.1,k=='SG'?1800:3500,.3*v);beep(k=='SG'?90:140,.08,'sine',.12*v)}
-function remoteShot(b,k,end,col){const mz=muzzle(b),dv=end.clone().sub(mz),L=dv.length();if(L<.1)return;dv.divideScalar(L);if(k=='RG')rgBeam(mz,dv,L,1);else tr(mz,dv,L,col||0xffd27a,.07,1);muzzleFlash(mz,k);otherSnd(k,mz)}
-function falloff(w,d){return w.pw||w.k=='RG'?1:Math.max(w.pel>1?.2:.45,1-d/(w.pel>1?18:140))}
+function remoteShot(b,k,end,col){const mz=muzzle(b),dv=end.clone().sub(mz),L=dv.length();if(L<.1)return;dv.divideScalar(L);if(k=='RG'){rgBeam(mz,dv,L,1);rgImpact(end)}else tr(mz,dv,L,col||0xffd27a,.07,1);muzzleFlash(mz,k);otherSnd(k,mz)}
+function falloff(w,d){return w.pw||w.k=='RG'?1:Math.max(w.pel>1?.4:.45,1-d/(w.pel>1?30:140))}
 
 /* ===================== anim.js ===================== */
 /* ---------- animation + movement: character rig with IK arms, first-person hands, reload animations, mantling, wall jumps ---------- */
@@ -322,13 +322,13 @@ function fpUpdate(dt){const w=cw(),vis=run&&!P.dead&&!over&&w,k=vis&&w.k;for(con
  if(pf<1)pf=Math.min(1,pf+dt/Math.max(.35,w.r*.9));
  const A=curAnch(k),p=rlP(),R0=V(...A.r),kind=RLK[k]||'mag',mg=curMags(k),pm=curPump(k),pl=k=='SG'&&p<0&&pf<1?.1*Math.sin(Math.PI*cl((pf-.12)/.7,0,1)):0,
   o=rlPose(kind,p,A,-1,cl(w.m-w.mag,1,6),mg,gun,pl);
- if(p>=0){if(o.ev>(P.ev||0))beep(o.ev%2?240:420,.06,'square',.06);P.ev=o.ev}else P.ev=0;
+ if(p>=0){FOL.player(w,k,p,o.ev);P.ev=o.ev}else{P.ev=0;FOL.reset()}
  const q=gun.quaternion,gp=gun.position,tw=a=>a.clone().applyQuaternion(q).add(gp);clampHand(o,V(-.2,-.45,.12),tw,q,1.14);applyRl(o,mg,pm,gun,kind,-1);
- const gy=V(0,1,0).applyQuaternion(q),gz=V(0,0,1).applyQuaternion(q),pis=k=='CT'||k=='MG'||k=='MP'||k=='RG';gripArm(V(.26,-.45,.12),tw(R0),V(.4,-1,.3),fpArm.r,gy,1);gripArm(V(-.2,-.45,.12),tw(o.h),V(-.4,-1,.3),fpArm.l,pis?gy:gz,-1)}
+ const gy=V(0,1,0).applyQuaternion(q),gz=V(0,0,1).applyQuaternion(q),pis=k=='CT'||k=='MG'||k=='MP'||k=='RG'||k=='DS';gripArm(V(.26,-.45,.12),tw(R0),V(.4,-1,.3),fpArm.r,gy,1);gripArm(V(-.2,-.45,.12),tw(o.h),V(-.4,-1,.3),fpArm.l,pis?gy:gz,-1)}
 /* generic first-person model for weapons without a hand-made model */
 const _sg3=setGun;setGun=function(){_sg3();const k=cw().k,sp=k=='AR'||k=='VMP'||k=='RG';gb.visible=sp;fpG.visible=!sp;for(const c of fpG.children.slice())fpG.remove(c);fpG.userData={};fpG.rotation.y=0;fpG.position.z=0;
  if(!sp){const l=WG[k]?WG[k][0]:.6,pz=k=='SG'||k=='CY'||k=='MVR'?-.12:-.14+.1*l;fpG.rotation.y=Math.PI;fpG.position.z=pz;buildGun(k,gb.userData.m0||gb.material,fpG);const a=fpG.userData.a,sgt=fpG.userData.sight,fc=([x,y,z])=>[-x,y,pz-z],fa={r:fc(a.r),l:fc(a.l),m:fc(a.m)};
-  fpG.userData={a:fa,mags:fpG.userData.mags||[],pump:fpG.userData.pump||[],sight:sgt?{yt:sgt.yt,zr:pz-sgt.zr}:null};gf.position.z=pz-(k=='SG'?.9:k=='CY'?.95:k=='MVR'?1.0:l*1.05)-.04}
+  fpG.userData={a:fa,units:fpG.userData.units,mags:fpG.userData.mags||[],pump:fpG.userData.pump||[],sight:sgt?{yt:sgt.yt,zr:pz-sgt.zr}:null};gf.position.z=pz-(k=='SG'?.9:k=='CY'?.95:k=='MVR'?1.0:l*1.05)-.04}
  applyCamo(k)};
 /* third-person character: armoured body, legs that walk, two IK arms holding the weapon */
 /* a human built from tapered limbs and spheres: head with face, ears and hair or helmet, neck, oval torso, tactical vest, jointed arms and legs, boots.
@@ -510,7 +510,7 @@ function updBots(dt){if(netOn&&!isHost)return;for(const b of bots){if(b.net||b.z
  else{mv(b,Math.sin(h)*sp*dt,Math.cos(h)*sp*dt,.45);if(Math.hypot(b.x-px,b.z-pz)<sp*dt*.3&&dd>2.5){b.off=(Math.random()<.5?-1:1)*2.5;b.ot=.8}}
  b.m.position.set(b.x,0,b.z);b.m.rotation.y=t?Math.atan2(t.x-b.x,t.z-b.z):ang;b.cd-=dt;
  if(t&&b.cd<=0&&!(b.rl>0)&&td<45){const o=V(b.x,1.5,b.z),tv=V(t.x,(t.y||0)+1.2,t.z).sub(o),D=tv.length();tv.divideScalar(D);
-  if(castW(o,tv,D)>=D-.1){const w=W[b.wk]||W.AR;b.am=(b.am==null||b.amk!=b.wk?w.m:b.am)-1;b.amk=b.wk;if(b.am<=0){b.rl=w.rl;b.am=w.m}b.bn=(b.bn||0)-1;b.cd=w.r*(.9+Math.random()*.3)+(b.bn<=0?.45+Math.random()*.7:0);if(b.bn<=0)b.bn=w.burst?w.burst:w.au?3+(Math.random()*5|0):1;{const mz=muzzle(b),tp=V(t.x,(t.y||0)+1.2,t.z),ev=tp.clone().sub(mz),L2=ev.length();ev.divideScalar(L2);if(b.wk=='RG')rgBeam(mz,ev,L2,1);else tr(mz,ev,L2,b.col||0xff5a3a,.08,1);muzzleFlash(mz,b.wk);otherSnd(b.wk,mz);if(netOn&&isHost)netSend({t:'bsh',i:b.i,w:b.wk,x:+tp.x.toFixed(1),y:+tp.y.toFixed(1),z:+tp.z.toFixed(1)})}
+  if(castW(o,tv,D)>=D-.1){const w=W[b.wk]||W.AR;b.am=(b.am==null||b.amk!=b.wk?w.m:b.am)-1;b.amk=b.wk;if(b.am<=0){b.rl=w.rl;b.am=w.m;FOL.bot(b,w)}b.bn=(b.bn||0)-1;b.cd=w.r*(.9+Math.random()*.3)+(b.bn<=0?.45+Math.random()*.7:0);if(b.bn<=0)b.bn=w.burst?w.burst:w.au?3+(Math.random()*5|0):1;{const mz=muzzle(b),tp=V(t.x,(t.y||0)+1.2,t.z),ev=tp.clone().sub(mz),L2=ev.length();ev.divideScalar(L2);if(b.wk=='RG'){rgBeam(mz,ev,L2,1);rgImpact(mz.clone().add(ev.clone().multiplyScalar(L2)))}else{tr(mz,ev,L2,b.col||0xff5a3a,.08,1);if(b.wk=='RL'&&JX.explode)JX.explode(mz.clone().add(ev.clone().multiplyScalar(L2)),W.RL.ex)}muzzleFlash(mz,b.wk);otherSnd(b.wk,mz);if(netOn&&isHost)netSend({t:'bsh',i:b.i,w:b.wk,x:+tp.x.toFixed(1),y:+tp.y.toFixed(1),z:+tp.z.toFixed(1)})}
    const ch=Math.max(.12,.5-td/110)*Math.min(1.3,b.df);let n=0;for(let i=0;i<(w.pel||1);i++)if(Math.random()<ch)n++;if(n){const dm=n*(w.d+(w.ex?w.ex.d*.7:0))*falloff(w,td);if(t===P)hurt(dm*(typeof ST!='undefined'?(ST.prone?.7:ST.crouch?.85:1):1),b);else if(t.net)netSend({t:'hit',to:t.id,d:dm,bot:b.i});else botHit(t,dm,b)}}}}}
 function pvpTick(dt){
  if(mode=='Capture the Flag'){ctfTick(dt);const A=fl('A'),B=fl('B'),st=f=>f.st=='home'?'safe':f.st=='dropped'?'dropped':'taken';$('#ob').textContent=`Blue ${cs.A} - ${cs.B} Red  ·  first to 3  ·  Blue flag ${st(A)}  ·  Red flag ${st(B)}`;const w=cs.A>=3?'A':cs.B>=3?'B':'';if(w)endGame(w==pTeam()?'Victory':'Defeat');return}
@@ -597,9 +597,10 @@ MODELS.BR=function(g,rm){const k=gunKit(g,rm),M=k.M,body=rm||M(0x2f4a3a),dk=M(0x
  k.box(.078,.108,.46,0,0,.2,body);k.box(.072,.028,.42,0,.06,.2,gm);k.box(.004,.04,.1,.04,.012,.16,dk);k.box(.016,.014,.05,.042,.03,.07,steel);
  k.cyl(.04,.46,0,.002,.68,body);for(let i=0;i<6;i++){k.box(.012,.04,.024,.04,.01,.5+i*.07,dk);k.box(.012,.04,.024,-.04,.01,.5+i*.07,dk)}k.cyl(.043,.02,0,.002,.46,gm);k.cyl(.043,.02,0,.002,.9,gm);
  k.cyl(.015,.22,0,.004,1.0,dk);k.cyl(.024,.12,0,.004,1.08,gm);for(let i=0;i<3;i++)k.box(.054,.008,.018,0,.004,1.04+i*.03,dk);k.cyl(.02,.014,0,.004,1.15,dk);
- k.box(.04,.018,.4,0,.078,.52,gm);k.box(.03,.05,.03,0,.1,.18,gm);k.box(.04,.12,.05,0,-.1,.05,dk,.32);k.box(.05,.02,.06,0,-.165,0,gm,.32);k.box(.008,.03,.1,0,-.07,.14,steel);k.box(.01,.028,.012,0,-.07,.17,steel);
+ k.box(.04,.018,.4,0,.078,.52,gm);k.box(.036,.03,.034,0,.075,.18,gm);k.box(.04,.12,.05,0,-.1,.05,dk,.32);k.box(.05,.02,.06,0,-.165,0,gm,.32);k.box(.008,.03,.1,0,-.07,.14,steel);k.box(.01,.028,.012,0,-.07,.17,steel);
  mags.push(k.box(.04,.15,.1,0,-.13,.24,gm,.05));mags.push(k.box(.044,.016,.104,0,-.215,.236,dk,.05));
  k.box(.06,.12,.05,0,.01,-.02,gm);k.box(.05,.09,.36,0,.0,-.26,wood);k.box(.05,.06,.2,0,-.085,-.16,wood,.05);k.box(.054,.13,.04,0,-.02,-.46,dk);k.box(.044,.04,.15,0,.075,-.28,wood);
+ k.box(.024,.05,.034,0,.063,.9,gm);k.box(.034,.012,.034,0,.04,.9,dk);
  g.userData.a={r:[0,-.12,.04],l:[0,-.07,.68],m:[0,-.13,.24]};g.userData.mags=mags;mkSights(g,{st:'leaf',ap:1,yt:.12,yb:.0885,yf:.0885,zr:.06,zf:.9});return g};
 /* ---- Machine Pistol: boxy slide with serrations, short barrel, extended stick magazine, folding stabiliser, small front grip ---- */
 MODELS.MP=function(g,rm){const k=gunKit(g,rm),M=k.M,body=rm||M(0x3a3a4a),dk=M(0x15171a),gm=M(0x2b2e33),steel=M(0x8a9098),mags=[];
@@ -692,7 +693,7 @@ MODELS.TUR=function(g,rm){const k=gunKit(g,rm),M=k.M,body=rm||M(0x6c6f70),dk=M(0
 /* ===================== TRB-3 "Turbine": 3-round burst assault rifle ===================== */
 /* Rebuilt from the reference image: a bullpup in brushed steel. Big rounded carry handle loop over the receiver with the aperture sight in its rear posts, a tall front post on the long barrel,
    a vented muzzle brake, a sawtooth-textured handguard panel on both sides, pistol grip with the magazine BEHIND it, and a slab butt pad. Built along +z, muzzle at about z = 1.0. 3 rounds per trigger pull. */
-W.TRB={n:'TRB-3 Turbine',d:32,r:.062,m:27,sp:.004,rc:1.05,pel:1,au:0,burst:3,bd:.2,rl:2.3,len:.75,col:0x9a9ea3};
+W.TRB={n:'TRB-3 Turbine',d:36,r:.055,m:36,sp:.004,rc:.95,pel:1,au:0,burst:3,bd:.14,rl:2.1,len:.75,col:0x9a9ea3};
 PRI.splice(2,0,'TRB');WG.TRB=[1,0x9a9ea3,1,0xffcc70];RLK.TRB='mag';BOTGUNS.push('TRB');
 MODELS.TRB=function(g,rm){const k=gunKit(g,rm),M=k.M,body=rm||M(0x959a9f),dk=M(0x2a2c2f),blk=M(0x121315),gr=M(0x55595e),steel=M(0xb4b9be),dark2=M(0x3b3e42);
  /* main body: long slab, lower rear block, tapered nose */

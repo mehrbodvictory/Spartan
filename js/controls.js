@@ -31,7 +31,7 @@ const sprinting=()=>(P.spr||0)>.55;
 function actCrouch(){if(P.dead)return;if(sprinting()&&ST.slide<=0){ST.slide=.85;ST.crouch=0;ST.prone=0;return}ST.prone=0;ST.crouch=ST.crouch?0:1}
 function actProne(){if(P.dead)return;if(sprinting()&&ST.dive<=0){ST.dive=.5;ST.crouch=0;ST.prone=0;P.vy=3.5;P.on=0}else{ST.crouch=0;ST.prone=ST.prone?0:1}}
 function actJumpPress(){if(ST.crouch||ST.prone){ST.crouch=ST.prone=0;ST.sj=1}}
-function actAds(on){ST.adsIn=on?1:0;if(typeof zDashIn=='function')zDashIn(on)}
+function actAds(on){if(on&&typeof cw=='function'&&cw()&&cw().dual&&!(typeof MV!='undefined'&&MV.eq))on=0;ST.adsIn=on?1:0;if(typeof zDashIn=='function')zDashIn(on)}
 function actTactical(){if(P.dead||ST.tN<=0)return;ST.tN--;const d=aimDir(),m=new THREE.Mesh(sg,new THREE.MeshLambertMaterial({color:0xeeeeee,emissive:0x555555}));m.scale.setScalar(.1);S.add(m);grs.push({m,p:C.position.clone(),v:d.multiplyScalar(14).add(V(0,3,0)),t:1.3,g:{fuse:1.3,R:0,d:0,imp:0,tac:1}});msg('Flashbang · '+ST.tN+' left',1)}
 function flashBoom(p){burst(p,40,0xffffff,9,.5,.25);beep(2400,.5,'sine',.08);for(const b of bots){if(!b.al||(typeof ally=='function'&&ally(b)&&b.team!='z')||b.net)continue;const d=Math.hypot(b.x-p.x,b.z-p.z);if(d<18&&navLos(p.x,p.z,b.x,b.z))b.stun=Math.max(b.stun||0,3.5*(1-d/26))}
  const d=Math.hypot(P.x-p.x,P.z-p.z);if(d<22&&!P.dead){const v=V(p.x-C.position.x,p.y-C.position.y,p.z-C.position.z).normalize(),dot=aimDir().dot(v);ST.flash=Math.max(ST.flash,2.4*(1-d/22)*(dot>0?1:.35))}}
@@ -145,28 +145,49 @@ function padPlay(g,dt){const lx=gpDz(g.axes[0],.2),ly=gpDz(g.axes[1],.2),rx=gpDz
  key.KeyA=lx<-.2;key.KeyD=lx>.2;key.KeyW=ly<-.2;key.KeyS=ly>.2;if(key.KeyS)ST.auto=0;
  {const l3=gpBtn(g,10);if(gpEdgeOf('l3',l3)){if(ST.ads>.4)actSteady();else{if(t0-ST.lastShift<.32&&ST.tacCd<=0)ST.tac=4;ST.lastShift=t0}}gpSprint=(l3&&ST.ads<=.4)?1:0}key.ShiftLeft=!!gpSprint;
  const cv=v=>Math.sign(v)*Math.pow(Math.abs(v),1.7);yaw-=cv(rx)*dt*3.4*sens*fr;pitch=cl(pitch-cv(ry)*dt*2.5*sens*fr,-1.45,1.45);
- const lt=gpVal(g,6)>.4;actAds(lt);const rt=gpVal(g,7)>.35;if(rt&&!gpTrig){gpTrig=1;trig=1;fresh=1}else if(!rt&&gpTrig){gpTrig=0;trig=0}
+ const dw=cw()&&cw().dual&&!MV.eq,lt0=gpVal(g,6)>.4,lt=dw?false:lt0;DS.L=dw&&lt0;DS.R=dw&&gpVal(g,7)>.35;actAds(lt);const rt=dw?(DS.L||DS.R):gpVal(g,7)>.35;if(rt&&!gpTrig){gpTrig=1;trig=1;fresh=1}else if(!rt&&gpTrig){gpTrig=0;trig=0}
  key.Space=gpBtn(g,0);if(gpEdgeOf('a',key.Space))actJumpPress();
  holdBtn('b',gpBtn(g,1),dt,actCrouch,actProne,.4);
  const xh=holdBtn('x',gpBtn(g,2),dt,startRel,actInteract,.35);key.KeyF=!!xh;
  holdBtn('y',gpBtn(g,3),dt,actSwapNext,null,.5);
  bumpers(dt,gpBtn(g,4),gpBtn(g,5),actTactical,throwG,actField);
- if(gpEdgeOf('r3',gpBtn(g,11))){if(lt)actMount();else melee()}
+ {const r3=gpBtn(g,11);if(r3&&!PG.r3){if(lt)actMount();else mvDown()}else if(!r3&&PG.r3&&MV.down)mvUp();PG.r3=r3}
  if(gpEdgeOf('du',gpBtn(g,12)))actPing();holdBtn('dd',gpBtn(g,13),dt,actInv,actNV,.5);if(gpEdgeOf('dl',gpBtn(g,14)))actFireMode();if(gpEdgeOf('dr',gpBtn(g,15)))useStreak(0);
  const vh=holdBtn('v',gpBtn(g,8),dt,actMap,()=>actSb(1),.3);if(!gpBtn(g,8)&&ST.sbOn&&gpHS.v&&!gpHS.v.on)actSb(0);
  if(gpEdgeOf('st',gpBtn(g,9)))pausePad()}
 /* ---------- menus with the controller: spatial focus, A press, B back, left/right changes drop-downs and sliders ---------- */
 const vis=e=>e.getClientRects().length>0&&e.getBoundingClientRect().width>1;
 function menuBox(){return['#osk','#dev','#pause','#end','#home','#menu'].map(s=>document.querySelector(s)).find(c=>c&&vis(c)&&getComputedStyle(c).display!='none')}
-function clickables(box){const out=[];for(const e of box.querySelectorAll('*')){if(!vis(e))continue;const t=e.tagName;if(t=='BUTTON'||t=='SELECT'||t=='INPUT'||t=='TEXTAREA'||e.onclick||getComputedStyle(e).cursor=='pointer')out.push(e)}return out.filter(e=>!out.some(o=>o!==e&&e.contains(o)))}
+function clickables(box){const out=[],cs=e=>getComputedStyle(e).cursor=='pointer';
+ for(const e of box.querySelectorAll('*')){if(!vis(e)||e.disabled)continue;const t=e.tagName,nat=t=='BUTTON'||t=='SELECT'||t=='INPUT'||t=='TEXTAREA'||(t=='A'&&e.href);
+  /* a native control, or the root of a clickable region (cursor: pointer is inherited, so only the outermost element of a region counts) */
+  if(nat||e.onclick||(cs(e)&&!(e.parentElement&&e.parentElement!==box&&cs(e.parentElement)))){if(!nat&&!e.hasAttribute('tabindex'))e.setAttribute('tabindex','-1');out.push(e)}}
+ /* things nested inside a native control (a <b> inside a <button>) belong to it; plain clickable wrappers yield to what they contain */
+ const nt=e=>e.tagName=='BUTTON'||e.tagName=='SELECT'||e.tagName=='INPUT'||e.tagName=='TEXTAREA'||(e.tagName=='A'&&e.href);
+ return out.filter(e=>!out.some(o=>o!==e&&((o.contains(e)&&nt(o))||(e.contains(o)&&!nt(e)))))}
 function spatial(els,cur,dx,dy){const r=cur.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let best=null,bs=1e9;for(const e of els){if(e===cur)continue;const q=e.getBoundingClientRect(),vx=q.left+q.width/2-cx,vy=q.top+q.height/2-cy,along=vx*dx+vy*dy;if(along<=2)continue;const s=along+Math.abs(vx*dy-vy*dx)*2.2;if(s<bs){bs=s;best=e}}return best}
 function menuAct(el,back){const t=el.tagName;if(t=='SELECT'){el.selectedIndex=(el.selectedIndex+(back?el.options.length-1:1))%el.options.length;el.dispatchEvent(new Event('change',{bubbles:true}))}else if(t=='INPUT'&&el.type=='range'){}else if((t=='INPUT'&&el.type!='checkbox'&&el.type!='range')||t=='TEXTAREA')openOSK(el);else if(el.id=='resume')resumeAny();else el.click()}
-function menuNav(g,dt){const box=menuBox();if(!box)return;const els=clickables(box);if(!els.length)return;let cur=els.includes(document.activeElement)?document.activeElement:null;
- if(!cur){cur=els[0];cur.focus()}gpT-=dt;const up=gpBtn(g,12)||g.axes[1]<-.6,dn=gpBtn(g,13)||g.axes[1]>.6,lf=gpBtn(g,14)||g.axes[0]<-.6,rt=gpBtn(g,15)||g.axes[0]>.6;if(!(up||dn||lf||rt))gpT=0;
- if((up||dn||lf||rt)&&gpT<=0){gpT=.2;const isSel=cur.tagName=='SELECT',isRng=cur.type=='range';if((lf||rt)&&(isSel||isRng)){if(isSel){cur.selectedIndex=cl(cur.selectedIndex+(rt?1:-1),0,cur.options.length-1);cur.dispatchEvent(new Event('change',{bubbles:true}))}else{const s=+cur.step||1;cur.value=+cur.value+(rt?s:-s);cur.dispatchEvent(new Event('input',{bubbles:true}));cur.dispatchEvent(new Event('change',{bubbles:true}))}}
-  else{const n=spatial(els,cur,lf?-1:rt?1:0,up?-1:dn?1:0);if(n){n.focus();n.scrollIntoView({block:'nearest',inline:'nearest'})}}}
- if(gpEdgeOf('a',gpBtn(g,0)))menuAct(document.activeElement&&els.includes(document.activeElement)?document.activeElement:cur);
- if(gpEdgeOf('b',gpBtn(g,1))){if(box.id=='osk')closeOSK();else if(box.id=='pause')resumeAny();else{const b=$('#back');if(b&&vis(b))b.click();else{const t=$('#tomenu');if(t&&vis(t))t.click()}}}
+function menuNav(g,dt){
+ /* podium after a match: the four face buttons are the four emotes */
+ {const f=$('#fin');if(f&&typeof fin!='undefined'&&fin&&f.getClientRects().length){for(let i=0;i<4;i++)if(gpEdgeOf('fe'+i,gpBtn(g,i))){const e=f.querySelector('[data-e="'+i+'"]');e&&e.click()}return}}
+ const box=menuBox();if(!box)return;const els=clickables(box);if(!els.length)return;
+ const OK=PG.type=='ns'?1:0,BK=PG.type=='ns'?0:1;/* Nintendo layout: the right-hand button (A) confirms, the bottom one (B) goes back */
+ let cur=els.includes(document.activeElement)?document.activeElement:null;
+ if(!cur){cur=els[0];cur.focus()}gpT-=dt;
+ const up=gpBtn(g,12)||g.axes[1]<-.6,dn=gpBtn(g,13)||g.axes[1]>.6,lf=gpBtn(g,14)||g.axes[0]<-.6,rt=gpBtn(g,15)||g.axes[0]>.6;
+ if(!(up||dn||lf||rt)){gpT=0;PG.rep=0}
+ if((up||dn||lf||rt)&&gpT<=0){PG.rep=(PG.rep||0)+1;gpT=PG.rep>5?.06:.2;const isSel=cur.tagName=='SELECT',isRng=cur.type=='range';
+  if((lf||rt)&&(isSel||isRng)){if(isSel){cur.selectedIndex=cl(cur.selectedIndex+(rt?1:-1),0,cur.options.length-1);cur.dispatchEvent(new Event('change',{bubbles:true}))}else{const s=(+cur.step||1)*(PG.rep>5?3:1);cur.value=+cur.value+(rt?s:-s);cur.dispatchEvent(new Event('input',{bubbles:true}));cur.dispatchEvent(new Event('change',{bubbles:true}))}}
+  else{let n=spatial(els,cur,lf?-1:rt?1:0,up?-1:dn?1:0);
+   /* nothing lies in that direction: fall back to the next or previous control in page order, so nothing is ever out of reach */
+   if(!n){const i=els.indexOf(cur);n=els[(i+((dn||rt)?1:-1)+els.length)%els.length]}
+   if(n){n.focus();n.scrollIntoView({block:'nearest',inline:'nearest'})}}}
+ /* LB / RB: previous / next loadout slot, or previous / next main menu tab */
+ {const lb=gpEdgeOf('mlb',gpBtn(g,4)),rb=gpEdgeOf('mrb',gpBtn(g,5));if((lb||rb)&&box.id!='osk'){const tabs=[...box.querySelectorAll('.lo-tabs .lt')].filter(vis),nav=box.id=='menu'?[...document.querySelectorAll('#nav button')].filter(b=>vis(b)&&b.id!='back'):[],list=tabs.length?tabs:nav;
+   if(list.length){let i=list.findIndex(b=>b.classList.contains('on')||b.classList.contains('act')||b.classList.contains('sel'));if(i<0)i=list.indexOf(document.activeElement);if(i<0)i=PG.tabI||0;i=(i+(rb?1:-1)+list.length)%list.length;PG.tabI=i;list[i].click();if(!tabs.length)setTimeout(()=>{const f=clickables(box).find(e=>e!==list[i]&&!e.closest('#nav'));f&&f.focus&&f.focus()},60)}}}
+ if(box.id=='osk'){const k=c=>{const b=box.querySelector('[data-k="'+c+'"]');b&&b.click()};if(gpEdgeOf('ox',gpBtn(g,2)))k('⌫');if(gpEdgeOf('oy',gpBtn(g,3)))k(' ');if(gpEdgeOf('os',gpBtn(g,9)))k('OK')}
+ if(gpEdgeOf('a',gpBtn(g,OK)))menuAct(document.activeElement&&els.includes(document.activeElement)?document.activeElement:cur);
+ if(gpEdgeOf('b',gpBtn(g,BK))){if(box.id=='osk')closeOSK();else if(box.id=='pause')resumeAny();else{const b=$('#back');if(b&&vis(b))b.click();else{const t=$('#tomenu');if(t&&vis(t))t.click()}}}
  if(gpEdgeOf('s',gpBtn(g,9))&&box.id=='pause')resumeAny()}
 /* ---------- on-screen keyboard (used by controller and VR for the name and match code boxes) ---------- */
 let oskT=null;
@@ -177,9 +198,9 @@ function closeOSK(){const o=$('#osk');o.style.display='none';oskT=null}
 function inputTick(dt){if(xrS){vrPre(dt);return}
  const g=gpGet();if(!g){if(usingPad&&gpTrig){gpTrig=0;trig=0}return}
  const any=g.buttons.some(b=>b.pressed)||g.axes.some(a=>Math.abs(a)>.5);
- if(!usingPad&&any){usingPad=true;$('#hint').textContent='Controller: LS move · RS look · RT fire · LT aim · A jump · B crouch (hold prone) · X reload (hold use) · Y swap · LB tactical · RB lethal · LB+RB field upgrade · L3 sprint · R3 knife · D-pad ping/fire mode/killstreak · Start pause'}
+ PG.sync(g,any);
  if(!usingPad)return;if(inMatch())padPlay(g,dt);else{if(gpTrig){gpTrig=0;trig=0}if(ST.adsIn)actAds(0);menuNav(g,dt)}}
-addEventListener('gamepadconnected',()=>{usingPad=true});
+addEventListener('gamepadconnected',e=>{PG.sync(e.gamepad,true)});addEventListener('gamepaddisconnected',()=>{if(!gpGet())PG.setOn(false)});
 /* ---------------- VR ---------------- */
 if(R.xr)xrCtl=[0,1].map(i=>{const c=R.xr.getController(i);c.addEventListener('connected',e=>{c.userData.hand=e.data.handedness;c.userData.gp=e.data.gamepad});c.addEventListener('disconnected',()=>{c.userData.hand=null;c.userData.gp=null});return c});
 const vrHand=h=>xrCtl.find(c=>c.userData.hand==h)||null;
@@ -467,3 +488,43 @@ function nfImpact(f,n){setTimeout(()=>{nfHit(n);const q=V(P.x+f.x*1.7,1.25,P.z+f
     for(const f of u.fl){const fl=inten*(.78+.28*Math.sin(t0*46+f.ph)+.12*Math.sin(t0*83+f.ph*2));f.p.scale.set(.8+NF.boost*.5,Math.max(.25,fl),.8+NF.boost*.5)}u.core.scale.setScalar(.022+Math.sin(t0*5+(s>0?0:1.5))*.004+NF.boost*.012)}}
   if(on!==!!NF.out){NF.out=on?1:0;nfIdle(on);if(on){NF.rev=0;beep(90,.2,'sawtooth',.03)}}
   if(on&&FI.t>0&&NF.al<=0){NF.al=.035;const a=FI.side?fpArm.r.hand:fpArm.l.hand;if(a){const p=new THREE.Vector3();a.getWorldPosition(p);burst(p,2,0x59cdff,3,.22,.05)}}NF.al-=dt}catch(e){}}}
+
+/* ===================== pads.js ===================== */
+/* ---------- controller prompts: every on-screen button hint shows the buttons printed on YOUR controller (Xbox, PlayStation, Nintendo or Ouya).
+   The type is read from the gamepad id (Settings can force one). The same physical buttons do the same jobs on every pad; only the names and symbols change.
+   Nintendo pads also swap confirm and back in the menus (the right-hand button confirms), like every Nintendo game. Hints in the HUD, the menus and the help lists all follow. ---------- */
+const PG={on:false,type:'xbox',pref:'auto',tabI:0,rep:0,r3:false,dirty:1,h0:null,
+ L:{xbox:{a:'A',b:'B',x:'X',y:'Y',lb:'LB',rb:'RB',lt:'LT',rt:'RT',view:'View',menu:'Menu',ls:'LS',rs:'RS',name:'Xbox'},
+  ps:{a:'✕',b:'○',x:'□',y:'△',lb:'L1',rb:'R1',lt:'L2',rt:'R2',view:'Create',menu:'Options',ls:'L3',rs:'R3',name:'PlayStation'},
+  ns:{a:'B',b:'A',x:'Y',y:'X',lb:'L',rb:'R',lt:'ZL',rt:'ZR',view:'−',menu:'+',ls:'L-Stick',rs:'R-Stick',name:'Nintendo'},
+  ouya:{a:'O',b:'A',x:'U',y:'Y',lb:'L1',rb:'R1',lt:'L2',rt:'R2',view:'System',menu:'Menu',ls:'L3',rs:'R3',name:'Ouya'}},
+ /* what each job is bound to (same on every pad): b = button, h = it needs a hold */
+ A:{use:{b:'x',h:1},melee:{b:'rs'},reload:{b:'x'},tactical:{b:'lb'},lethal:{b:'rb'},field:{b:'lb+rb'},crouch:{b:'b'},prone:{b:'b',h:1},jump:{b:'a'},sprint:{b:'ls'},fire:{b:'rt'},aim:{b:'lt'},swap:{b:'y'},ks:{b:'dright'},ping:{b:'dup'},mode:{b:'dleft'},nv:{b:'ddown',h:1},map:{b:'view'},sb:{b:'view',h:1},pause:{b:'menu'},mount:{b:'lt+rs'}},
+ KBM:{F:'use',V:'melee',R:'reload',Q:'tactical',E:'lethal',X:'field',C:'crouch',Space:'jump',T:'mount',B:'mode',N:'nv',M:'map',Tab:'sb',MMB:'ping',Esc:'pause'},
+ detect(g){const id=((g&&g.id)||'').toLowerCase();if(/ouya|2836/.test(id))return'ouya';if(/054c|dualshock|dualsense|playstation|ps[345]|sony|wireless controller/.test(id))return'ps';if(/057e|nintendo|switch|pro controller|joy-?con|wii/.test(id))return'ns';return'xbox'},
+ b(s){const l=PG.L[PG.type],d={dup:'D-pad ↑',ddown:'D-pad ↓',dleft:'D-pad ←',dright:'D-pad →'};return s.split('+').map(x=>d[x]||l[x]||x).join(' + ')},
+ /* the label of one job, e.g. PG.l('use') = "hold □" on PlayStation */
+ l(a){const d=PG.A[a];return d?(d.h?'hold ':'')+PG.b(d.b):a},
+ ok(){return PG.L[PG.type][PG.type=='ns'?'b':'a']},back(){return PG.L[PG.type][PG.type=='ns'?'a':'b']},
+ /* "Press F to open" -> "Hold □ to open" (only the known key words are touched) */
+ t(s){if(!PG.on||typeof s!='string')return s;return s.replace(/\b(Press|Hold|Tap) (F|V|R|E|Q|X|C|T|B|N)\b/g,(m,v,k)=>{const a=PG.KBM[k],d=a&&PG.A[a];return d?(d.h?'Hold ':v+' ')+PG.b(d.b):m})},
+ hint(){const l=PG.L[PG.type];return `${l.name} controller: ${l.ls} move · ${l.rs} look · ${l.rt} fire · ${l.lt} aim · ${PG.b('a')} jump · ${PG.b('b')} crouch (hold prone) · ${PG.b('x')} reload (hold use / buy / revive) · ${PG.b('y')} swap · ${l.lb} tactical · ${l.rb} lethal · ${l.lb}+${l.rb} field upgrade · ${l.ls} sprint · ${l.rs} melee (hold: draw it) · D-pad ↑ ping · D-pad ← fire mode · D-pad → killstreak · ${PG.b('view')} map · ${PG.b('menu')} pause`},
+ help(){const l=PG.L[PG.type],k=(a,t)=>`<span><kbd class="pg">${a}</kbd> ${t}</span>`;return [k(l.ls,'move'),k(l.rs,'look'),k(l.ls+' held','sprint (click twice: tactical sprint, or steady aim while aiming)'),k(l.rs+' click','tap: melee strike · hold: draw your melee weapon (Nitrogen Fists: then aim = DASH) · '+l.lt+' + '+l.rs+' weapon mount'),k(l.lt,'aim'),k(l.rt,'fire'),k(l.lb,'tactical'),k(l.rb,'lethal'),k(l.lb+' + '+l.rb,'field upgrade'),
+  k(PG.b('a'),'jump / stand / mantle'),k(PG.b('b'),'crouch / slide, hold: prone / dive'),k(PG.b('x'),'reload, hold: interact / buy / revive'),k(PG.b('y'),'swap weapon'),k('D-pad ↑','ping'),k('D-pad ↓','inventory, hold: night vision'),k('D-pad ←','fire mode'),k('D-pad →','killstreak'),k(PG.b('view'),'map, hold: scoreboard'),k(PG.b('menu'),'pause'),
+  k('D-pad / stick','menus: move'),k(PG.ok(),'menus: press'),k(PG.back(),'menus: back'),k(l.lb+' / '+l.rb,'menus: previous / next tab or loadout slot'),k(PG.b('x')+' / '+PG.b('y'),'on-screen keyboard: backspace / space')].join('')},
+ setOn(on){if(on===PG.on)return;PG.on=on;usingPad=on;PG.dirty=1;PG.refresh()},
+ sync(g,any){if(g){const t=PG.pref=='auto'?PG.detect(g):PG.pref;if(t!==PG.type){PG.type=t;PG.dirty=1}}if(any&&!PG.on){PG.on=true;usingPad=true;PG.dirty=1}if(PG.dirty)PG.refresh()},
+ refresh(){PG.dirty=0;if(PG.busy)return;PG.busy=1;try{const h=$('#hint');if(h){if(PG.h0==null)PG.h0=h.textContent;const w=PG.on?PG.hint():PG.h0;if(h.textContent!==w)h.textContent=w}
+  for(const k of document.querySelectorAll('kbd')){if(k.closest('[data-pgskip]'))continue;const o=k.dataset.k0!=null?k.dataset.k0:(k.dataset.k0=k.textContent);let t=o;if(PG.on){const a=PG.KBM[o];if(a&&PG.A[a])t=PG.b(PG.A[a].b);else if(o=='LB'||o=='RB')t=PG.L[PG.type][o.toLowerCase()]}if(k.textContent!==t)k.textContent=t;k.classList.toggle('pg',PG.on&&t!==o)}
+  if(PG.ctlB){const w=PG.on?PG.L[PG.type].name:'';PG.ctlH.textContent='Controller'+(w?' · '+w:'');const hh=PG.help();if(PG.ctlB.dataset.t!==hh){PG.ctlB.dataset.t=hh;PG.ctlB.innerHTML=hh}}
+  const s=$('#pgs');if(s&&s.value!==PG.pref)s.value=PG.pref}finally{PG.busy=0;if(PG.mo)PG.mo.takeRecords()}},
+ init(){const h=$('#hint');if(h)PG.h0=h.textContent;for(const e of document.querySelectorAll('#p-set h2')){const n=e.nextElementSibling;if(!n)continue;if(/Keyboard|VR/.test(e.textContent))n.dataset.pgskip=1;if(/^Controller/.test(e.textContent)){PG.ctlH=e;PG.ctlB=n;n.dataset.pgskip=1}}
+  try{const p=localStorage.getItem('sd-pad');if(p&&(p=='auto'||PG.L[p]))PG.pref=p}catch(e){}
+  const s=$('#pgs');if(s){s.value=PG.pref;s.addEventListener('change',()=>{PG.pref=s.value;try{localStorage.setItem('sd-pad',PG.pref)}catch(e){}const g=gpGet();PG.type=PG.pref=='auto'?(g?PG.detect(g):'xbox'):PG.pref;PG.dirty=1;PG.refresh()})}
+  /* menus and panels re-render themselves: translate their hints again whenever they change */
+  let tm=0;PG.mo=new MutationObserver(()=>{if(PG.busy||tm)return;tm=setTimeout(()=>{tm=0;PG.refresh()},80)});PG.mo.observe(document.body,{childList:true,subtree:true});
+  /* back to keyboard and mouse: the hints switch back too */
+  const off=()=>{if(PG.on)PG.setOn(false)};addEventListener('keydown',e=>{if(e.isTrusted)off()},true);addEventListener('mousedown',off,true);let mx=0;addEventListener('mousemove',e=>{mx+=Math.abs(e.movementX||0)+Math.abs(e.movementY||0);if(mx>40){mx=0;off()}else setTimeout(()=>{mx=0},400)},true);
+  const g=gpGet();if(g){PG.type=PG.pref=='auto'?PG.detect(g):PG.pref}PG.refresh()}};
+{const _m=msg;msg=function(t,d){return _m(PG.t(t),d)};const _p=popup;popup=function(a,b){return _p(a,PG.t(b))}}
+PG.init();

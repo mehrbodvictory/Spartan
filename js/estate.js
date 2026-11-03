@@ -212,9 +212,9 @@ MAPS['Hollow Estate']={d:'Zombies map: the Hollow Estate, an abandoned Victorian
   {x:-29,z:14,w:3.6,d:.5,c:1000,a:1,b:5,n:'Library',s:'wood'},{x:29,z:14,w:3.6,d:.5,c:1000,a:2,b:6,n:'Billiard Room',s:'wood'},{x:-29,z:-6,w:3.6,d:.5,c:1250,a:5,b:4,n:'Kitchen',s:'wood'},{x:29,z:-6,w:3.6,d:.5,c:1250,a:6,b:7,n:'Study',s:'wood'},
   {x:0,z:-6,w:4.6,d:.5,c:1750,a:3,b:8,n:'Conservatory',s:'wood'},{x:0,z:32,w:6.2,d:.6,c:2000,a:0,b:11,n:'Front Gate',s:'iron'},{x:0,z:-24,w:5.2,d:.6,c:2250,a:8,b:9,n:'Garden',s:'glass'},
   {x:-29,z:-24,w:3.4,d:.6,c:2000,a:4,b:9,n:'Back Door',s:'wood'},{x:34,z:-37,w:3.6,d:.7,c:2500,a:9,b:10,n:'Crypt',s:'stone'}],
- mc:[{t:'rev',x:-18.8,z:30.85,f:'n'},{t:'vit',x:18.8,z:30.85,f:'n'},{t:'dbl',x:-15.0,z:9.5,f:'e'},{t:'mule',x:-17.1,z:10,f:'w'},{t:'spd',x:-17.1,z:-9.8,f:'w'},{t:'stam',x:19.5,z:13.0,f:'n'},{t:'pap',x:34,z:-48.7,f:'s'},
+ mc:[{t:'rev',x:-12.2,z:30.85,f:'n'},{t:'vit',x:18.8,z:30.85,f:'n'},{t:'dbl',x:-15.0,z:9.5,f:'e'},{t:'mule',x:-17.1,z:10,f:'w'},{t:'spd',x:-17.1,z:-9.8,f:'w'},{t:'stam',x:19.5,z:13.0,f:'n'},{t:'pap',x:34,z:-48.7,f:'s'},
   {t:'box',x:-36.2,z:15.0,f:'s'},{t:'box',x:21,z:15.0,f:'s'},{t:'box',x:10,z:-25.4,f:'n'},
-  {t:'wall',k:'MP',x:-15.5,z:28.3,f:'e'},{t:'wall',k:'MG',x:15.5,z:28.3,f:'w'},{t:'wall',k:'SG',x:-41.35,z:28.5,f:'e'},{t:'wall',k:'SMG',x:41.35,z:28.5,f:'w'},{t:'wall',k:'AR',x:-8.5,z:-5.5,f:'s'},{t:'wall',k:'BR',x:8.5,z:-5.5,f:'s'},
+  {t:'wall',k:'MP',x:-15.5,z:28.3,f:'e'},{t:'wall',k:'MG',x:15.5,z:28.3,f:'w'},{t:'wall',k:'SG',x:-41.35,z:28.5,f:'e'},{t:'wall',k:'SMG',x:41.35,z:28.5,f:'w'},{t:'wall',k:'DS',x:41.35,z:24.4,f:'w'},{t:'wall',k:'AR',x:-8.5,z:-5.5,f:'s'},{t:'wall',k:'BR',x:8.5,z:-5.5,f:'s'},
   {t:'wall',k:'TRB',x:-41.35,z:10.5,f:'e'},{t:'wall',k:'VMP',x:21,z:-5.5,f:'s'},{t:'wall',k:'MVR',x:-36.5,z:-23.35,f:'s'},{t:'wall',k:'TUR',x:21,z:-6.5,f:'n'},{t:'wall',k:'KT',x:37.5,z:-6.5,f:'n'},{t:'wall',k:'SN',x:41.35,z:-20,f:'w'},
   {t:'wall',k:'CY',x:-9,z:-6.5,f:'n'},{t:'wall',k:'RL',x:-33.2,z:-24.75,f:'n'},{t:'wall',k:'MP',x:-6.8,z:32.75,f:'s'},
   {t:'ammo',x:-8,z:30.95,f:'n'},{t:'ammo',x:-40.9,z:18,f:'e'},{t:'ammo',x:15.1,z:9.5,f:'w'},{t:'ammo',x:-39.5,z:-22.9,f:'s'},{t:'ammo',x:17.0,z:-9.5,f:'e'},{t:'ammo',x:40.9,z:10,f:'w'},{t:'ammo',x:-10,z:-25.3,f:'n'},{t:'ammo',x:45.0,z:-44,f:'w'}],
@@ -422,7 +422,7 @@ function estPost(g){EST.tm=0;const meshes=EST.bk.build(g);for(const o of EST.pen
  for(const k in PT){const s=PT[k];if(!s.p.length)continue;const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(s.p,3));const col=new THREE.Float32BufferAttribute(s.c.slice(),3);col.setUsage&&col.setUsage(THREE.DynamicDrawUsage);geo.setAttribute('color',col);
   const m=new THREE.Points(geo,new THREE.PointsMaterial({map:k=='s'?smoke:glow,size:s.size,vertexColors:true,transparent:true,depthWrite:false,blending:k=='s'?THREE.NormalBlending:THREE.AdditiveBlending,fog:true,opacity:k=='s'?.35:1}));m.frustumCulled=false;g.add(m);EST.ptm[k]={m,col,s}}
  /* point lights: a pool that follows you (the real lights are expensive, the glow is cheap) */
- EST.pool=[];for(let i=0;i<10;i++){const L=new THREE.PointLight(0xffaa66,0,18,1.6);g.add(L);EST.pool.push({L,s:null})}
+ EST.pool=[];for(let i=0;i<6;i++){const L=new THREE.PointLight(0xffaa66,0,18,1.6);g.add(L);EST.pool.push({L,s:null})}
  for(const sp of EST.spots){sp.cur=0;sp.want=0;sp.L=null}
  /* clock pendulums */
  EST.pend2=[];for(const p of EST.pendulum||[]){const pg=new THREE.Group(),lb=mkBake();pg.position.set(p.x,p.y,p.z);pg.rotation.order='YXZ';pg.rotation.y=p.yaw;lb.rod(0,0,0,0,-.75,0,.012,.012,EC.brass,'g',4);lb.cyl(0,-.88,0,.1,.1,.03,EC.brass,'g',12,PI/2);lb.build(pg);g.add(pg);EST.dyn.push({tick(dt,t){pg.rotation.z=Math.sin(t*3.1)*.22}})}
@@ -554,29 +554,54 @@ function estBox(m,idx){const g=new THREE.Group(),f=eFace(m.f),[fx,fz]=eFwd(m.f);
  o.beam=new THREE.Mesh(new THREE.CylinderGeometry(.55,.9,7,16,1,true),eBasic(0xffd24a,.2,1));o.beam.position.set(0,4.2,0);o.beam.visible=false;g.add(o.beam);o.lab=zSprite('','#ffd24a',.42,1);o.lab.position.set(0,2.7,0);o.lab.visible=false;g.add(o.lab);
  o.wm=new THREE.Group();o.wm.userData.dyn=1;o.wm.position.set(0,1.6,0);g.add(o.wm);o.models={};o.halo=new THREE.Sprite(new THREE.SpriteMaterial({map:estTx('glow'),color:0xffd24a,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));o.halo.scale.set(3,3,1);o.halo.position.set(0,1.6,0);g.add(o.halo);
  o.sp={x:m.x,y:1.4,z:m.z,col:0xffd24a,I:0,d:12,fl:.5,ph:0,cur:0,want:0,L:null};EST.spots.push(o.sp);
- eFlatten(g,.7,.2);const[ww,dd]=eSwap(m.f,2.0,1.1);zSolid(m.x,m.z,ww,dd,.95);zG.add(g);zboxes.push(o);EST.objs.boxes.push(o);
- zi.push({x:m.x,z:m.z,r:3.2,txt:()=>o.st==0?'Mystery Box':o.st==2&&o.by==zMe()?'Take the '+zItemName(o.item):'',cost:()=>o.st==0?zBoxCost():0,act:()=>zBoxAct(o,idx)})}
+ eFlatten(g,.7,.2);const[ww,dd]=eSwap(m.f,2.0,1.1);o.sw=[m.x,m.z,ww,dd];o.on=false;g.visible=false;zG.add(g);zboxes.push(o);EST.objs.boxes.push(o);
+ zi.push({x:m.x,z:m.z,r:3.2,txt:()=>!o.on||o.st==3?'':o.st==0?'Mystery Box':o.st==2&&o.by==zMe()?'Take the '+zItemName(o.item):'',cost:()=>o.st==0?zBoxCost():0,act:()=>zBoxAct(o,idx)})}
 let o_inner=null;
 function estBoxState(o,st){if(st==1){burst(V(o.m.x,1,o.m.z),22,0xffd24a,6,.7,.12);noise(.25,300,.2);beep(160,.4,'triangle',.07)}else if(st==0){while(o.wm.children.length)o.wm.remove(o.wm.children[0]);o.cur=null;noise(.2,200,.2)}}
 function estBoxShow(o,k,fin){if(o.cur!==k||fin){while(o.wm.children.length)o.wm.remove(o.wm.children[0]);const it=eGunModel(k,fin?1.4:1.15);o.wm.add(it);o.cur=k}if(fin){burst(V(o.m.x,1.9,o.m.z),26,k=='RG'||k=='NF'?0xff4a4a:0x7bf08a,6,.7,.12);shake=Math.max(shake,.15)}}
-function estBoxTick(o,dt,t){const open=o.st>0?-1.9:0,fire=zq.pu&&zq.pu.fire>0;o.lid.rotation.x+=(open-o.lid.rotation.x)*Math.min(1,dt*(o.st>0?9:6));const opn=Math.min(1,-o.lid.rotation.x/1.6);o.inner.visible=opn>.1;o.inner.material.color.setHex(fire?0xff6ab8:0xffd24a);
+function estBoxTick(o,dt,t){const open=o.st==3?-1.9*Math.max(0,Math.sin(t*26)):o.st>0?-1.9:0,fire=zq.pu&&zq.pu.fire>0;
+ if(o.st==3){o.g.rotation.z=Math.sin(t*55)*.05*Math.min(1,o.t*2);o.g.position.y=Math.max(0,Math.sin(t*34))*.06;if(Math.random()<dt*30)burst(V(o.m.x+(Math.random()-.5)*1.4,.8+Math.random()*.6,o.m.z+(Math.random()-.5)*1.4),1,0xff4a4a,2.5,.5,.1)}else if(o.drop>0){o.drop-=dt*1.9;o.g.position.y=Math.max(0,o.drop*o.drop*16);if(o.drop<=0){o.g.position.y=0;burst(V(o.m.x,.2,o.m.z),34,0xc9a23a,6,.9,.16);burst(V(o.m.x,.1,o.m.z),18,0x8a8070,4,.8,.2);noise(.4,120,.5);beep(70,.3,'sawtooth',.1);shake=Math.max(shake,.45)}}else{o.g.rotation.z=0}o.lid.rotation.x+=(open-o.lid.rotation.x)*Math.min(1,dt*(o.st>0?9:6));const opn=Math.min(1,-o.lid.rotation.x/1.6);o.inner.visible=opn>.1;o.inner.material.color.setHex(fire?0xff6ab8:0xffd24a);
  const tc=fire?0xff6ab8:0xffd24a;o.beam.material.color.setHex(tc);o.halo.material.color.setHex(tc);o.halo.material.opacity=opn*(.55+.15*Math.sin(t*7));o.sp.I=opn*1.9;o.sp.col=tc;
  if(o.st>0){const rise=o.st==2?1.7:1.25+.2*Math.sin(o.t*10);o.wm.position.y+=(rise-o.wm.position.y)*Math.min(1,dt*5);o.wm.rotation.y+=dt*(o.st==2?1.8:6);if(o.st==1&&Math.random()<dt*20)burst(V(o.m.x,1.4,o.m.z),1,tc,2,.5,.08)}else{o.wm.position.y=1.0;o.wm.rotation.y=0}
  if(fire&&o.st==0&&Math.random()<dt*3)burst(V(o.m.x,1.2+Math.random(),o.m.z),1,0xff6ab8,1.5,.8,.08);o.beam.visible=o.st>0||fire}
 
 /* ---------- wall weapons ---------- */
-function estWall(m){const k=m.k;if(!ZMELEE[k]&&!W[k])return;const g=new THREE.Group(),f=eFace(m.f),[fx,fz]=eFwd(m.f);g.position.set(m.x,0,m.z);g.rotation.y=f;const dw=eM(0x24160c,0,.8,0),gold=eM(0xc9a23a,0x2a1a04,.3,1),felt=eM(0x1a0e10,0,1,0);const o={g,k,m,glow:0,pop:0};
- eMk(g,EG.box,dw,0,1.8,-.04,2.3,1.5,.1);eMk(g,EG.box,felt,0,1.8,.02,2.1,1.3,.04);for(const[x,y,w,h]of[[0,2.58,2.34,.08],[0,1.02,2.34,.08],[-1.15,1.8,.08,1.6],[1.15,1.8,.08,1.6]])eMk(g,EG.box,gold,x,y,.02,w,h,.1);
- /* picture-light above, brackets, the weapon, a brass plate */
- eMk(g,EG.box,gold,0,2.78,.12,.1,.1,.26);eMk(g,EG.box,gold,0,2.72,.3,.9,.07,.12);const bulb=eMk(g,EG.cyl8,eBasic(0xffe0a0,1),0,2.68,.3,.04,.5,.04,0,0,Math.PI/2);o.bulb=bulb;
- const gun=new THREE.Group();gun.userData.dyn=1;gun.position.set(0,1.8,.16);g.add(gun);o.gun=gun;const gm=eGunModel(k,1.75);gun.add(gm);for(const x of[-.55,.55])eMk(g,EG.box,gold,x,1.76,.12,.06,.14,.06);
- const cost=ZMELEE[k]?ZMELCOST[k]:zWallCost(k);eMk(g,EG.pl,eCanvasMat(256,64,(x,w,h)=>{x.fillStyle='#17110a';x.fillRect(0,0,w,h);const gr=x.createLinearGradient(0,0,0,h);gr.addColorStop(0,'rgba(201,162,58,.5)');gr.addColorStop(1,'rgba(201,162,58,.12)');x.fillStyle=gr;x.fillRect(0,0,w,h);x.strokeStyle='#c9a23a';x.lineWidth=3;x.strokeRect(2,2,w-4,h-4);x.font='700 32px Teko,Impact,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillStyle='#ffe9a8';x.fillText(zItemName(k).toUpperCase()+'   '+cost,w/2,h/2+2)}),0,1.08,.07,1.5,.28,1);
- o.halo=new THREE.Sprite(new THREE.SpriteMaterial({map:estTx('glow'),color:0xffc878,transparent:true,opacity:.25,blending:THREE.AdditiveBlending,depthWrite:false}));o.halo.scale.set(3.6,2.4,1);o.halo.position.set(0,1.8,.4);g.add(o.halo);
- o.sp={x:m.x+fx*.8,y:2.2,z:m.z+fz*.8,col:0xffcc88,I:.8,d:7,fl:.4,ph:erand()*9,cur:0,want:0,L:null};EST.spots.push(o.sp);
- eFlatten(g,.6,.25);zG.add(g);EST.objs.walls.push(o);const px=m.x+fx*1.2,pz=m.z+fz*1.2;zi.push({x:px,z:pz,r:2.5,txt:()=>zWallTxt(k),cost:()=>zWallCostNow(k),act:()=>zBuyWall(k,[m.x+fx*.6,m.z+fz*.6])})}
-function estWallTick(o,dt,t){const near=Math.hypot(P.x-o.m.x,P.z-o.m.z)<7;o.glow+=((near?1:0)-o.glow)*Math.min(1,dt*4);o.halo.material.opacity=.18+.3*o.glow+.04*Math.sin(t*3+o.m.x);o.sp.I=.55+.7*o.glow;o.bulb.material.color.setGray(.7+.3*o.glow);
- o.gun.rotation.y=Math.sin(t*.8+o.m.x)*.04*o.glow;o.gun.position.y=1.8+Math.sin(t*1.6+o.m.z)*.012*o.glow;if(o.pop>0){o.pop-=dt*2.2;const b=Math.max(0,o.pop);o.gun.position.z=.16+b*.6;o.gun.scale.setScalar(1+b*.25);o.gun.rotation.z=Math.sin(b*12)*.1*b}else{o.gun.scale.setScalar(1);o.gun.position.z=.16}}
+/* ---------- wall buys are chalk drawings on the wall: the outline of the weapon, traced from its own model, with chalk grain, dust and a hand-written name and price.
+   They brighten as you come near and puff chalk dust when you buy. ---------- */
+function chalkMake(k,cost,mat){const W_=1024,H_=512,cv=document.createElement('canvas');cv.width=W_;cv.height=H_;const x=cv.getContext('2d',{willReadFrequently:true}),tex=new THREE.CanvasTexture(cv);mat.map=tex;mat.needsUpdate=true;
+ let sd=0;for(const c of k)sd=(sd*31+c.charCodeAt(0))>>>0;const rn=()=>{sd=(sd*1664525+1013904223)>>>0;return sd/4294967296};
+ const grain=()=>{const d=x.getImageData(0,0,W_,H_),a=d.data;for(let i=3;i<a.length;i+=4)if(a[i]){const n=rn();a[i]=n<.1?0:a[i]*(.5+.5*n)}x.putImageData(d,0,0)};
+ const finish=()=>{/* hand-written name and price, a wobbly underline, tally marks */
+  const nm=(typeof zItemName=='function'?zItemName(k):k).toUpperCase();x.save();x.shadowColor='rgba(255,250,235,.5)';x.shadowBlur=6;x.fillStyle='#f6f1e3';x.strokeStyle='#f6f1e3';x.textAlign='center';x.textBaseline='middle';x.font='700 74px Teko,Impact,sans-serif';x.save();x.translate(W_/2,H_-82);x.rotate(-.012);x.fillText(nm,0,0);x.restore();
+  x.font='700 52px Teko,Impact,sans-serif';x.fillText(String(cost),W_/2,H_-30);x.lineWidth=5;x.lineCap='round';x.beginPath();let px=W_/2-250,py=H_-125;x.moveTo(px,py);for(let i=1;i<=18;i++){px=W_/2-250+i*500/18;py=H_-125+Math.sin(i*1.7+k.length)*4+rn()*3;x.lineTo(px,py)}x.stroke();
+  x.lineWidth=4;for(let i=0;i<4;i++){const bx=60+i*14;x.beginPath();x.moveTo(bx,H_-70);x.lineTo(bx+rn()*3,H_-30);x.stroke()}x.beginPath();x.moveTo(52,H_-40);x.lineTo(112,H_-62);x.stroke();x.restore();grain();tex.needsUpdate=true};
+ const draw=img=>{x.clearRect(0,0,W_,H_);
+  if(img){const sw=640,sh=300,t=document.createElement('canvas');t.width=sw;t.height=sh;const c=t.getContext('2d',{willReadFrequently:true});c.drawImage(img,0,0,sw,sh);const d=c.getImageData(0,0,sw,sh),a=d.data,o=c.createImageData(sw,sh),q=o.data;
+   const al=(i,j)=>i<0||j<0||i>=sw||j>=sh?0:a[(j*sw+i)*4+3],lu=(i,j)=>{const p=(Math.max(0,Math.min(sh-1,j))*sw+Math.max(0,Math.min(sw-1,i)))*4;return a[p]*.3+a[p+1]*.59+a[p+2]*.11};
+   let x0=sw,x1=0,y0=sh,y1=0;for(let j=1;j<sh-1;j++)for(let i=1;i<sw-1;i++){const p=(j*sw+i)*4;if(a[p+3]<40)continue;const edge=al(i-1,j)<40||al(i+1,j)<40||al(i,j-1)<40||al(i,j+1)<40;let v=0;if(edge)v=255;else{const gx=lu(i+1,j)-lu(i-1,j),gy=lu(i,j+1)-lu(i,j-1);if(Math.abs(gx)+Math.abs(gy)>34)v=170}
+     if(v){q[p]=q[p+1]=q[p+2]=255;q[p+3]=v;if(i<x0)x0=i;if(i>x1)x1=i;if(j<y0)y0=j;if(j>y1)y1=j}}
+   c.putImageData(o,0,0);const bw=Math.max(40,x1-x0),bh=Math.max(20,y1-y0),s=Math.min(W_*.84/bw,(H_-190)/bh),dw=sw*s,dh=sh*s,ox=W_/2-(x0+bw/2)*s,oy=(H_-190)/2+10-(y0+bh/2)*s;
+   x.save();x.shadowColor='rgba(255,250,235,.55)';x.shadowBlur=9;x.globalAlpha=.95;for(const[jx,jy]of[[0,0],[1.6,.8],[-1.2,1.4],[.6,-1.1]])x.drawImage(t,ox+jx,oy+jy,dw,dh);x.restore()}
+  else{x.strokeStyle='#f6f1e3';x.lineWidth=6;x.strokeRect(W_*.2,60,W_*.6,200)}
+  finish()};
+ /* text first, so a wall is never blank; the traced outline follows */
+ finish();try{const url=typeof ZMELEE!='undefined'&&ZMELEE[k]?objImg('chalk-'+k,()=>objBuild(k=='NF'?'nfists':'katana')):wImg(k);if(url){const im=new Image();im.onload=()=>draw(im);im.onerror=()=>draw(null);im.src=url}else draw(null)}catch(e){draw(null)}}
+function estWall(m){const k=m.k;if(!ZMELEE[k]&&!W[k])return;const g=new THREE.Group(),f=eFace(m.f),[fx,fz]=eFwd(m.f);g.position.set(m.x,0,m.z);g.rotation.y=f;const o={g,k,m,glow:0,pop:0};
+ const cost=ZMELEE[k]?ZMELCOST[k]:zWallCost(k),mat=new THREE.MeshBasicMaterial({transparent:true,depthWrite:false,opacity:.7,side:THREE.DoubleSide});o.chalk=mat;
+ const pl=new THREE.Mesh(EG.pl,mat);pl.position.set(0,1.75,.03);pl.scale.set(2.3,1.15,1);g.add(pl);
+ setTimeout(()=>chalkMake(k,cost,mat),20+(EST.objs.walls.length%12)*45);
+ o.sp={x:m.x+fx*.9,y:2.1,z:m.z+fz*.9,col:0xe8ecff,I:.3,d:5.5,fl:.12,ph:erand()*9,cur:0,want:0,L:null};EST.spots.push(o.sp);
+ zG.add(g);EST.objs.walls.push(o);const px=m.x+fx*1.2,pz=m.z+fz*1.2;zi.push({x:px,z:pz,r:2.5,txt:()=>zWallTxt(k),cost:()=>zWallCostNow(k),act:()=>zBuyWall(k,[m.x+fx*.6,m.z+fz*.6])})}
+function estWallTick(o,dt,t){const near=Math.hypot(P.x-o.m.x,P.z-o.m.z)<7;o.glow+=((near?1:0)-o.glow)*Math.min(1,dt*4);
+ o.chalk.opacity=Math.min(1,(.66+.34*o.glow)*(.93+.07*Math.sin(t*2.1+o.m.x*3))+Math.max(0,o.pop)*.3);o.sp.I=.2+.45*o.glow;
+ if(o.pop>0){o.pop-=dt*1.6;if(o.pop>.7&&!o.pd){o.pd=1;const[fx,fz]=eFwd(o.m.f);try{burst(V(o.m.x+fx*.25,1.7,o.m.z+fz*.25),22,0xf4efe0,2.4,1.1,.06)}catch(e){}}if(o.pop<=0)o.pd=0}}
 
+/* ---------- ONE Mystery Box per map: a random spot every match (never a dead end at the start), and after 4 to 7 uses it moves to a new random spot ---------- */
+function estBoxSet(o,on){if(o.on===on)return;o.on=on;o.g.visible=on;if(on){o.sol=zSolid(o.sw[0],o.sw[1],o.sw[2],o.sw[3],.95);zGrid()}else if(o.sol){zUnsolid(o.sol);o.sol=null}}
+function estBoxThr(){return 4+(Math.random()*4|0)}
+function estBoxGo(i,quiet){const B=zboxes;if(!B[i])return;const old=EST.bx&&EST.bx.loc>=0?B[EST.bx.loc]:null;if(!EST.bx)EST.bx={loc:-1,uses:0,thr:estBoxThr()};if(old&&old!==B[i]){burst(V(old.m.x,1,old.m.z),46,0xffd24a,8,1,.14);burst(V(old.m.x,1.4,old.m.z),24,0xff4a4a,5,.9,.12)}
+ B.forEach((o,j)=>{estBoxSet(o,j==i);if(j!=i){o.st=0;o.g.position.y=0;o.g.rotation.z=0;if(o.beam)o.beam.visible=false;if(o.lab)o.lab.visible=false;if(o.sp)o.sp.I=0}});EST.bx.loc=i;EST.bx.uses=0;EST.bx.thr=estBoxThr();if(!quiet){B[i].drop=1;B[i].g.position.y=16;beep(900,.25,'triangle',.08);setTimeout(()=>beep(1300,.2,'triangle',.07),130)}}
+function estBoxInit(){const B=zboxes;if(!B.length)return;EST.bx={loc:-1,uses:0,thr:estBoxThr()};const sp=(MAPS[sel.map]&&MAPS[sel.map].ps)||[0,0],ord=B.map((o,i)=>i).sort((a,b)=>Math.hypot(B[a].m.x-sp[0],B[a].m.z-sp[1])-Math.hypot(B[b].m.x-sp[0],B[b].m.z-sp[1])),pool=ord.slice(0,Math.max(1,Math.ceil(B.length*2/3)));estBoxGo(pool[Math.random()*pool.length|0],1)}
 /* ---------- ammo crates ---------- */
 function estCrate(m){const g=new THREE.Group(),f=eFace(m.f),[fx,fz]=eFwd(m.f);g.position.set(m.x,0,m.z);g.rotation.y=f;const od=eM(0x4a5628,0,.7,.35),dk=eM(0x2a3318,0,.7,.4),metal=eM(0x2a2c2a,0,.4,.85),brass=eM(0xc9a23a,0x3a2a08,.3,1);const o={g,m,open:0,pulse:0,fx,fz};
  eMk(g,EG.box,od,0,.26,0,.96,.5,.62);for(const x of[-.34,0,.34])eMk(g,EG.box,dk,x,.26,.0,.06,.52,.66);for(const y of[.1,.42])eMk(g,EG.box,dk,0,y,0,1.0,.05,.66);
@@ -596,11 +621,11 @@ function estBuy(x,z){const m=new THREE.Mesh(new THREE.RingGeometry(.4,.55,32),ne
 
 /* ---------- build everything for a match ---------- */
 function estObjects(M){EST.spots=EST.spots.filter(s=>!s.dyn);for(const sl of EST.pool||[]){sl.s=null;if(sl.L)sl.L.intensity=0}for(const s of EST.spots){s.L=null;s.cur=0;s.want=0}const n0=EST.spots.length;EST.objs={doors:[],mach:{},boxes:[],walls:[],crates:[],rings:[],pap:null};M.dr.forEach((d,i)=>estDoor(d,i));
- for(const m of M.mc){if(PERKS[m.t])estPerkMachine(m,m.t);else if(m.t=='pap')estPapMachine(m);else if(m.t=='box')estBox(m,zboxes.length);else if(m.t=='wall')estWall(m);else if(m.t=='ammo')estCrate(m)}for(let i=n0;i<EST.spots.length;i++)EST.spots[i].dyn=1}
+ for(const m of M.mc){if(PERKS[m.t])estPerkMachine(m,m.t);else if(m.t=='pap')estPapMachine(m);else if(m.t=='box')estBox(m,zboxes.length);else if(m.t=='wall')estWall(m);else if(m.t=='ammo')estCrate(m)}estBoxInit();for(let i=n0;i<EST.spots.length;i++)EST.spots[i].dyn=1}
 
 /* ---------- per frame ---------- */
 function estTick(dt){const t=EST.tm+=dt,M=MAPS[sel.map];if(!M||!M.zm)return;
- for(const d of EST.dyn)d.tick(dt,t);const O=EST.objs;for(const d of O.doors)estDoorTick(d,dt);for(const k in O.mach)estMachTick(O.mach[k],dt,t);for(const b of O.boxes)estBoxTick(b,dt,t);for(const w of O.walls)estWallTick(w,dt,t);for(const c of O.crates)estCrateTick(c,dt,t);if(O.pap)estPapTick(O.pap,dt,t);
+ for(const d of EST.dyn)d.tick(dt,t);const O=EST.objs;for(const d of O.doors)estDoorTick(d,dt);for(const k in O.mach)estMachTick(O.mach[k],dt,t);for(const b of O.boxes)if(b.on)estBoxTick(b,dt,t);for(const w of O.walls)estWallTick(w,dt,t);for(const c of O.crates)estCrateTick(c,dt,t);if(O.pap)estPapTick(O.pap,dt,t);
  for(let i=O.rings.length-1;i>=0;i--){const r=O.rings[i];r.t+=dt;const u=r.t/.7;r.m.scale.setScalar(1+u*6);r.m.material.opacity=.7*(1-u);if(u>=1){r.m.parent&&r.m.parent.remove(r.m);r.m.geometry.dispose();O.rings.splice(i,1)}}
  /* the world: indoors is darker than the grounds; storms flash through the boarded windows */
  const inside=!!eRoomAt(P.x,P.z);EST.amb=(EST.amb==null?1:EST.amb);EST.amb+=((inside?.62:1)-EST.amb)*Math.min(1,dt*2.2);

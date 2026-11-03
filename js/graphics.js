@@ -5,8 +5,8 @@
    Map boxes are [x,z,w,d,h,y0,colour,kind]: kind is a texture (brick stucco plank concrete asphalt grass shingle tile metal sand rust cobble), 'glass' / 'glow', or 'n' for collision only.
    Visual-only extras (map._v and map.deco) are [x,z,w,d,h,y0,colour,shape,texture] with shape b box, e glow box, g glass box, s sphere, c cylinder, k cone. ---------- */
 let gfxQ=LX.q,skyM=null,skyC=null,gfxL=[],gt_=0;
-R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;
-const SHMAX=(()=>{try{return R.capabilities.maxTextureSize||2048}catch(e){return 2048}})(),SHS=LX.q=='high'&&SHMAX>=4096?4096:2048;
+R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFShadowMap;
+const SHMAX=(()=>{try{return R.capabilities.maxTextureSize||2048}catch(e){return 2048}})(),SHS=2048;
 sun.shadow.mapSize.set(SHS,SHS);{const k=sun.shadow.camera;k.left=k.bottom=-46;k.right=k.top=46;k.near=1;k.far=150}sun.shadow.bias=-.0004;sun.shadow.normalBias=.04;S.add(sun.target);
 function setGfx(q){gfxQ=q;LX.setQuality(q);sun.castShadow=q!='low'}setGfx(gfxQ);
 /* the shadow texel in world units (used to keep shadow edges from shimmering) */

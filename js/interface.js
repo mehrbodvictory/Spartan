@@ -42,7 +42,7 @@ function wzkill(k){if(!k||!W[k])return;const w=wd(k),b=okSet();w.z=(w.z||0)+1;fo
 function zRoundDone(r){if(r<=(prof.zbest||0))return;const b=okSet();prof.zbest=r;const n=new Set();for(const x of okSet())if(!b.has(x))n.add(x.split(':')[1]);for(const c of n){popup('CAMO UNLOCKED',c+' · all weapons');feed('Camo unlocked: '+c)}save()}
 function wpres(k){const w=wd(k);if(wlv(k)<20||w.p>=3)return;w.p++;w.c=0;popup('WEAPON PRESTIGE',`${nm(k)} · Prestige ${w.p}`);prof.camo[k]=['Ember','Frost','Aurora'][w.p-1];save();masteryUI()}
 function camoTex(col,st){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');g.fillStyle=col;g.fillRect(0,0,64,64);
- if(st=='z'){for(let k=0;k<10;k++){g.fillStyle=`rgba(0,0,0,${.18+Math.random()*.2})`;g.beginPath();g.arc(Math.random()*64,Math.random()*64,3+Math.random()*9,0,7);g.fill()}for(let k=0;k<7;k++){const x=Math.random()*64;g.fillStyle='rgba(255,255,255,.2)';g.fillRect(x,Math.random()*30,1+Math.random()*2,10+Math.random()*30)}for(let k=0;k<30;k++){g.fillStyle='rgba(255,255,255,.28)';g.fillRect(Math.random()*64,Math.random()*64,1.5,1.5)}}
+ if(st=='z'){for(let k=0;k<10;k++){g.fillStyle=`rgba(0,0,0,${.18+Math.random()*.2})`;g.beginPath();g.arc(Math.random()*64,Math.random()*64,3+Math.random()*9,0,7);g.fill()}for(let k=0;k<7;k++){const x=Math.random()*64;g.fillStyle='rgba(255,255,255,.2)';g.fillRect(x,Math.random()*30,1+Math.random()*2,10+Math.random()*30)}}
  else for(let k=0;k<16;k++){g.fillStyle=`rgba(${k%2?'0,0,0':'255,255,255'},.22)`;g.beginPath();g.ellipse(Math.random()*64,Math.random()*64,5+Math.random()*10,3+Math.random()*7,Math.random()*3,0,7);g.fill()}return new THREE.CanvasTexture(c)}
 /* the final three camos of each track are live shaders: Gold (molten gold), Diamond (prismatic ice), Dark Matter (swirling nebula),
    Inferno (flames and lava cracks), Necrotic (toxic plasma arcs), Abyss (a void with glowing rifts). All are driven by one time uniform. */
@@ -65,16 +65,16 @@ void main(){
   float n=fbm(p*1.3+vec3(0.0,t*0.35,0.0));
   float vein=pow(abs(sin(n*9.0+t*1.2)),10.0);
   float band=smoothstep(0.82,1.0,sin((p.x+p.y*0.7+p.z)*2.2-t*2.4));
-  float sp=pow(hash(floor(p*26.0)+floor(t*5.0)),24.0);
+  float sp=0.0;
   col=mix(vec3(0.55,0.32,0.05),vec3(1.0,0.78,0.22),n)*nl;
   col+=vec3(1.0,0.9,0.5)*(vein*0.55+band*0.7)+vec3(1.0)*sp*1.5+vec3(1.0,0.75,0.2)*fr*0.6;
  }else if(k<1.5){
   float n=fbm(p*0.9+vec3(t*0.1,t*0.07,0.0));
-  float ch=hash(floor(p*2.2));
+  float ch=noise(p*1.3);
   float facet=0.5+0.5*sin(ch*6.28+t*1.6);
   vec3 rb=hsv(fract(n*1.3+p.x*0.25+p.y*0.2+t*0.12),0.55,1.0);
   col=mix(vec3(0.62,0.86,1.0),rb,0.55)*(0.55+0.45*facet)*nl;
-  float sp=pow(hash(floor(p*22.0)+floor(t*4.0)),26.0);
+  float sp=0.0;
   float glint=smoothstep(0.9,1.0,sin((p.x-p.y)*3.0+t*2.0+ch*4.0));
   col+=vec3(1.0)*(sp*1.6+glint*0.6)+vec3(0.6,0.9,1.0)*fr*0.8;
  }else if(k<2.5){
@@ -84,7 +84,7 @@ void main(){
   col=mix(vec3(0.02,0.0,0.06),vec3(0.38,0.08,0.75),pow(sw2,1.6));
   col=mix(col,vec3(0.0,0.9,1.0),pow(sw,5.0)*0.55);
   float arc=pow(max(0.0,sin(sw2*18.0-t*3.0)),14.0);col+=vec3(0.8,0.3,1.0)*arc*0.5;
-  float hs=hash(floor(p*30.0));float st=pow(hs,32.0)*(0.5+0.5*sin(t*3.0+hs*6.0));col+=vec3(1.0)*st*1.8;
+  float hs=0.0;float st=0.0;
   col*=0.7+0.3*nl;col+=vec3(0.5,0.1,0.9)*fr*0.9;
  }else if(k<3.5){
   float f=fbm(vec3(p.x*1.4,p.y*1.4-t*1.1,p.z*1.4+t*0.25));
@@ -94,14 +94,14 @@ void main(){
   col=mix(col,vec3(1.0,0.6,0.1),smoothstep(0.45,0.8,h));
   col=mix(col,vec3(1.0,0.95,0.6),smoothstep(0.8,1.0,h));
   float crack=pow(1.0-abs(noise(p*1.7+vec3(0.0,t*0.2,0.0))*2.0-1.0),8.0);col+=vec3(1.0,0.4,0.05)*crack*0.8;
-  float em=pow(hash(floor(vec3(p.x*20.0,p.y*20.0-t*6.0,p.z*20.0))),30.0);col+=vec3(1.0,0.7,0.2)*em*2.0;
+  float em=0.0;
   col*=0.65+0.35*nl;col+=vec3(1.0,0.35,0.05)*fr*0.7;
  }else if(k<4.5){
   float pl=sin(p.x*3.0+t*1.4)+sin(p.y*3.2-t*1.1)+sin((p.x+p.z)*2.4+t*0.8)+sin(length(p.xy+vec2(sin(t*0.4),cos(t*0.3)))*4.0-t*2.0);
   float n=fbm(p*1.2+vec3(0.0,0.0,t*0.3));
   col=mix(vec3(0.0,0.06,0.03),vec3(0.1,0.7,0.35),n);
   float arc=pow(1.0-abs(sin(pl*1.6+n*4.0)),10.0);col+=vec3(0.6,1.0,0.8)*arc*0.9;
-  float bub=pow(hash(floor(p*14.0+vec3(0.0,t*1.5,0.0))),22.0);col+=vec3(0.7,1.0,0.7)*bub*1.5;
+  float bub=0.0;
   col*=0.6+0.4*nl;col+=vec3(0.2,1.0,0.5)*fr*0.9;
  }else{
   float a=fbm(p*0.8+vec3(t*0.05,0.0,t*0.04));
@@ -109,7 +109,7 @@ void main(){
   col=vec3(0.01,0.01,0.03)+vec3(0.02,0.04,0.12)*a;
   float glow=0.012/(rift+0.02);col+=vec3(1.0,0.12,0.08)*glow*0.35+vec3(1.0,0.8,0.6)*pow(glow,2.0)*0.02;
   float pulse=0.5+0.5*sin(t*1.5+a*6.0);col+=vec3(0.5,0.0,0.1)*pulse*pow(a,3.0)*0.6;
-  float st=pow(hash(floor(p*34.0)),34.0);col+=vec3(0.7,0.8,1.0)*st*1.5;
+  float st=0.0;
   col*=0.7+0.3*nl;col+=vec3(0.9,0.1,0.15)*fr*0.8;
  }
  gl_FragColor=vec4(clamp(col,0.0,1.0),1.0);

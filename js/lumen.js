@@ -32,10 +32,10 @@ LX.FXD={ex:1,bl:.5,sat:1.1,con:1.05,vig:.3,ray:.4,rc:[1,.95,.8],ts:[0,.02,.06],t
 /* ---------- GLSL building blocks ---------- */
 LX.NOISE=`float lxH(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
 float lxN(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(lxH(i),lxH(i+vec2(1.0,0.0)),f.x),mix(lxH(i+vec2(0.0,1.0)),lxH(i+vec2(1.0,1.0)),f.x),f.y);}
-float lxFbm(vec2 p){float v=0.0,a=0.5;for(int i=0;i<4;i++){v+=a*lxN(p);p=p*2.03+vec2(17.1,9.2);a*=0.5;}return v;}
+float lxFbm(vec2 p){float v=0.0,a=0.55;for(int i=0;i<3;i++){v+=a*lxN(p);p=p*2.03+vec2(17.1,9.2);a*=0.5;}return v;}
 `;
 LX.MACRO=`vec3 lxP0=cameraPosition+(vec4(-vViewPosition,0.0)*viewMatrix).xyz;
-float lxMv=lxFbm(lxP0.xz*0.045+lxP0.y*0.02)*0.55+lxFbm(lxP0.xz*0.31+lxP0.y*0.1)*0.3;
+float lxMv=lxN(lxP0.xz*0.045+lxP0.y*0.02)*0.78+lxN(lxP0.xz*0.31+lxP0.y*0.1)*0.34;
 diffuseColor.rgb*=0.82+0.42*lxMv;
 `;
 LX.FOGC=`#if defined(USE_FOG) && !defined(FOG_EXP2)
@@ -84,7 +84,7 @@ LX.within=function(ctx,fn){return function(){const o=LX.ctx;LX.ctx=ctx;try{retur
 /* ---------- rounded boxes for the shared unit cube ---------- */
 LX.rb=function(sx,sy,sz,r){const ax=Math.abs(sx),ay=Math.abs(sy),az=Math.abs(sz);r=Math.min(r,.49*Math.min(ax,ay,az));
  const key=[sx,sy,sz,r].map(v=>v.toFixed(3)).join(','),c=LX.rbc[key];if(c)return c;
- const SEG=5,g=new THREE.BoxGeometry(1,1,1,SEG,SEG,SEG),ps=g.attributes.position,nr=g.attributes.normal,hs=.5/SEG,rx=r/ax,ry=r/ay,rz=r/az,v=new THREE.Vector3(),n=new THREE.Vector3();
+ const SEG=r<.02?2:3,g=new THREE.BoxGeometry(1,1,1,SEG,SEG,SEG),ps=g.attributes.position,nr=g.attributes.normal,hs=.5/SEG,rx=r/ax,ry=r/ay,rz=r/az,v=new THREE.Vector3(),n=new THREE.Vector3();
  for(let i=0;i<ps.count;i++){v.set(ps.getX(i),ps.getY(i),ps.getZ(i));n.copy(v);n.x-=Math.sign(n.x)*hs;n.y-=Math.sign(n.y)*hs;n.z-=Math.sign(n.z)*hs;n.normalize();
   ps.setXYZ(i,(.5-rx)*Math.sign(v.x)+n.x*rx,(.5-ry)*Math.sign(v.y)+n.y*ry,(.5-rz)*Math.sign(v.z)+n.z*rz);
   n.set(n.x*sx,n.y*sy,n.z*sz).normalize();nr.setXYZ(i,n.x,n.y,n.z)}
@@ -209,10 +209,10 @@ LX.render=function(sc,cam){
  try{const U=LX.mComp.uniforms,fx=LX.fx,m=LX.mp||LX.FXD,qd=(a,b,c,d)=>{LX.quad.material=a;R.setRenderTarget(b);R.render(LX.qs,LX.qc)};
   R.setRenderTarget(LX.rtS);R.render(sc,cam);
   const D=LX.mDown.uniforms,Up=LX.mUp.uniforms;let src=LX.rtS.texture,iw=LX.sw,ih=LX.sh;
-  for(let i=0;i<LX.rtD.length;i++){const t=LX.rtD[i];D.tIn.value=src;D.uTexel.value.set(1/iw,1/ih);D.uPre.value=i==0?1:0;D.uThr.value=m.thr||.92;qd(LX.mDown,t);src=t.texture;iw=t.width;ih=t.height}
-  for(let i=LX.rtU.length-1;i>=0;i--){const low=i==LX.rtU.length-1?LX.rtD[i+1]:LX.rtU[i+1];Up.tLow.value=low.texture;Up.tHigh.value=LX.rtD[i].texture;Up.uTexel.value.set(1/low.width,1/low.height);Up.uScatter.value=.72;qd(LX.mUp,LX.rtU[i])}
+  const nd=(LX.gTier|0)>=3?3:LX.rtD.length;for(let i=0;i<nd;i++){const t=LX.rtD[i];D.tIn.value=src;D.uTexel.value.set(1/iw,1/ih);D.uPre.value=i==0?1:0;D.uThr.value=m.thr||.92;qd(LX.mDown,t);src=t.texture;iw=t.width;ih=t.height}
+  for(let i=nd-2;i>=0;i--){const low=i==nd-2?LX.rtD[i+1]:LX.rtU[i+1];Up.tLow.value=low.texture;Up.tHigh.value=LX.rtD[i].texture;Up.uTexel.value.set(1/low.width,1/low.height);Up.uScatter.value=.72;qd(LX.mUp,LX.rtU[i])}
   /* sun shafts */
-  let ray=0;if(m.ray>0&&typeof skyDir=='function'&&typeof C!='undefined'){const d=skyDir(),v=LX.sunV;v.set(C.position.x+d[0]*100,C.position.y+d[1]*100,C.position.z+d[2]*100);v.project(cam);
+  let ray=0;if(m.ray>0&&(LX.gTier|0)<1&&typeof skyDir=='function'&&typeof C!='undefined'){const d=skyDir(),v=LX.sunV;v.set(C.position.x+d[0]*100,C.position.y+d[1]*100,C.position.z+d[2]*100);v.project(cam);
    if(v.z<1){const e=1-Math.min(1,Math.max(0,(Math.max(Math.abs(v.x),Math.abs(v.y))-.8)/1.2));ray=m.ray*e;const R_=LX.mRays.uniforms;R_.uSun.value.set(v.x*.5+.5,v.y*.5+.5);R_.tScene.value=LX.rtS.texture;qd(LX.mRays,LX.rtR)}}
   U.tScene.value=LX.rtS.texture;U.tBloom.value=LX.rtU[0].texture;U.tRays.value=LX.rtR.texture;U.uTime.value=LX.U.time.value;
   U.uExp.value=m.ex*LX.bright;U.uBloom.value=m.bl*.5*(1+fx.boom*.9+fx.shot*.15);U.uRay.value=ray*(1+fx.flash*.5);U.uVig.value=m.vig+fx.dmg*.12;U.uGrain.value=(m.gr==null?.03:m.gr);U.uCA.value=.0011+fx.ca*.012+fx.boom*.006+fx.dmg*.004;
@@ -230,9 +230,7 @@ LX.refresh=function(){try{S.traverse(o=>{const ms=o.material?(Array.isArray(o.ma
 /* ---------- per-map look + per-frame bookkeeping ---------- */
 LX.setMap=function(name){const f=LX.FX[name]||LX.FXD;LX.mp=Object.assign({},f);LX.mp.gr=name=='Hollow Estate'?.05:.028;LX.U.fogA.value=f.haze;LX.U.fogH.value=f.hz*(f.haze>.4?.7:1);LX.U.fogD.value=.012+f.haze*.014;return LX.mp};
 LX.tick=function(dt){LX.U.time.value+=dt;const f=LX.fx,k=n=>Math.exp(-n*dt);f.hit*=k(9);f.boom*=k(2.6);f.shot*=k(16);f.flash*=k(3.4);f.ca*=k(7);f.dmg*=k(2.4);f.heal*=k(2.2);f.pulse*=k(5);f.blur*=k(4);
- if(dt<.25&&LX.postOn&&!LX.postDead&&!LX.dynOff){LX.ema=LX.ema?LX.ema*.95+dt*.05:dt;LX.dn=(LX.dn||0)+1;LX.cool=Math.max(0,(LX.cool||0)-dt);
-  if(LX.dn>50&&LX.ema>.028&&LX.scale>.66){LX.scale=Math.max(.66,LX.scale-.1);LX.mkRT();LX.cool=20;LX.dn=0;LX.ema=0}
-  else if(LX.dn>400&&LX.cool<=0&&LX.ema<.0185&&LX.scale<1){LX.scale=Math.min(1,LX.scale+.1);LX.mkRT();LX.dn=0;LX.ema=0}}};
+ if(LX.gov&&LX.postOn&&!LX.postDead&&!LX.dynOff)LX.gov(dt)};
 LX.setQuality=function(q){LX.q=q;LX.postOn=q=='high'&&!LX.postDead&&!LX.safe;try{localStorage.setItem('sdrill-gfx',q)}catch(e){}};
 /* brightness setting: scales post-processing exposure (or tone-mapping exposure when post-processing is off) */
 LX.setBright=function(v){v=Math.max(.6,Math.min(1.6,+v||1));LX.bright=v;try{localStorage.setItem('sdrill-bright',v)}catch(e){}
@@ -250,3 +248,26 @@ LX.envFor=function(r){LX._ev=LX._ev||new WeakMap();let t=LX._ev.get(r);if(t!==un
  LX._pmBusy=false;LX._ev.set(r,t);return t};
 if(LX.pbr&&THREE.WebGLRenderer){const r0=THREE.WebGLRenderer.prototype.render;
  THREE.WebGLRenderer.prototype.render=function(sc,cam){if(!LX._pmBusy&&sc&&sc.isScene&&!sc.environment){let main=false;try{main=this===R}catch(e){main=true}if(!main){const e=LX.envFor(this);if(e)sc.environment=e}}return r0.apply(this,arguments)}}
+
+/* ---------- frame-rate governor ----------
+   Holds 60 fps or better on any device while keeping the Ultra look: it spends resolution first (the HDR target shrinks and grows between 50 % and 100 % of the screen, and the final grade
+   plus a sharpen pass keeps it crisp), then, only if that is not enough, drops effects one at a time (sun shafts, shadow resolution, MSAA, bloom depth, shadows). It measures real frame times,
+   probes upwards slowly when there is headroom, and backs off for longer each time a probe makes frames slip. High refresh displays that have headroom simply get a sharper picture. ---------- */
+LX.gTier=0;
+LX.gov=(function(){const B=1/60;let ema=B,warm=0,bad=0,calm=0,backoff=14,since=99,last=0,init=0,minS=.5,raised=-1e9;
+ const setScale=s=>{s=Math.max(minS,Math.min(1,s));if(Math.abs(s-LX.scale)<.015)return false;LX.scale=s;LX.mkRT();return true};
+ const tier=n=>{LX.gTier=n;try{
+  if(typeof sun!='undefined'&&sun&&sun.shadow){const want=n>=2?1024:(typeof SHS!='undefined'?SHS:2048);if(sun.shadow.mapSize.x!==want){sun.shadow.mapSize.set(want,want);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null}}sun.castShadow=n<4}
+  if(LX.msaa0==null)LX.msaa0=LX.msaa;const w_=n>=3?0:n>=2?Math.min(2,LX.msaa0):LX.msaa0;if(LX.msaa!==w_){LX.msaa=w_;LX.mkRT()}
+ }catch(e){}};
+ return function(dt){const now=performance.now(),real=last?(now-last)/1000:B;last=now;if(real>.25||document.hidden)return;
+  if(!init){init=1;LX.msaa0=LX.msaa;try{const sz=new THREE.Vector2();R.getDrawingBufferSize(sz);/* start near 2.4 megapixels of scene (about 1080p) and let the governor find the rest */const px=sz.x*sz.y;setScale(Math.min(1,Math.sqrt(2.6e6/Math.max(1,px))))}catch(e){}return}
+  if(++warm<90)return;ema=ema*.92+real*.08;since+=real;
+  if(ema>B*1.1){bad++;calm=0}else{bad=Math.max(0,bad-1);calm+=real}
+  /* slipping below roughly 55 fps for a sustained stretch: act */
+  if(bad>=20){bad=0;calm=0;if(now-raised<6000)backoff=Math.min(90,backoff*2);since=0;ema=B;
+   if(LX.scale>minS+.02)setScale(LX.scale-(real>B*1.8?.14:.07));else if(LX.gTier<4)tier(LX.gTier+1);return}
+  /* stable for a while: first win effects back, then resolution, probing one small step at a time */
+  const head=ema<B*.62?.5:1;
+  if(calm>backoff*head&&ema<B*1.04){calm=0;since=0;raised=now;if(LX.gTier>0)tier(LX.gTier-1);else if(LX.scale<1)setScale(LX.scale+.05)}}})();
+

@@ -8,16 +8,16 @@
    Points, perks, weapons and wall purchases belong to each player; doors, boxes and the Revive Soda stock are shared. Teammates revive you by holding F.
    The map itself (the Hollow Estate mansion, its props, machines and animation) is in js/estate.js. ---------- */
 let zq=null,zG=null,zi=[],zdoors=[],zboxes=[],zgr=null,zfls={},zdead=[],zhc='',zbT=0,zsT=0;
-const PERKS={vit:{n:'Vitality Cola',c:0xd8332a,cost:2500,t:'+50 max health'},spd:{n:'Quick Fizz',c:0x39c85a,cost:3000,t:'Reload twice as fast'},dbl:{n:'Double Pop',c:0xf0c21e,cost:2000,t:'Double damage, faster fire'},rev:{n:'Revive Soda',c:0x2f7de0,cost:500,t:'Revive yourself once'},stam:{n:'Stamin Fizz',c:0xa04ad8,cost:2000,t:'Run 20% faster and shoot while sprinting'},mule:{n:'Mule Soda',c:0xf08a2a,cost:4000,t:'Carry a third weapon'}};
+const PERKS={vit:{n:'Vitality Cola',c:0xd8332a,cost:2500,t:'+50 max health'},spd:{n:'Quick Fizz',c:0x39c85a,cost:3000,t:'Reload twice as fast'},dbl:{n:'Double Pop',c:0xf0c21e,cost:2000,t:'Double damage, faster fire'},rev:{n:'Revive Soda',c:0x2f7de0,cost:500,t:'Revive yourself once and revive teammates twice as fast'},stam:{n:'Stamin Fizz',c:0xa04ad8,cost:2000,t:'Run 20% faster and shoot while sprinting'},mule:{n:'Mule Soda',c:0xf08a2a,cost:4000,t:'Carry a third weapon'}};
 /* perk hooks used by the weapon code (all neutral outside Zombies) */
 const zrl=()=>zq&&mode=='Zombies'&&zq.perks.spd?0.5:1,zfr=()=>zq&&mode=='Zombies'&&zq.perks.dbl?0.75:1,zsm=()=>zq&&mode=='Zombies'&&zq.perks.stam?1.2:1,
- zmul=w=>mode=='Zombies'&&zq?ZW*(w.pm||1)*(zq.perks.dbl&&!w.ex&&w.k!='RG'?2:1):1;
+ ZB={SG:1.8,TRB:2.4,BR:1.15},zmul=w=>mode=='Zombies'&&zq?ZW*(w.pm||1)*(ZB[w.k]||1)*(zq.perks.dbl&&!w.ex&&w.k!='RG'?2:1):1;
 const zHp=r=>{const bs=n=>100+30*(n-1)+5*n*(n-1);return Math.round(r<=10?bs(r):bs(10)*Math.pow(1.07,r-10))},zDm=r=>Math.min(55,18+r*1.3),zAc=r=>Math.max(.7,1.1-r*.015),zTot=r=>Math.min(56,Math.round(5+r*2.4)),ZW=2.2,ZE=3,RGB=3000,FACE={s:0,n:Math.PI,e:Math.PI/2,w:-Math.PI/2};
 const zMe=()=>netOn?myId:'solo',zCli=()=>netOn&&!isHost;
 
 /* ---------- the arsenal: everything in the weapon table except the streak-only guns and the starter pistol can come out of the box, so a weapon added to the game later shows up here by itself ---------- */
 const ZSKIP=['MNG','GL','FT','CT'],zPoolKeys=()=>Object.keys(W).filter(k=>!ZSKIP.includes(k)&&k!='RG');
-const ZWP={MP:600,MG:800,SG:1000,SMG:1000,AR:1500,VMP:1500,BR:1800,MVR:1800,TRB:2000,TUR:2250,CY:2500,SN:2800,RL:4500};
+const ZWP={MP:600,MG:800,SG:1000,SMG:1000,DS:1750,AR:1500,VMP:1500,BR:1800,MVR:1800,TRB:2000,TUR:2250,CY:2500,SN:2800,RL:4500};
 const zWallCost=k=>ZWP[k]||Math.round(Math.max(1000,Math.min(3000,W[k].d*(1/W[k].r)*8)));
 const ZMELEE={NF:'Nitrogen Fists',KT:'Katana'},ZMELCOST={KT:1500};
 const zItemName=k=>ZMELEE[k]||(W[k]?W[k].n:k);
@@ -121,7 +121,7 @@ void main(){
   float pulse=0.55+0.45*sin(t*1.8+p.x*0.6);
   col=wood*nl*(0.9+0.4*pow(1.0-max(dot(N,V),0.0),1.5));
   col+=vec3(0.55,0.15,1.0)*glow*0.34*pulse+vec3(0.9,0.6,1.0)*pow(glow,2.0)*0.015;
-  float sp=pow(hash(floor(p*24.0)+floor(t*4.0)),28.0);col+=vec3(0.8,0.5,1.0)*sp*1.4;
+  float sp=0.0;
   col+=vec3(0.45,0.12,0.9)*fr*0.8;
  }else{
   float fil=abs(sin((p.x+sin(p.y*1.7+p.z*0.9)*0.9)*3.2))*abs(sin((p.z+cos(p.y*1.3)*0.8)*3.0));
@@ -132,7 +132,7 @@ void main(){
   float fog=fbm(p*0.9+vec3(t*0.18,-t*0.1,t*0.12));
   col=base+gold*(line*0.95+leaf*0.35)*nl;
   col+=vec3(0.1,0.7,0.65)*pow(fog,2.2)*0.55;
-  float em=pow(hash(floor(vec3(p.x*18.0,p.y*18.0-t*5.0,p.z*18.0))),30.0);col+=vec3(1.0,0.7,0.3)*em*2.0;
+  float em=0.0;
   col+=vec3(0.9,0.7,0.25)*fr*0.7+vec3(0.1,0.8,0.7)*fr*fr*0.5;
  }
  gl_FragColor=vec4(clamp(col,0.0,1.0),1.0);
@@ -214,11 +214,15 @@ function zRevCount(n){zq.revBuys=n;const o=zq.revM;if(n>=4&&o&&!o.o.gone){o.g.vi
 /* mystery box rules (the chest, its lid and the floating weapon are in estate.js) */
 function zBoxAct(o,i){if(o.st==0){const bc=zBoxCost();if(zq.pts<bc)return zf('Not enough points');if(zCli())return void netSend({t:'zqb',i});zq.pts-=bc;zBoxStart(o,i,zMe())}
  else if(o.st==2&&o.by==zMe()){zGive(o.item);if(zCli())netSend({t:'zqe',i});zBoxEnd(o,i)}}
-function zBoxStart(o,i,by){o.st=1;o.t=0;o.cy=0;o.by=by;beep(300,.2,'triangle',.08);if(typeof estBoxState=='function')estBoxState(o,1);if(netOn&&isHost)netSend({t:'zbs',i,st:1,by})}
+function zBoxStart(o,i,by){o.st=1;o.t=0;o.cy=0;o.by=by;if(typeof EST!='undefined'&&EST.bx&&(!netOn||isHost))EST.bx.uses++;beep(300,.2,'triangle',.08);if(typeof estBoxState=='function')estBoxState(o,1);if(netOn&&isHost)netSend({t:'zbs',i,st:1,by})}
 function zBoxEnd(o,i){o.st=0;o.beam.visible=o.lab.visible=false;if(typeof estBoxState=='function')estBoxState(o,0);if(netOn&&isHost)netSend({t:'zbs',i,st:0})}
 function zBoxTick(o,i,dt,auth){if(o.st==1){o.t+=dt;o.cy-=dt;o.beam.visible=o.lab.visible=true;if(o.cy<=0){o.cy=.12;const pool=[...zPoolKeys(),'RG','NF'],k=pool[Math.random()*pool.length|0];zSet(o.lab,zItemName(k),'#ffd24a');if(typeof estBoxShow=='function')estBoxShow(o,k);beep(500+Math.random()*300,.05,'square',.03)}
+  if(auth&&o.t>3.2&&typeof EST!='undefined'&&EST.bx&&EST.bx.uses>=EST.bx.thr&&zboxes.length>1){zBoxMoveStart(o,i);return}
   if(auth&&o.t>3.2){o.item=zPick(o.by);o.st=2;o.t=0;zSet(o.lab,zItemName(o.item),o.item=='RG'||o.item=='NF'?'#ff4a4a':'#7bf08a');if(typeof estBoxShow=='function')estBoxShow(o,o.item,1);beep(900,.2,'triangle',.09);if(netOn&&isHost)netSend({t:'zbs',i,st:2,item:o.item,by:o.by})}}
- else if(o.st==2&&auth){o.t+=dt;if(o.t>9)zBoxEnd(o,i)}}
+ else if(o.st==2&&auth){o.t+=dt;if(o.t>9)zBoxEnd(o,i)}
+ else if(o.st==3){o.t+=dt;if(auth&&o.t>2.6)zBoxRelocate(o,i)}}
+function zBoxMoveStart(o,i){o.st=3;o.t=0;zSet(o.lab,'THE BOX IS MOVING!','#ff4a4a');o.beam.visible=o.lab.visible=true;if(o.by==zMe())zq.pts+=zBoxCost();beep(120,.5,'sawtooth',.1);setTimeout(()=>beep(90,.5,'sawtooth',.1),260);if(netOn&&isHost)netSend({t:'zbs',i,st:3,by:o.by})}
+function zBoxRelocate(o,i){const c=zboxes.map((_,j)=>j).filter(j=>j!=i),j=c[Math.random()*c.length|0];o.st=0;o.beam.visible=o.lab.visible=false;estBoxGo(j);msg('The Mystery Box has moved',2.8);if(netOn&&isHost)netSend({t:'zbl',i:j})}
 
 /* ---------- navigation: a coarse grid and a flow field towards each player ---------- */
 function zGrid(){navBuild();zgr=NAV}
@@ -305,6 +309,7 @@ function zGutTick(dt){const G=11,gs=zq.guts;
 /* ---------- movement: zombies stop at arm's length instead of walking into you, nobody can stand inside anybody, and attacks are animated ---------- */
 function zMove(dt){const zs=bots.filter(b=>b.zom&&b.al),pls=zPlayers(),M=MAPS[sel.map];
  const EL=zq.elev;for(const p of pls)EL[p.id]=(p.y||0)>.55?(EL[p.id]||0)+dt:0;
+ zq.gutCD=(zq.gutCD||0)-dt;let gutBusy=zq.guts.length;for(const z_ of zs)if(z_.atk&&z_.atype==4)gutBusy++;
  for(const b of zs){
   if(b.rise>0){b.rise-=dt;const u=Math.min(1,1-b.rise/b.riseD),e=1-Math.pow(1-u,2.2);b.m.position.set(b.x,b.riseY*(1-e),b.z);if(b.riseY&&Math.random()<dt*20)burst(V(b.x,.15,b.z),1,0x5a4630,2,.4,.12);b.tyaw=b.m.rotation.y;continue}
   let pl=null,bd=1e9;for(const p of pls){const d=Math.hypot(p.x-b.x,p.z-b.z);if(d<bd){bd=d;pl=p}}if(!pl)continue;
@@ -315,7 +320,7 @@ function zMove(dt){const zs=bots.filter(b=>b.zom&&b.al),pls=zPlayers(),M=MAPS[se
   if(b.atk){b.at+=dt;if(b.atype==3&&b.at>b.atd*.3&&b.at<b.atd*.55&&bd>.95){const dx=pl.x-b.x,dz=pl.z-b.z;mv(b,dx/bd*3.4*dt,dz/bd*3.4*dt,.45)}
    if(!b.ahit&&b.at>=b.atd*.52){b.ahit=1;if(b.atype==4)zThrowGut(b,pl);else zStrike(b,pl)}if(b.at>=b.atd){b.atk=0;b.cd=Math.max(.2,b.ac-b.atd)}}
   else if(canMelee&&b.cd<=0&&!(b.stun>0))zAtkStart(b,pl);
-  else if(!canMelee&&(EL[pl.id]||0)>2.2&&bd>1.1&&bd<17&&b.gcd<=0&&zq.guts.length<4&&!(b.stun>0)&&zSees(b,pl))zAtkStart(b,pl,4);
+  else if(!canMelee&&(EL[pl.id]||0)>2.2&&bd>1.1&&bd<17&&b.gcd<=0&&gutBusy<2&&zq.gutCD<=0&&!(b.stun>0)&&zSees(b,pl)){zAtkStart(b,pl,4);gutBusy++;zq.gutCD=1.8+Math.random()*1.8;b.gcd=Math.max(b.gcd,5+Math.random()*3)}
   else if(bd>=reach)b.cd=Math.max(b.cd,.3)}
  /* zombies are solid to each other */
  for(let i=0;i<zs.length;i++)for(let j=i+1;j<zs.length;j++){const a=zs[i],c=zs[j];if(a.rise>0||c.rise>0)continue;const dx=c.x-a.x,dz=c.z-a.z,d=Math.hypot(dx,dz),R=(a.big||c.big)?1.15:.9;if(d<R&&d>.001){const p=(R-d)*.5/d;mv(a,-dx*p,-dz*p,.45);mv(c,dx*p,dz*p,.45)}}
@@ -337,7 +342,7 @@ function zRoundSync(d){const z=zq;if(d.r>z.r){z.r=d.r;z.brutes=d.br||0;zRoundFx(
 /* per-frame work shared by the host and by guests */
 function zCommon(dt){const z=zq;if(!P.dead&&t0-lastHit>6&&P.hp<P.mhp)P.hp=Math.min(P.mhp,P.hp+12*dt);
  if(z.down){z.dnT-=dt;if(z.dnT<=0){z.down=0;z.out=1;msg('You bled out. You return next round',3)}}
- if(z.cur&&z.cur.rv&&key.KeyF&&!P.dead){z.rvT+=dt;$('#zp').textContent=`Reviving ${z.cur.rv.nm}… ${Math.min(100,Math.round(z.rvT/2*100))}%`;if(z.rvT>=2){z.rvT=0;netSend({t:'zqv',to:z.cur.rv.id});z.pts+=100;feed('You revived '+z.cur.rv.nm)}}else z.rvT=0;
+ if(z.cur&&z.cur.rv&&key.KeyF&&!P.dead){z.rvT+=dt;const rvN=z.perks.rev?1:2;$('#zp').textContent=`Reviving ${z.cur.rv.nm}… ${Math.min(100,Math.round(z.rvT/rvN*100))}%`;if(z.rvT>=rvN){z.rvT=0;netSend({t:'zqv',to:z.cur.rv.id});z.pts+=100;feed('You revived '+z.cur.rv.nm)}}else z.rvT=0;
  if(P.dead&&z.dash.t>0)z.dash.t=0;zDashTick(dt);zPapTick(dt);zPuTick(dt);zPush(dt);zGutTick(dt);zAnim(dt);zInteract();zMarkers();zProne();if(typeof estTick=='function')estTick(dt)}
 function zomTick(dt){const z=zq;if(!z||mode!='Zombies')return;const M=MAPS[sel.map];
  let alive=0;for(const b of bots)if(b.zom&&b.al)alive++;
@@ -346,7 +351,7 @@ function zomTick(dt){const z=zq;if(!z||mode!='Zombies')return;const M=MAPS[sel.m
   if(z.toSpawn<=0&&alive<=0)zEndRound()}
  z.fl-=dt;if(z.fl<=0&&zgr){z.fl=.35;zfls={};for(const pl of zPlayers())zfls[pl.id]=zFlow(pl)}
  zMove(dt);zCommon(dt);zboxes.forEach((o,i)=>zBoxTick(o,i,dt,1));
- if(netOn){zbT+=dt;if(zbT>.1){zbT=0;netSend({t:'zb',r:z.r,l:bots.filter(b=>b.zom&&b.al).map(b=>[b.i,+b.x.toFixed(1),+b.z.toFixed(1),b.big?1:0,b.atk?b.atype+1:0])})}
+ if(netOn){zbT+=dt;if(zbT>.1){zbT=0;netSend({t:'zb',bl:(typeof EST!='undefined'&&EST.bx?EST.bx.loc:-1),r:z.r,l:bots.filter(b=>b.zom&&b.al).map(b=>[b.i,+b.x.toFixed(1),+b.z.toFixed(1),b.big?1:0,b.atk?b.atype+1:0])})}
   zsT+=dt;if(zsT>.5){zsT=0;netSend({t:'zs',r:z.r,st:z.st,tm:Math.ceil(z.tm),br:z.brutes})}
   if(!zPlayers().length&&!over){z.ad+=dt;if(z.ad>6)endGame('You reached round '+z.r)}else z.ad=0}
  $('#ob').textContent=z.st=='prep'?(z.r?`Round ${z.r} survived  ·  next round in ${Math.ceil(z.tm)}`:`Get ready  ·  first round in ${Math.ceil(z.tm)}`):`Round ${z.r}  ·  Zombies left ${z.toSpawn+alive}`;zHud()}
@@ -363,10 +368,10 @@ function zcTick(dt){const z=zq;if(!z||mode!='Zombies')return;const k=Math.min(1,
 function zSync(d){const seen=new Set();for(const[i,x,z,big,ak]of d.l){seen.add(i);let b=bots.find(q=>q.zp&&q.i==i);if(!b)b=zPuppet(i,x,z,big,d.r);b.tx=x;b.tz=z;if(ak&&!b.atk){b.atk=1;b.at=0;b.atd=(ak==5?.8:.65)*(big?1.15:1);b.atype=ak-1}}
  for(const b of bots)if(b.zp&&b.al&&!seen.has(b.i)){b.al=0;b.atk=0;zdead.push({b,t:0});ragStart(b,b.x-P.x,b.z-P.z,3)}}
 function zInteract(){const z=zq;let best=null,bd=1e9;if(!P.dead&&z.papT<=0){for(const it of zi){const d=Math.hypot(P.x-it.x,P.z-it.z);if(d<it.r&&d<bd&&it.txt()){bd=d;best=it}}
-  if(netOn)for(const b of bots)if(b.net&&!b.hb&&!b.al&&b.dn){const d=Math.hypot(P.x-b.x,P.z-b.z);if(d<2.6&&d<bd){bd=d;best={rv:b,txt:()=>'Hold F to revive '+b.nm,cost:()=>0,act:()=>{}}}}}
+  if(netOn)for(const b of bots)if(b.net&&!b.hb&&!b.al&&b.dn){const d=Math.hypot(P.x-b.x,P.z-b.z);if(d<2.6&&d<bd){bd=d;best={rv:b,txt:()=>PG.t('Hold F to revive '+b.nm),cost:()=>0,act:()=>{}}}}}
  z.cur=best;const e=$('#zp');if(P.dead&&z.down){e.textContent=`DOWN · bleeding out in ${Math.ceil(z.dnT)}s · a teammate can revive you`;e.className='bad';return}
  if(z.papT>0){e.textContent=`Pack-a-Punch · ${z.papT.toFixed(1)}s`;e.className='';return}
- if(best){const c=best.cost();e.textContent=best.rv?best.txt():`[F] ${best.txt()}${c?'  ['+c+']':''}`;e.className=c>z.pts?'bad':''}else{e.textContent='';e.className=''}}
+ if(best){const c=best.cost();e.textContent=best.rv?best.txt():`[${PG.on?PG.l('use'):'F'}] ${best.txt()}${c?'  ['+c+']':''}`;e.className=c>z.pts?'bad':''}else{e.textContent='';e.className=''}}
 function zUse(){if(!zq||P.dead||over)return;if(zq.cur)zq.cur.act()}
 function zHudInit(){if(!$('#zpus')){const e=document.createElement('div');e.id='zpus';$('#hud').appendChild(e)}if($('#zdash'))return;const d=document.createElement('div');d.id='zdash';d.innerHTML='<svg viewBox="0 0 44 44"><circle class="bg" cx="22" cy="22" r="18"/><circle class="fg" cx="22" cy="22" r="18"/></svg><b>DASH</b><em>AIM</em>';$('#hud').appendChild(d)}
 function zHudShow(on){const d=$('#zdash');if(d)d.style.display=on?'block':'none'}
@@ -402,11 +407,12 @@ function zNet(d){const z=zq;if(!z||mode!='Zombies')return;
  case'zqr':if(isHost){z.revBuys++;zRevCount(z.revBuys);netSend({t:'zrev',n:z.revBuys})}break;
  case'zqv':if(d.to==myId&&P.dead&&z.down)zRevive();break;
  case'zd':if(!isHost){if(d.by==myId&&zdoors[d.i])z.pts-=zdoors[d.i].d.c;zOpenDoor(d.i,d.by)}break;
- case'zbs':if(!isHost){const o=zboxes[d.i];if(!o)break;if(d.st==1){if(d.by==myId)z.pts-=zBoxCost();o.st=1;o.t=0;o.cy=0;o.by=d.by;if(typeof estBoxState=='function')estBoxState(o,1)}else if(d.st==2){o.item=d.item;o.st=2;o.t=0;o.by=d.by;o.beam.visible=o.lab.visible=true;zSet(o.lab,zItemName(d.item),d.item=='RG'||d.item=='NF'?'#ff4a4a':'#7bf08a');if(typeof estBoxShow=='function')estBoxShow(o,d.item,1)}else{o.st=0;o.beam.visible=o.lab.visible=false;if(typeof estBoxState=='function')estBoxState(o,0)}}break;
+ case'zbs':if(!isHost){const o=zboxes[d.i];if(!o)break;if(d.st==1){if(d.by==myId)z.pts-=zBoxCost();o.st=1;o.t=0;o.cy=0;o.by=d.by;if(typeof estBoxState=='function')estBoxState(o,1)}else if(d.st==2){o.item=d.item;o.st=2;o.t=0;o.by=d.by;o.beam.visible=o.lab.visible=true;zSet(o.lab,zItemName(d.item),d.item=='RG'||d.item=='NF'?'#ff4a4a':'#7bf08a');if(typeof estBoxShow=='function')estBoxShow(o,d.item,1)}else if(d.st==3){o.st=3;o.t=0;zSet(o.lab,'THE BOX IS MOVING!','#ff4a4a');o.beam.visible=o.lab.visible=true;if(d.by==myId)z.pts+=zBoxCost()}else{o.st=0;o.beam.visible=o.lab.visible=false;if(typeof estBoxState=='function')estBoxState(o,0)}}break;
+ case'zbl':if(!isHost){estBoxGo(d.i);msg('The Mystery Box has moved',2.8)}break;
  case'zdn':if(d.id!=myId){const nm=names[d.id]||'A teammate';popup('PLAYER DOWN',nm+' needs a revive!');feed(nm+' is down');beep(260,.25,'sawtooth',.1);setTimeout(()=>beep(200,.3,'sawtooth',.1),220)}break;
  case'zrev':if(!isHost)zRevCount(d.n);break;
  case'zk':if(!isHost&&d.to==myId){zGain(d.pts);kills++;wzkill(d.k);killXP(d.h);beep(900,.06,'square',.05)}break;
- case'zb':if(!isHost)zSync(d);break;
+ case'zb':if(!isHost){if(d.bl!=null&&d.bl>=0&&typeof EST!='undefined'&&EST.bx&&d.bl!==EST.bx.loc)estBoxGo(d.bl,1);zSync(d)}break;
  case'zpu':if(!isHost)zPuSpawn(d.id,d.k,d.x,d.z);break
  case'zpc':if(!isHost){const q=z.drops.find(x=>x.id==d.id);if(q)zPuRemove(q);zPuApply(d.k,d.by)}break
  case'zg':if(!isHost)zGutLaunch(d.x,d.y,d.z,d.vx,d.vy,d.vz,0,0,d.big,1);break
