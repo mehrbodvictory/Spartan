@@ -94,7 +94,7 @@ function zBuyFx(x,y,z,col,txt){const p=V(x,y,z);burst(p,26,col||0xffd24a,6,.7,.1
 function zGunObj(k){const w={k,...eff(k,[])};w.mag=w.m;w.rs=k=='RG'?3:(w.rs==null?4:w.rs);w.res=w.m*w.rs;return w}
 function zGive(k){if(ZMELEE[k])return zGiveMel(k);const w=zGunObj(k),i=wp.findIndex(x=>x.k==k);MV.eq=0;if(i>=0){wp[i]=w;cur=i}else if(wp.length<zq.cap){wp.push(w);cur=wp.length-1}else wp[cur]=w;rel=0;setGun();msg(W[k].n,1.5)}
 function zGiveMel(k){const n=ZMELEE[k];zq.mel={k:n,pap:0};zq.dash.cd=0;zq.dash.t=0;zPaintHands();popup(n.toUpperCase(),k=='NF'?'Hold V to draw them. Aim = DASH':'Hold V to draw it');beep(300,.3,'sawtooth',.1);setTimeout(()=>beep(900,.3,'triangle',.1),150);burst(V(P.x,1.2,P.z),30,k=='NF'?0x55ccff:0xffffff,7,.6,.12);shake=Math.max(shake,.4)}
-function zPick(by){const own=by==zMe()?wp.map(w=>w.k):[],rareG=Math.random()<.03&&!own.includes('RG'),rareN=Math.random()<.03&&(!zq||zq.mel.k!='Nitrogen Fists');if(rareG)return 'RG';if(rareN)return 'NF';const pool=zPoolKeys().filter(k=>!own.includes(k));return pool.length?pool[Math.random()*pool.length|0]:'SMG'}
+function zPick(by){const own=by==zMe()?wp.map(w=>w.k):[],rareG=Math.random()<.03&&!own.includes('RG'),rareN=Math.random()<.03&&(!zq||zq.mel.k!='Nitrogen Fists')&&!(MAPS[sel.map]&&MAPS[sel.map].nf===0);if(rareG)return 'RG';if(rareN)return 'NF';if(zq&&zq.tea&&!own.includes('TEA')&&Math.random()<.045)return 'TEA';const pool=zPoolKeys().filter(k=>!own.includes(k));return pool.length?pool[Math.random()*pool.length|0]:'SMG'}
 function zPap(w){const B=W[w.k],t=(w.pap||0)+1;w.pap=t;w.pm=t==1?2.2:3.6;if(w.k=='RG')w.pm=t==1?3:6;w.m=Math.round(B.m*(t==1?1.5:2));w.r=B.r*(t==1?.9:.8);w.pn=B.n+(t==1?' PaP':' PaP II');w.mag=w.m;w.res=w.m*w.rs;rel=0;setGun()}
 const _zsg=setGun;setGun=function(){_zsg.apply(this,arguments);gf.material.color.setHex(mode=='Zombies'&&cw()&&cw().pap?0xc080ff:0xffdd66)};
 
@@ -216,7 +216,7 @@ function zBoxAct(o,i){if(o.st==0){const bc=zBoxCost();if(zq.pts<bc)return zf('No
  else if(o.st==2&&o.by==zMe()){zGive(o.item);if(zCli())netSend({t:'zqe',i});zBoxEnd(o,i)}}
 function zBoxStart(o,i,by){o.st=1;o.t=0;o.cy=0;o.by=by;if(typeof EST!='undefined'&&EST.bx&&(!netOn||isHost))EST.bx.uses++;beep(300,.2,'triangle',.08);if(typeof estBoxState=='function')estBoxState(o,1);if(netOn&&isHost)netSend({t:'zbs',i,st:1,by})}
 function zBoxEnd(o,i){o.st=0;o.beam.visible=o.lab.visible=false;if(typeof estBoxState=='function')estBoxState(o,0);if(netOn&&isHost)netSend({t:'zbs',i,st:0})}
-function zBoxTick(o,i,dt,auth){if(o.st==1){o.t+=dt;o.cy-=dt;o.beam.visible=o.lab.visible=true;if(o.cy<=0){o.cy=.12;const pool=[...zPoolKeys(),'RG','NF'],k=pool[Math.random()*pool.length|0];zSet(o.lab,zItemName(k),'#ffd24a');if(typeof estBoxShow=='function')estBoxShow(o,k);beep(500+Math.random()*300,.05,'square',.03)}
+function zBoxTick(o,i,dt,auth){if(o.st==1){o.t+=dt;o.cy-=dt;o.beam.visible=o.lab.visible=true;if(o.cy<=0){o.cy=.12;const pool=[...zPoolKeys(),'RG',...(MAPS[sel.map]&&MAPS[sel.map].nf===0?[]:['NF']),...(zq.tea?['TEA']:[])],k=pool[Math.random()*pool.length|0];zSet(o.lab,zItemName(k),'#ffd24a');if(typeof estBoxShow=='function')estBoxShow(o,k);beep(500+Math.random()*300,.05,'square',.03)}
   if(auth&&o.t>3.2&&typeof EST!='undefined'&&EST.bx&&EST.bx.uses>=EST.bx.thr&&zboxes.length>1){zBoxMoveStart(o,i);return}
   if(auth&&o.t>3.2){o.item=zPick(o.by);o.st=2;o.t=0;zSet(o.lab,zItemName(o.item),o.item=='RG'||o.item=='NF'?'#ff4a4a':'#7bf08a');if(typeof estBoxShow=='function')estBoxShow(o,o.item,1);beep(900,.2,'triangle',.09);if(netOn&&isHost)netSend({t:'zbs',i,st:2,item:o.item,by:o.by})}}
  else if(o.st==2&&auth){o.t+=dt;if(o.t>9)zBoxEnd(o,i)}
@@ -251,7 +251,7 @@ function zHit(b,d,head){if(!b.al)return;const w=wp.find(x=>x.k==srcK);if(srcK=='
 function zDamage(b,d,head,by,k,mel){if(!b.al)return;if(zq.pu.insta>0)d=Math.max(d,b.hp+1);b.hp-=d;b.lh=t0;const mine=by==zMe();
  if(mine){hits++;$('#hm').className='on'+(head?' hd':'');hmT=.12;beep(head?900:600,.05,'square',.04)}juiceHit(b,Math.min(d,9999),head);
  if(b.hp>0){if(mine&&!mel)zGain(10);return}
- b.al=0;b.atk=0;const pt=mel?130:head?100:(k=='RL'||k=='RG')?60:50;zdead.push({b,t:0});{const kp=mine?P:bots.find(x=>x.net&&x.id==by);ragStart(b,kp?b.x-kp.x:0,kp?b.z-kp.z:0,b.big?2.2:(mel&&zMelKey()=='Nitrogen Fists')?9:(k=='SG'||k=='RL'||k=='RG'?6:3.4))}
+ b.al=0;b.atk=0;const pt=mel?130:head?100:(k=='RL'||k=='RG')?60:50;zdead.push({b,t:0});if(typeof lonKill=='function')lonKill(b);{const kp=mine?P:bots.find(x=>x.net&&x.id==by);ragStart(b,kp?b.x-kp.x:0,kp?b.z-kp.z:0,b.big?2.2:(mel&&zMelKey()=='Nitrogen Fists')?9:(k=='SG'||k=='RL'||k=='RG'?6:3.4))}
  if(mine){kills++;zGain(pt);floatTxt(V(b.x,2.8,b.z),'+'+(zq.pu.dbl>0?pt*2:pt),'#ffd24a');juiceKill(b,head);wzkill(k);killXP(head)}
  else{const nb=bots.find(x=>x.net&&x.id==by);if(nb)nb.k=(nb.k||0)+1;netSend({t:'zk',to:by,pts:pt,k,h:head?1:0})}zPuTry(b)}
 
@@ -351,7 +351,7 @@ function zomTick(dt){const z=zq;if(!z||mode!='Zombies')return;const M=MAPS[sel.m
   if(z.toSpawn<=0&&alive<=0)zEndRound()}
  z.fl-=dt;if(z.fl<=0&&zgr){z.fl=.35;zfls={};for(const pl of zPlayers())zfls[pl.id]=zFlow(pl)}
  zMove(dt);zCommon(dt);zboxes.forEach((o,i)=>zBoxTick(o,i,dt,1));
- if(netOn){zbT+=dt;if(zbT>.1){zbT=0;netSend({t:'zb',bl:(typeof EST!='undefined'&&EST.bx?EST.bx.loc:-1),r:z.r,l:bots.filter(b=>b.zom&&b.al).map(b=>[b.i,+b.x.toFixed(1),+b.z.toFixed(1),b.big?1:0,b.atk?b.atype+1:0])})}
+ if(netOn){zbT+=dt;if(zbT>.1){zbT=0;netSend({t:'zb',bl:(typeof EST!='undefined'&&EST.bx?EST.bx.loc:-1),lo:(typeof lonPack=='function'?lonPack():0),r:z.r,l:bots.filter(b=>b.zom&&b.al).map(b=>[b.i,+b.x.toFixed(1),+b.z.toFixed(1),b.big?1:0,b.atk?b.atype+1:0])})}
   zsT+=dt;if(zsT>.5){zsT=0;netSend({t:'zs',r:z.r,st:z.st,tm:Math.ceil(z.tm),br:z.brutes})}
   if(!zPlayers().length&&!over){z.ad+=dt;if(z.ad>6)endGame('You reached round '+z.r)}else z.ad=0}
  $('#ob').textContent=z.st=='prep'?(z.r?`Round ${z.r} survived  ·  next round in ${Math.ceil(z.tm)}`:`Get ready  ·  first round in ${Math.ceil(z.tm)}`):`Round ${z.r}  ·  Zombies left ${z.toSpawn+alive}`;zHud()}
@@ -409,10 +409,11 @@ function zNet(d){const z=zq;if(!z||mode!='Zombies')return;
  case'zd':if(!isHost){if(d.by==myId&&zdoors[d.i])z.pts-=zdoors[d.i].d.c;zOpenDoor(d.i,d.by)}break;
  case'zbs':if(!isHost){const o=zboxes[d.i];if(!o)break;if(d.st==1){if(d.by==myId)z.pts-=zBoxCost();o.st=1;o.t=0;o.cy=0;o.by=d.by;if(typeof estBoxState=='function')estBoxState(o,1)}else if(d.st==2){o.item=d.item;o.st=2;o.t=0;o.by=d.by;o.beam.visible=o.lab.visible=true;zSet(o.lab,zItemName(d.item),d.item=='RG'||d.item=='NF'?'#ff4a4a':'#7bf08a');if(typeof estBoxShow=='function')estBoxShow(o,d.item,1)}else if(d.st==3){o.st=3;o.t=0;zSet(o.lab,'THE BOX IS MOVING!','#ff4a4a');o.beam.visible=o.lab.visible=true;if(d.by==myId)z.pts+=zBoxCost()}else{o.st=0;o.beam.visible=o.lab.visible=false;if(typeof estBoxState=='function')estBoxState(o,0)}}break;
  case'zbl':if(!isHost){estBoxGo(d.i);msg('The Mystery Box has moved',2.8)}break;
+ case'zlon':if(isHost&&typeof lonDo=='function')lonDo(d.a);break;
  case'zdn':if(d.id!=myId){const nm=names[d.id]||'A teammate';popup('PLAYER DOWN',nm+' needs a revive!');feed(nm+' is down');beep(260,.25,'sawtooth',.1);setTimeout(()=>beep(200,.3,'sawtooth',.1),220)}break;
  case'zrev':if(!isHost)zRevCount(d.n);break;
  case'zk':if(!isHost&&d.to==myId){zGain(d.pts);kills++;wzkill(d.k);killXP(d.h);beep(900,.06,'square',.05)}break;
- case'zb':if(!isHost){if(d.bl!=null&&d.bl>=0&&typeof EST!='undefined'&&EST.bx&&d.bl!==EST.bx.loc)estBoxGo(d.bl,1);zSync(d)}break;
+ case'zb':if(!isHost){if(d.bl!=null&&d.bl>=0&&typeof EST!='undefined'&&EST.bx&&d.bl!==EST.bx.loc)estBoxGo(d.bl,1);if(typeof lonSync=='function')lonSync(d);zSync(d)}break;
  case'zpu':if(!isHost)zPuSpawn(d.id,d.k,d.x,d.z);break
  case'zpc':if(!isHost){const q=z.drops.find(x=>x.id==d.id);if(q)zPuRemove(q);zPuApply(d.k,d.by)}break
  case'zg':if(!isHost)zGutLaunch(d.x,d.y,d.z,d.vx,d.vy,d.vz,0,0,d.big,1);break

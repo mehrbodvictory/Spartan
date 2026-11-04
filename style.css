@@ -510,3 +510,11 @@ kbd.pg{font-family:system-ui,"Segoe UI Symbol","Apple Symbols",sans-serif;font-w
 /* crosshair: the ring and the centre dot share one exact centre (border-box, dot centred by its own half size) */
 #cx{box-sizing:border-box;width:24px;height:24px;margin:-12px 0 0 -12px}
 #cx:after{box-sizing:border-box;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:#fff;box-shadow:0 0 3px #000c}
+/* Zombies map screen: one big button per map */
+#zmaps{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px}
+.zmap{flex:1 1 320px;min-width:280px;text-align:left;padding:18px 22px;background:linear-gradient(135deg,#142a33,#0d1a20);border:1px solid #3b5963;color:var(--ink);cursor:pointer;font:inherit;clip-path:polygon(0 0,calc(100% - 22px) 0,100% 22px,100% 100%,22px 100%,0 calc(100% - 22px));transition:transform .12s,border-color .12s,background .12s}
+.zmap b{display:block;font-family:Teko,Impact,sans-serif;font-size:34px;letter-spacing:.04em;color:var(--am)}
+.zmap span{display:block;font-size:14px;line-height:1.35;opacity:.85;margin:4px 0 12px}
+.zmap i{display:inline-block;font-style:normal;font-family:Teko,Impact,sans-serif;font-size:24px;padding:2px 28px;background:var(--am);color:#1b1408;clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%)}
+.zmap:hover,.zmap:focus{transform:translateY(-3px);border-color:var(--am);background:linear-gradient(135deg,#1a3a46,#10242c)}
+#egg{display:none;position:absolute;left:50%;top:84px;transform:translateX(-50%);padding:6px 18px;font:700 22px Teko,Impact,sans-serif;letter-spacing:.06em;color:#ffd890;background:rgba(20,14,6,.7);border:1px solid #c98a3b;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);text-shadow:0 0 8px #c98a3b}

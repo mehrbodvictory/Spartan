@@ -133,3 +133,73 @@ LX.shadowLOD=function(list,t){if(t-(LX.slT||0)<.3)return;LX.slT=t;const p=C.posi
 
 /* bots can use every multiplayer weapon (the sniper, the rocket launcher and the Twin SMG joined the pool; Zombies-only weapons never do) */
 for(const k of['SN','RL','DS'])if(!BOTGUNS.includes(k))BOTGUNS.push(k);
+
+/* ===================== three Call of Duty staples =====================
+   1  GUN GAME     a new mode: every kill hands you the next weapon, 14 rungs from pistol to Magnum, first to clear the ladder wins
+   2  CLAYMORE     lethal equipment: a mine with a laser fan that goes off when an enemy walks in front of it (2 mines, max 4 down)
+   3  SMOKE GRENADE equipment: a thick smoke screen for 14 seconds; bots cannot see through it, bullets still pass
+   Claymore and Smoke appear in the loadout's lethal slot (E), Gun Game in the mode list. */
+const GG={on:0,i:0,lad:['CT','MP','SMG','DS','VMP','AR','TRB','MVR','TUR','BR','SG','CY','SN','MG']};
+MODES['Gun Game']='Every kill gives you the next weapon: 14 of them, from a pistol to the Magnum. Finish the ladder to win. Bots fight with their own guns.';
+GR.Claymore={fuse:0,R:5.5,d:140,imp:0,mine:1,t:'Place it on the ground: a laser fan sets it off when an enemy walks into it. 2 mines, 4 down at once'};
+GR.Smoke={fuse:1.3,R:0,d:0,imp:0,smoke:1,t:'Bursts into a thick smoke screen for 14 seconds. Bots cannot see through it. 2 grenades'};
+UNL.Claymore=20;UNL.Smoke=8;
+function ggGive(){const k=GG.lad[Math.min(GG.i,GG.lad.length-1)],w={k,...eff(k,[])};w.mag=w.m;w.rs=3;w.res=w.m*3;wp=[w];cur=0;rel=0;MV.eq=0;setGun();$('#ob').textContent=`GUN GAME  ·  weapon ${GG.i+1} / ${GG.lad.length}  ·  ${W[k].n}`}
+{const _s=startGame;startGame=function(){const gg=sel.mode=='Gun Game';if(gg)sel.mode='Slayer';/* Gun Game runs on the Slayer rules (spawns, bots, respawns) with the ladder on top */try{_s.apply(this,arguments)}finally{if(gg)sel.mode='Gun Game'}
+  GG.on=gg?1:0;CLAY.splice(0).forEach(c=>S.remove(c.g));SMK.splice(0).forEach(s=>s.sp.forEach(p=>S.remove(p)));if(!GG.on)return;GG.i=0;gc=0;ggGive();popup('GUN GAME','Every kill gives you the next weapon. Clear all 14 to win')}}
+{const _fk=featKill;featKill=function(){_fk.apply(this,arguments);if(!GG.on||over)return;GG.i++;if(GG.i>=GG.lad.length){endGame('Victory');return}ggGive();popup('WEAPON '+(GG.i+1)+' / '+GG.lad.length,W[GG.lad[GG.i]].n);beep(660,.1,'triangle',.07);setTimeout(()=>beep(990,.15,'triangle',.07),90)}}
+{const _rs=respawn;respawn=function(){const r=_rs.apply(this,arguments);if(GG.on)ggGive();return r}}
+/* ---- claymores ---- */
+const CLAY=[],SMK=[];
+function clayPlace(){if(P.dead||gc<=0)return;if(CLAY.filter(c=>!c.dead).length>=4){msg('Four claymores are already down',1.2);return}gc--;const d=aimDir(),yaw=Math.atan2(d.x,d.z),x=P.x+d.x*1.1,z=P.z+d.z*1.1,y=P.y||0,g=new THREE.Group(),
+  olive=new THREE.MeshLambertMaterial({color:0x4d5a34}),dk=new THREE.MeshLambertMaterial({color:0x1b1f14}),led=new THREE.MeshBasicMaterial({color:0xff2a1a}),grey=new THREE.MeshLambertMaterial({color:0x9aa09a}),add=(geo,mat,px,py,pz,sx,sy,sz,rx)=>{const m=new THREE.Mesh(geo,mat);m.position.set(px,py,pz);m.scale.set(sx,sy,sz);if(rx)m.rotation.x=rx;g.add(m);return m};
+  add(bg,olive,0,.1,0,.36,.11,.05);add(bg,olive,-.13,.1,.03,.11,.11,.05).rotation.y=.35;add(bg,olive,.13,.1,.03,.11,.11,.05).rotation.y=-.35;add(bg,dk,0,.105,.03,.3,.06,.012);add(bg,grey,0,.16,-.005,.12,.014,.045);add(bg,dk,0,.17,.02,.05,.01,.012);
+  for(const sx of[-.15,.15]){const l=add(bg,dk,sx,.04,-.01,.012,.09,.012,.4);l.rotation.z=sx>0?.25:-.25}const lamp=add(sg,led,.0,.152,-.02,.02,.02,.02);
+  g.position.set(x,y,z);g.rotation.y=yaw;S.add(g);const fan=[];for(const a of[-.45,0,.45]){const f=new THREE.Mesh(new THREE.PlaneGeometry(.015,5.2),new THREE.MeshBasicMaterial({color:0xff2a1a,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));f.rotation.x=-Math.PI/2;f.rotation.z=a;f.position.set(Math.sin(a)*-2.6*-1,.1,2.6*Math.cos(a));f.position.x=Math.sin(a)*2.6;g.add(f);fan.push(f)}
+  CLAY.push({g,x,y,z,yaw,t:0,lamp,led,fan,dead:0,own:1});beep(300,.08,'square',.05);setTimeout(()=>beep(450,.08,'square',.05),110);msg('Claymore down · '+gc+' left',1.2)}
+function clayTick(dt,t){for(let i=CLAY.length-1;i>=0;i--){const c=CLAY[i];c.t+=dt;const armed=c.t>1.6;c.led.color.setRGB(armed?(Math.sin(c.t*5)>.6?2.6:.35):(Math.sin(c.t*20)>0?2.4:.2),.1,.08);for(const f of c.fan)f.material.opacity=armed?.35+.15*Math.sin(t*8):0;if(c.t<1.6&&Math.floor(c.t*4)!=Math.floor((c.t-dt)*4))beep(500+c.t*200,.03,'square',.03);
+   if(!armed)continue;for(const b of bots){if(!b.al||b.net||b.zom||(typeof ally=='function'&&ally(b)))continue;const dx=b.x-c.x,dz=b.z-c.z,dd=Math.hypot(dx,dz);if(dd>5.2||dd<.3||Math.abs((b.y||0)-c.y)>2)continue;let da=Math.atan2(dx,dz)-c.yaw;da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.abs(da)<.62){clayBlow(c,i);break}}}}
+function clayBlow(c,i){c.dead=1;S.remove(c.g);CLAY.splice(i,1);boom(V(c.x,c.y+.3,c.z),{R:5.5,d:140,imp:0,c:0xffa040});beep(120,.2,'sawtooth',.1);burst(V(c.x,c.y+.3,c.z),30,0xffd890,9,.6,.12)}
+/* ---- smoke ---- */
+function smokeBurst(p){beep(180,.5,'sawtooth',.06);noise(.7,900,.35);if(SMK.length>=3){const o=SMK.shift();o.sp.forEach(q=>S.remove(q))}const tex=JX.h.puffTex,sp=[];for(let i=0;i<26;i++){const m=new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false,opacity:0,color:0xc4c8cc}),s=new THREE.Sprite(m);s.position.set(p.x,Math.max(.4,p.y)+.3,p.z);s.userData={a:Math.random()*6.28,r:Math.random(),h:Math.random(),sp:.4+Math.random()*.9,sz:2.2+Math.random()*2.2};s.scale.setScalar(.5);S.add(s);sp.push(s)}SMK.push({x:p.x,y:Math.max(0,p.y),z:p.z,t:0,life:14,r:0,sp})}
+function smokeTick(dt){for(let i=SMK.length-1;i>=0;i--){const s=SMK[i];s.t+=dt;const g=Math.min(1,s.t/2.2),fade=s.t>s.life-3?Math.max(0,(s.life-s.t)/3):1;s.r=4.4*(1-Math.pow(1-g,2))*(fade>0?1:0);
+   for(const q of s.sp){const u=q.userData;u.a+=dt*.12*u.sp;const rr=s.r*(.25+.75*u.r);q.position.set(s.x+Math.cos(u.a)*rr,s.y+.6+u.h*3.2*g+Math.sin(s.t*.5+u.a)*.15,s.z+Math.sin(u.a)*rr);q.scale.setScalar(u.sz*(.5+.5*g)*1.5);q.material.opacity=.62*fade*Math.min(1,s.t/.5)}
+   if(s.t>=s.life){s.sp.forEach(q=>{S.remove(q);q.material.dispose()});SMK.splice(i,1)}}}
+/* bots cannot see through smoke: while the bots think, a ray that crosses a smoke cloud ends there as if it hit a wall (the player's bullets are not affected) */
+let BOTPASS=0;{const _ub=updBots;updBots=function(){BOTPASS=1;try{return _ub.apply(this,arguments)}finally{BOTPASS=0}};
+ const _cw=castW;castW=function(o,d,max){let r=_cw.apply(this,arguments);if(BOTPASS&&SMK.length)for(const s of SMK){if(s.r<1)continue;const ox=o.x-s.x,oy=o.y-(s.y+1.4),oz=o.z-s.z,b=ox*d.x+oy*d.y+oz*d.z,c=ox*ox+oy*oy+oz*oz-s.r*s.r*.8,h=b*b-c;if(h<0)continue;const tt=-b-Math.sqrt(h);if(tt<r&&(tt>0||c<0))r=Math.max(0,tt)}return r}}
+{const _t=LX.tick;LX.tick=function(dt){_t.call(this,dt);if(run&&!paused){const t=performance.now()/1000;if(CLAY.length)clayTick(dt,t);if(SMK.length)smokeTick(dt)}}}
+
+/* ===================== Call of Duty map design for every Multiplayer map =====================
+   The old maps were mazes of hundreds of small pieces. They are rebuilt on the rules the Call of Duty map designers describe (Treyarch, Infinity Ward):
+   three lanes (north, middle, south) joining two spawns; every lane has a purpose; lane dividers with a gap in the centre for quick flanks; cover comes in PAIRS on both sides of a lane
+   so fights are head-on; no spot that sees the whole map (spawn courtyards sit behind shields, the dividers cut the sightlines); two tall landmarks so you always know where you are;
+   the layout has 180 degree symmetry, so neither team has the better side. Each map keeps its own sky, lighting, colours and materials. */
+function codLayout(M,T){const H=M.H,a=[],vv=M._v=M._v||[],B=(x,z,w,d,h,y0,c,k)=>a.push([x,z,w,d,h,y0||0,c,k]),V_=(x,z,w,d,h,y0,c,sh,tex)=>vv.push([x,z,w,d,h,y0||0,c,sh,tex]),
+  S2=(x,z,w,d,h,c,k)=>{B(x,z,w,d,h,0,c,k);B(-x,-z,w,d,h,0,c,k)};/* every piece is placed twice, turned 180 degrees about the centre */
+ const h_=f=>H*f;
+ /* lanes: painted strips on the ground so each lane reads at a glance */
+ for(const z of[-.56,0,.56])V_(0,h_(z),h_(1.56),h_(.34),.03,0,T.lane,'b',T.laneTex);
+ /* back lots: the edge of the world, a solid skyline in two heights */
+ for(const s of[-1,1]){B(0,s*h_(.9),h_(2)+2,h_(.2),9,0,T.mass,T.massTex);for(const f of[-.7,-.2,.35,.8])B(f*H,s*h_(.84),h_(.3),h_(.08),13,0,T.mass,T.massTex)}
+ /* spawn courtyards: a back wall, and a shield in front of the spawn so the middle lane never looks straight into it */
+ for(const s of[-1,1]){B(s*h_(.95),0,h_(.1),h_(1.8),6.5,0,T.wall,T.wallTex);B(s*h_(.73),0,2,h_(.2),3.2,0,T.wall,T.wallTex)}
+ /* lane dividers: two long buildings with a gap in the middle (flank route) and open ends (lane exits) */
+ S2(h_(.39),-h_(.28),h_(.42),h_(.17),8,T.wall,T.wallTex);S2(-h_(.39),-h_(.28),h_(.42),h_(.17),8,T.wall,T.wallTex);
+ /* two tall landmarks, one inside each divider (twins under the rotation), so every player can orient by them */
+ S2(h_(.4),-h_(.28),3.2,3.2,22,T.tower,T.towerTex);for(const[x,z]of[[.4,-.28],[-.4,.28]])V_(x*H,z*H,4.6,4.6,.5,22,T.cap,'b',T.towerTex);
+ /* the middle: four pylons mark the centre of the map and the Domination point B */
+ for(const sx of[-1,1])for(const sz of[-1,1])B(sx*h_(.075),sz*h_(.075),1.6,1.6,4.6,0,T.wall,T.wallTex);
+ /* paired cover in every lane: the same pieces on both sides of the lane's centre line; the middle lane gets taller pieces */
+ for(const z0 of[-.56,0,.56])for(const sx of[-1,1])for(const xx of[.24,.38])for(const sz of[-1,1]){const tall=z0==0&&xx==.24;B(sx*h_(xx),h_(z0)+sz*h_(.075),tall?1.2:2.4,tall?2.6:1.2,tall?2.3:1.2,0,T.cover,T.coverTex)}
+ M.zn=[[-h_(.5),-h_(.56)],[0,0],[h_(.5),h_(.56)]];M.fb=[[-h_(.86),0],[h_(.86),0]];
+ return a}
+const COD_THEMES={
+ Blockfort:{wall:0x8a8478,wallTex:'brick',mass:0x6f6a5f,massTex:'brick',cover:0x6a4a2f,coverTex:'plank',tower:0x8f897d,towerTex:'brick',cap:0x4a3a2a,lane:0x6b6a5e,laneTex:'cobble'},
+ Pillars:{wall:0xcdbf9e,wallTex:'stucco',mass:0xb8a98a,massTex:'stucco',cover:0xb7ab92,coverTex:'concrete',tower:0xd8cba8,towerTex:'stucco',cap:0x8a6a4a,lane:0xa89c82,laneTex:'cobble'},
+ Canyon:{wall:0x9a7a55,wallTex:'sand',mass:0x866a48,massTex:'sand',cover:0x7a6a58,coverTex:'concrete',tower:0x6e5a42,towerTex:'rust',cap:0x4a3a2a,lane:0x8a7050,laneTex:'sand'},
+ Suburbia:{wall:0xcfc1a3,wallTex:'stucco',mass:0xa89c82,massTex:'stucco',cover:0x3a4a5a,coverTex:'metal',tower:0xb8473a,towerTex:'brick',cap:0x3a3028,lane:0x3a3c42,laneTex:'asphalt'},
+ Boomtown:{wall:0x9c7a52,wallTex:'plank',mass:0x7a5a3c,massTex:'plank',cover:0x5a3a22,coverTex:'plank',tower:0x6d6d70,towerTex:'metal',cap:0x3a3a3c,lane:0xa08a60,laneTex:'sand'},
+ Rust:{wall:0x8a5a3c,wallTex:'rust',mass:0x6b4a34,massTex:'rust',cover:0x4a4f55,coverTex:'metal',tower:0x77756f,towerTex:'metal',cap:0x3a3a3c,lane:0x6a5a48,laneTex:'concrete'},
+ Decay:{wall:0x7b756c,wallTex:'concrete',mass:0x5c5851,massTex:'concrete',cover:0x4a4e52,coverTex:'metal',tower:0x6d655a,towerTex:'brick',cap:0x2f2a24,lane:0x4a4c50,laneTex:'asphalt'}};
+for(const k in COD_THEMES){const M=MAPS[k];if(!M)continue;M.b=function(){M._v=[];return codLayout(M,COD_THEMES[k])};M.deco=()=>[];M.inside=undefined;M.tb=undefined;M.lights=[];M.facade=(k=='Canyon'||k=='Rust')?0:1}

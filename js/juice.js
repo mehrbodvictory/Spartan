@@ -129,7 +129,7 @@ if(hi){wrap('buildGun',ctxWrap('gun',(r,a)=>r&&r.traverse?r:a[2]));wrap('attFpMo
 if(hi&&typeof mc!='undefined'){for(const[c,k]of[[0xffd24a,2.6],[0xffffff,1.8],[0xffa040,2.6],[0x62e0f0,2.2],[0xffdd66,2.4],[0xffe08a,2.4],[0xff4040,1.8]])if(!mc[c]){mc[c]=new THREE.MeshBasicMaterial({color:c});mc[c].color.multiplyScalar(k)}}
 wrap('muzzleFlash',o=>function(p,k){const r=o.apply(this,arguments);try{JX.muzzle(p,k)}catch(e){}return r});
 wrap('tr',o=>function(a,d,len,col,life,raw){const r=o.apply(this,arguments);try{JX.tracer(a,d,len,col,life,raw)}catch(e){}return r});
-wrap('boom',o=>function(p,g){const r=o.apply(this,arguments);try{if(g&&!g.tac){if(g.w=='RG')JX.goop(p,g);else JX.explode(p,g)}else if(g&&g.tac)JX.flash(p,0xffffff,10,.25,24)}catch(e){}return r});
+wrap('boom',o=>function(p,g){const r=o.apply(this,arguments);try{if(g&&!g.tac){if(g.w=='RG')JX.goop(p,g);else if(g.w=='TEA'&&JX.tea)JX.tea(p,g);else JX.explode(p,g)}else if(g&&g.tac)JX.flash(p,0xffffff,10,.25,24)}catch(e){}return r});
 wrap('juiceHit',o=>function(b,d,head){const r=o.apply(this,arguments);try{F.hit=1;F.ca=Math.min(1,F.ca+.12);const h=document.getElementById('hm');if(h){h.style.animation='none';void h.offsetWidth;h.style.animation=''}if(hi&&b)addSp({p:V(b.x,head?1.75:1.1,b.z),s0:.3,s1:head?.9:.55,life:.16,c:head?[3,2.2,.6]:[2.2,2.2,2.2],op:.9})}catch(e){}return r});
 wrap('juiceKill',o=>function(b,head){const r=o.apply(this,arguments);try{F.pulse=Math.max(F.pulse,.14);F.ca=Math.min(1,F.ca+.5);if(hi&&b){JX.flash(V(b.x,1.2,b.z),head?0xffd24a:0xff9060,5,.2,10);ring(V(b.x,.1,b.z),.3,2.2,.4,head?0xffd24a:0xff7a50,.7);addSp({p:V(b.x,1.1,b.z),s0:.5,s1:1.5,life:.28,c:[3,1.4,.6],op:.8})}}catch(e){}return r});
 wrap('gfxTick',o=>function(dt){o.apply(this,arguments);try{JX.tick(dt)}catch(e){if(!JX.err){JX.err=1;console.warn('juice tick',e)}}});
@@ -138,4 +138,5 @@ wrap('setGfx',o=>function(q){const r=o.apply(this,arguments);document.body.class
 document.body.classList.add('gfx-'+LX.q);LX.initBright();
 /* clear the effects of the last match when a new one starts */
 wrap('juiceReset',o=>function(){const r=o.apply(this,arguments);try{if(JX.goopClear)JX.goopClear();for(const a of[JX.sp,JX.rings,JX.scorch,JX.cas])for(const x of a)S.remove(x.m||x.s);JX.sp.length=JX.rings.length=JX.scorch.length=JX.cas.length=0;lastTot=null;wasDead=0;lastShots=typeof shots!='undefined'?shots:0;F.dmg=F.boom=F.flash=F.blur=0}catch(e){}return r});
+JX.h={cv,addSp,ring,rnd,hi,flareTex,puffTex,glowTex,F};
 })();

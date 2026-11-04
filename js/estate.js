@@ -198,7 +198,7 @@ function eShape(pts){const s=new THREE.Shape();pts.forEach((p,i)=>i?s.lineTo(p[0
 const ERM={foyer:[-16,14,16,32],dining:[-42,14,-16,32],parlor:[16,14,42,32],ball:[-16,-6,16,14],lib:[-42,-6,-16,14],bill:[16,-6,42,14],kit:[-42,-24,-16,-6],study:[16,-24,42,-6],cons:[-16,-24,16,-6],crypt:[22,-50,46,-37]};
 const ERA={foyer:0,dining:1,parlor:2,ball:3,kit:4,lib:5,bill:6,study:7,cons:8,garden:9,crypt:10,lawn:11};
 const eInn=k=>{const r=ERM[k],ex=k=='crypt';return[r[0]+(r[0]==-42||ex?.6:.45),r[1]+(r[1]==-24||ex?.6:.45),r[2]-(r[2]==42||ex?.6:.45),r[3]-(r[3]==32||ex?.6:.45)]};
-const eRoomAt=(x,z)=>{for(const k in ERM){const r=ERM[k];if(x>r[0]&&x<r[2]&&z>r[1]&&z<r[3])return k}return null};
+const eRoomAt=(x,z)=>{if(typeof sel!='undefined'&&sel.map=='London')return typeof lonIn=='function'&&lonIn(x,z)?'in':null;for(const k in ERM){const r=ERM[k];if(x>r[0]&&x<r[2]&&z>r[1]&&z<r[3])return k}return null};
 const EWP={foyer:'wpRed',dining:'wpGreen',parlor:'wpBlue',ball:'wpCream',lib:'wpGreen',bill:'wpRed',kit:'wpCream',study:'wpBlue'};
 const EFL={foyer:['marble',8],dining:['parquet',8],parlor:['carpet',4],ball:['parquet',8],lib:['parquet',8],bill:['carpet',4],kit:['tile',8],study:['carpet',4],cons:['terra',6],crypt:['flag',8]};
 
@@ -515,8 +515,8 @@ function estPerkMachine(m,t){const p=PERKS[t],g=new THREE.Group(),c=p.c,f=eFace(
  eMk(g,EG.pl,eCanvasMat(128,56,(x,w,h)=>{x.fillStyle='#14110c';x.fillRect(0,0,w,h);x.strokeStyle='#b08a3a';x.lineWidth=3;x.strokeRect(2,2,w-4,h-4);x.font='700 34px Teko,Impact,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillStyle='#ffd24a';x.fillText(p.cost+' PTS',w/2,h/2+2)}),0,.2,.52,.5,.2,1);
  eSpot(m.x+fx*1.1,1.6,m.z+fz*1.1,c,1.1,10,.9);eHalo(m.x+fx*.7,1.4,m.z+fz*.7,new THREE.Color(c).r*.5,new THREE.Color(c).g*.5,new THREE.Color(c).b*.5,'H');
  eFlatten(g,.4,.65);const[ww,dd]=eSwap(m.f,1.7,1.2);o.bxo=zSolid(m.x,m.z,ww,dd,2.5);zG.add(g);EST.objs.mach[t]=o;if(t=='rev')zq.revM={g,o:{gone:0},bxo:o.bxo};zq.mp.push({k:t,x:m.x,z:m.z,f:m.f,n:p.n});
- zi.push({x:m.x,z:m.z,r:3.3,txt:()=>zq.revM&&t=='rev'&&zq.revM.o.gone?'':(zq.perks[t]?p.n+' · you have it':'Buy '+p.n+' · '+p.t),cost:()=>zq.perks[t]?0:p.cost,act:()=>zPerk(t)})}
-function estMachTick(o,dt,t){if(o.g.visible===false)return;const fl=.85+.15*Math.sin(t*11+o.ph)+(Math.random()<.015?-.45:0);o.sign.color.setGray(Math.max(.3,fl));o.rack.position.y=Math.sin(t*2+o.ph)*.004;
+ zi.push({x:m.x,z:m.z,r:3.3,txt:()=>zq.revM&&t=='rev'&&zq.revM.o.gone?'':(t!='rev'&&!zPowered()?'The power is off':zq.perks[t]?p.n+' · you have it':'Buy '+p.n+' · '+p.t),cost:()=>zq.perks[t]||(t!='rev'&&!zPowered())?0:p.cost,act:()=>t!='rev'&&!zPowered()?noPower():zPerk(t)})}
+function estMachTick(o,dt,t){if(o.g.visible===false)return;const fl=.85+.15*Math.sin(t*11+o.ph)+(Math.random()<.015?-.45:0);o.sign.color.setGray(o.t=='rev'||zPowered()?Math.max(.3,fl):.05);o.rack.position.y=Math.sin(t*2+o.ph)*.004;
  if(o.buy>0){o.buy-=dt*1.6;const b=Math.max(0,o.buy);o.g.position.x=o.x0+Math.sin(t*70)*.012*b;o.flap.rotation.x=-b*.7;if(o.drop){o.drop.vy-=9*dt;o.drop.m.position.y+=o.drop.vy*dt;o.drop.m.position.z+=o.drop.vz*dt;if(o.drop.m.position.y<.15){o.drop.m.position.y=.15;o.drop.vy=0;o.drop.vz=0}}if(o.buy<=0&&o.drop){o.g.remove(o.drop.m);o.drop=null;o.g.position.x=o.x0}}}
 function estPerk(t){const o=EST.objs.mach[t];if(!o)return;o.x0=o.g.position.x;o.buy=1;const b=new THREE.Group(),bc=eM(o.c,new THREE.Color(o.c).multiplyScalar(.5).getHex(),.2,.1);eMk(b,EG.cyl,bc,0,.13,0,.055,.13,.055);eMk(b,EG.cyl,bc,0,.31,0,.024,.05,.024);b.position.set(0,.55,.55);b.rotation.x=.2;o.g.add(b);o.drop={m:b,vy:1.5,vz:.6};const[fx,fz]=eFwd(zq.mp.find(q=>q.k==t).f);burst(V(o.g.position.x+fx*.7,1,o.g.position.z+fz*.7),24,o.c,5,.6,.1)}
 
@@ -533,7 +533,7 @@ function estPapMachine(m){const g=new THREE.Group(),f=eFace(m.f),[fx,fz]=eFwd(m.
  eMk(g,EG.cyl,stone,0,.45,1.45,.55,.45,.55);eMk(g,EG.cyl,iron,0,.7,1.45,.62,.05,.62);o.disc=eMk(g,EG.cyl,vioS,0,.77,1.45,.5,.02,.5);o.beam=eMk(g,EG.cyl,eBasic(V1,.22,1),0,2.6,1.45,.3,1.9,.3);
  o.hov=new THREE.Group();o.hov.userData.dyn=1;o.hov.position.set(0,1.7,1.45);g.add(o.hov);eSpot(m.x+fx*1.2,1.8,m.z+fz*1.2,V1,1.6,13,.8);eSpot(m.x,3.0,m.z,0x8a50ff,1.0,10,.7);eHalo(m.x+fx*.6,1.8,m.z+fz*.6,.3,.16,.55,'H');
  eFlatten(g,.45,.7);const[ww,dd]=eSwap(m.f,3.1,1.8);zSolid(m.x,m.z,ww,dd,3.4);zG.add(g);EST.objs.pap=o;zq.mp.push({k:'pap',x:m.x,z:m.z,f:m.f,n:'Pack-a-Punch'});
- const pos=[m.x+fx*1.5,m.z+fz*1.5];zi.push({x:m.x+fx*.9,z:m.z+fz*.9,r:3.4,txt:()=>zPapTxt(),cost:()=>zPapCost(),act:()=>zPapAct(pos)})}
+ const pos=[m.x+fx*1.5,m.z+fz*1.5];zi.push({x:m.x+fx*.9,z:m.z+fz*.9,r:3.4,txt:()=>zPowered()?zPapTxt():'The power is off',cost:()=>zPowered()?zPapCost():0,act:()=>zPowered()?zPapAct(pos):noPower()})}
 function estPap(start,p){const o=EST.objs.pap;if(!o)return;if(start){o.act=1;o.t=0;o.fin=0;while(o.hov.children.length)o.hov.remove(o.hov.children[0]);const k=p.mel?(zq.mel.k=='Nitrogen Fists'?'NF':zq.mel.k=='Katana'?'KT':null):p.w.k;const it=k?eGunModel(k,1.35):new THREE.Group();if(!k){eMk(it,EG.sph,eM(0xe6d0b0,0x201810,.6,0),0,0,0,.28,.2,.22)}o.hov.add(it);o.item=it;o.tier=p.tier}
  else{o.act=0;o.fin=1;o.t=0;burst(V(o.m.x,1.8,o.m.z),30,0xb070ff,8,.9,.14);while(o.hov.children.length)o.hov.remove(o.hov.children[0]);o.item=null}}
 function estPapTick(o,dt,t){const a=o.act?1:0;o.t+=dt;const sp=a?7:1.2;for(const q of o.gears)q.m.rotation.z+=q.s*dt*sp*(q.k||1);
@@ -621,7 +621,7 @@ function estBuy(x,z){const m=new THREE.Mesh(new THREE.RingGeometry(.4,.55,32),ne
 
 /* ---------- build everything for a match ---------- */
 function estObjects(M){EST.spots=EST.spots.filter(s=>!s.dyn);for(const sl of EST.pool||[]){sl.s=null;if(sl.L)sl.L.intensity=0}for(const s of EST.spots){s.L=null;s.cur=0;s.want=0}const n0=EST.spots.length;EST.objs={doors:[],mach:{},boxes:[],walls:[],crates:[],rings:[],pap:null};M.dr.forEach((d,i)=>estDoor(d,i));
- for(const m of M.mc){if(PERKS[m.t])estPerkMachine(m,m.t);else if(m.t=='pap')estPapMachine(m);else if(m.t=='box')estBox(m,zboxes.length);else if(m.t=='wall')estWall(m);else if(m.t=='ammo')estCrate(m)}estBoxInit();for(let i=n0;i<EST.spots.length;i++)EST.spots[i].dyn=1}
+ for(const m of M.mc){if(PERKS[m.t])estPerkMachine(m,m.t);else if(m.t=='pap')estPapMachine(m);else if(m.t=='box')estBox(m,zboxes.length);else if(m.t=='wall')estWall(m);else if(m.t=='ammo')estCrate(m)}estBoxInit();if(M.objs)M.objs(M);for(let i=n0;i<EST.spots.length;i++)EST.spots[i].dyn=1}
 
 /* ---------- per frame ---------- */
 function estTick(dt){const t=EST.tm+=dt,M=MAPS[sel.map];if(!M||!M.zm)return;
