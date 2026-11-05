@@ -11,7 +11,7 @@ let zq=null,zG=null,zi=[],zdoors=[],zboxes=[],zgr=null,zfls={},zdead=[],zhc='',z
 const PERKS={vit:{n:'Vitality Cola',c:0xd8332a,cost:2500,t:'+50 max health'},spd:{n:'Quick Fizz',c:0x39c85a,cost:3000,t:'Reload twice as fast'},dbl:{n:'Double Pop',c:0xf0c21e,cost:2000,t:'Double damage, faster fire'},rev:{n:'Revive Soda',c:0x2f7de0,cost:500,t:'Revive yourself once and revive teammates twice as fast'},stam:{n:'Stamin Fizz',c:0xa04ad8,cost:2000,t:'Run 20% faster and shoot while sprinting'},mule:{n:'Mule Soda',c:0xf08a2a,cost:4000,t:'Carry a third weapon'}};
 /* perk hooks used by the weapon code (all neutral outside Zombies) */
 const zrl=()=>zq&&mode=='Zombies'&&zq.perks.spd?0.5:1,zfr=()=>zq&&mode=='Zombies'&&zq.perks.dbl?0.75:1,zsm=()=>zq&&mode=='Zombies'&&zq.perks.stam?1.2:1,
- ZB={SG:1.8,TRB:2.4,BR:1.15},zmul=w=>mode=='Zombies'&&zq?ZW*(w.pm||1)*(ZB[w.k]||1)*(zq.perks.dbl&&!w.ex&&w.k!='RG'?2:1):1;
+ ZB={SG:1.8,TRB:2.4,BR:1.15,TEA:2.6},zmul=w=>mode=='Zombies'&&zq?ZW*(w.pm||1)*(ZB[w.k]||1)*(zq.perks.dbl&&!w.ex&&w.k!='RG'?2:1):1;
 const zHp=r=>{const bs=n=>100+30*(n-1)+5*n*(n-1);return Math.round(r<=10?bs(r):bs(10)*Math.pow(1.07,r-10))},zDm=r=>Math.min(55,18+r*1.3),zAc=r=>Math.max(.7,1.1-r*.015),zTot=r=>Math.min(56,Math.round(5+r*2.4)),ZW=2.2,ZE=3,RGB=3000,FACE={s:0,n:Math.PI,e:Math.PI/2,w:-Math.PI/2};
 const zMe=()=>netOn?myId:'solo',zCli=()=>netOn&&!isHost;
 

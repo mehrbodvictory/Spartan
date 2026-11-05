@@ -6,11 +6,12 @@ PROJECT RULES (kept here so every future session starts from them)
  Delivery        the finished game is delivered as a .zip. The README does not need updating.
  Weapons         every weapon added must also exist in Zombies (wall buy + Mystery Box), unless it is a map's own unique weapon (London's The Brew). Zombies-only weapons never appear in Multiplayer.
                  There is ONE model per weapon, used in first person, in the loadout, on bots/other players and on the chalk wall buys. Bots can use every Multiplayer weapon.
-                 RayGun: one shared projectile and one shared red ooze explosion (rgImpact) for the player, bots and remote players.
+                 Reload sounds are real mechanical sounds (noise + material resonances, scrapes, thuds), unique per gun, never pitched tones or sweeps. RayGun: one shared projectile and one shared red ooze explosion (rgImpact) for the player, bots and remote players.
  Performance     must be heavily optimised: no frame cap, 60 fps minimum on every device at Ultra (the governor LX.gov trades resolution first, effects second). Never add per-frame DOM rebuilds.
  Zombies         wall buys are chalk outlines; at most two zombies throw guts at a time; each gun has its own reload sounds; ONE Mystery Box per map at a random spot that moves after use;
                  the spawn room always has Revive Soda (self-revive, and it revives teammates twice as fast); Hollow Estate has Nitrogen Fists, London has the power switch and the tea easter egg, never Nitrogen Fists.
- Multiplayer maps are Call of Duty style: three lanes, paired cover, spawn shields, centre gap in the dividers, 180 degree symmetry, landmarks, simple (codLayout in extras.js).
+ Multiplayer maps keep their OWN layouts and character: never replace a map with a shared template. They follow the Call of Duty design rules through per-map tuning (mapTune / MAPTUNE in extras.js):
+                 loose clutter thinned, paired cover at every objective, a spawn shield in front of each base, and a measured check that no base sees most of the map.
  Controllers     every menu is fully reachable and every button pressable; on-screen prompts follow the controller (Xbox, PlayStation, Nintendo, Ouya) through PG in controls.js. Dual wield: LT left gun, RT right gun.
  Camos           no sparkle squares or glowing blocks on any camo, including Pack-a-Punch.
  Anti-cheat      streaks.js loads last and snapshots the weapon table and the functions listed in names_. New weapons must be added to W before streaks.js runs; never wrap those functions afterwards.

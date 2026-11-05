@@ -41,58 +41,80 @@ function dsShot(w){const pad=PG&&PG.on&&(DS.L||DS.R);let h;if(pad&&DS.L!=DS.R)h=
    u[0].position.z=-kr*.04;u[1].position.z=-kl*.04;u[0].rotation.x=kr*.1;u[1].rotation.x=kl*.1}
   return _fu.apply(this,arguments)}}
 
-/* ---------- reload foley: every gun reloads with its own sequence of mechanical sounds (release latch, magazine sliding out, the drop, the new magazine sliding in, the seat, bolt or charging handle,
-   shells being thumbed in, a pump racking, a drum winding, a rocket tube loading) built from filtered noise and short resonances instead of beeps.
-   The player's reload follows the animation, bots and other players play the same sequence at their own distance. ---------- */
-const FOL=(()=>{let nb=null,last=-1,lastEv=0;
- const cx=()=>{ac=ac||new AudioContext();if(ac.state=='suspended'){try{ac.resume()}catch(e){}}return ac},buf=()=>{if(nb)return nb;const c=cx(),b=c.createBuffer(1,c.sampleRate,c.sampleRate),a=b.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1;return nb=b};
- /* a burst of filtered noise (optionally sweeping), and a short pitched resonance */
- const nz=(t,dur,type,f,q,v,f2)=>{const c=cx(),s=c.createBufferSource(),fl=c.createBiquadFilter(),g=c.createGain();s.buffer=buf();s.loop=true;s.playbackRate.value=.7+Math.random()*.6;fl.type=type;fl.Q.value=q;fl.frequency.setValueAtTime(f,t);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,t+dur);
-  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.0002,v*vol),t+Math.min(.005,dur/3));g.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(fl).connect(g).connect(c.destination);s.start(t,Math.random()*.5);s.stop(t+dur+.03)};
- const tn=(t,f,f2,dur,type,v)=>{const c=cx(),o=c.createOscillator(),g=c.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(Math.max(20,f2),t+dur);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.0002,v*vol),t+.004);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(c.destination);o.start(t);o.stop(t+dur+.03)};
+/* ---------- reload sounds ----------
+   Every gun reloads with its own sequence, built the way a real gun sounds: nothing here is a pitched tone or a sweep.
+   A click or a clack is a burst of noise that excites a few ringing resonances of the material it hits (steel rings high and long, polymer is dull and short, brass casings tinkle, wood knocks).
+   Sliding parts are rough filtered noise (stick and slip), drops are low thuds. Each weapon has its own parts, weight, material and order of events:
+   a rocking AK magazine, a pistol slap, a revolver's cylinder and rattling casings, a pump's two-part rack, a bolt action, a drum winding, a belt box, a teapot lid and the pour.
+   The player's reload follows the animation, bots and other players play the same sequence at their own distance, a little quieter. */
+const FOL=(()=>{let nb=null,bus=null,last=-1,lastEv=0;const R=Math.random;
+ const cx=()=>{ac=ac||new AudioContext();if(ac.state=='suspended'){try{ac.resume()}catch(e){}}return ac};
+ const buf=()=>{if(nb)return nb;const c=cx(),b=c.createBuffer(1,c.sampleRate,c.sampleRate),a=b.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1;return nb=b};
+ /* everything goes through a gentle bus: nothing below 70 Hz, nothing piercing above 6 kHz, a soft compressor so stacked hits never jump out */
+ const out=()=>{const c=cx();if(bus&&bus.c===c)return bus.i;const hp=c.createBiquadFilter(),lp=c.createBiquadFilter(),g=c.createGain();hp.type='highpass';hp.frequency.value=70;lp.type='lowpass';lp.frequency.value=6200;lp.Q.value=.4;g.gain.value=.8;hp.connect(lp);lp.connect(g);g.connect(c.destination);bus={c,i:hp};return hp};
+ /* one resonance: noise through a narrow filter with an instant attack and an exponential decay */
+ const mode=(t,f,q,dec,v,type)=>{const c=cx(),s=c.createBufferSource(),fl=c.createBiquadFilter(),g=c.createGain();s.buffer=buf();s.loop=true;s.playbackRate.value=.8+R()*.4;fl.type=type||'bandpass';fl.frequency.value=f;fl.Q.value=q;
+  g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(Math.max(.0002,v*vol),t+.0008);g.gain.exponentialRampToValueAtTime(.0001,t+dec);s.connect(fl);fl.connect(g);g.connect(out());s.start(t,R()*.4);s.stop(t+dec+.03)};
+ const MAT={steel:{f:[1500,2600,4300],q:[12,16,20],d:[.055,.04,.025],g:[1,.7,.4]},poly:{f:[700,1300,2100],q:[5,6,7],d:[.03,.022,.014],g:[1,.7,.4]},alloy:{f:[1100,2000,3400],q:[9,12,15],d:[.045,.03,.02],g:[1,.7,.4]},brass:{f:[3000,4400,5800],q:[20,24,28],d:[.07,.05,.035],g:[.8,.6,.4]},wood:{f:[380,720,1200],q:[4,5,6],d:[.04,.03,.02],g:[1,.6,.3]},cer:{f:[2000,3300,4800],q:[28,32,36],d:[.1,.07,.05],g:[1,.7,.5]}};
+ const hit=(t,v,p,m)=>{const M=MAT[m||'steel'];mode(t,2500,.8,.004,v*.14,'highpass');mode(t,520*p,1.3,.035,v*.65,'bandpass');for(let i=0;i<3;i++)mode(t,M.f[i]*p*(.97+R()*.06),M.q[i],M.d[i],v*M.g[i]*(i?.8:1))};
+ const thud=(t,v,p,d)=>{d=d||.09;mode(t,260*p,.7,d,v*1.1,'lowpass');mode(t,110*p,.6,d*1.4,v*.8,'lowpass')};
+ /* a sliding part: rough band-limited noise whose level flutters (stick and slip) while the band moves */
+ const scrape=(t,dur,f0,f1,q,v)=>{const c=cx(),s=c.createBufferSource(),fl=c.createBiquadFilter(),g=c.createGain();s.buffer=buf();s.loop=true;fl.type='bandpass';fl.Q.value=q;fl.frequency.setValueAtTime(f0,t);fl.frequency.linearRampToValueAtTime(f1,t+dur);
+  const n=Math.max(8,Math.floor(dur*70)),cv=new Float32Array(n);for(let i=0;i<n;i++)cv[i]=Math.max(.0002,v*vol*(.35+.65*R())*Math.pow(Math.sin(Math.PI*Math.min(1,(i+1)/n)),.5));g.gain.setValueCurveAtTime(cv,t,dur);s.connect(fl);fl.connect(g);g.connect(out());s.start(t,R()*.4);s.stop(t+dur+.03)};
+ /* the parts: (time, loudness, pitch, a, b) */
  const S={
-  tick:(t,v,p)=>{nz(t,.02,'bandpass',4300*p,7,v*.9);tn(t,3000*p,2600*p,.035,'sine',v*.2)},
-  latch:(t,v,p)=>{S.tick(t,v*.8,p);S.tick(t+.016,v*.6,p*.85);nz(t+.01,.03,'lowpass',900,1,v*.35)},
-  clack:(t,v,p)=>{nz(t,.055,'lowpass',2000*p,.8,v);tn(t,210*p,95*p,.1,'sine',v*.9);S.tick(t+.004,v*.7,p*.9)},
-  thud:(t,v,p)=>{nz(t,.1,'lowpass',520,.7,v*.9);tn(t,120*p,52*p,.14,'sine',v);nz(t+.07,.05,'bandpass',1500*p,2,v*.25)},
-  slide:(t,v,p,d)=>{d=d||.13;nz(t,d,'bandpass',1000*p,1.1,v*.55,2600*p);nz(t+d*.55,d*.5,'highpass',3500,.7,v*.12)},
-  rack:(t,v,p)=>{nz(t,.1,'bandpass',800*p,1.2,v*.6,2100*p);S.tick(t+.07,v*.5,p);S.clack(t+.15,v*1.05,p*.95);S.tick(t+.17,v*.5,p*1.1)},
-  plink:(t,v,p)=>{tn(t,2000*p,1500*p,.07,'triangle',v*.45);nz(t,.02,'highpass',3500,.7,v*.5);S.tick(t+.05,v*.35,p*1.2)},
-  pump:(t,v,p)=>{nz(t,.13,'bandpass',480*p,1,v*.6,1500*p);S.tick(t+.1,v*.5,p);S.clack(t+.14,v*1.1,p*.8);nz(t+.27,.12,'bandpass',1500*p,1,v*.5,520*p);S.clack(t+.38,v*1.15,p*.75);S.tick(t+.4,v*.5,p)},
-  ratchet:(t,v,p,n)=>{for(let i=0;i<(n||5);i++){S.tick(t+i*.032,v*(.55+.12*(i%2)),p*(1+i*.035));nz(t+i*.032,.012,'lowpass',1500,1,v*.2)}},
-  whoosh:(t,v,p,d)=>{d=d||.3;nz(t,d,'lowpass',380*p,.8,v*.8,1400*p)},
-  chain:(t,v,p)=>{for(let i=0;i<7;i++){nz(t+i*.045,.03,'bandpass',2800*p,3,v*(.3+Math.random()*.2));tn(t+i*.045,1700*p,1500*p,.03,'square',v*.07)}},
-  rattle:(t,v,p)=>{for(let i=0;i<6;i++){S.plink(t+i*.037+Math.random()*.015,v*.5,p*(.9+Math.random()*.4))}},
-  servo:(t,v,p,d)=>{d=d||.4;const c=cx(),o=c.createOscillator(),o2=c.createOscillator(),g=c.createGain();o.type='sawtooth';o2.type='sine';o.frequency.setValueAtTime(220*p,t);o.frequency.exponentialRampToValueAtTime(980*p,t+d);o2.frequency.setValueAtTime(40,t);o2.frequency.linearRampToValueAtTime(24,t+d);
-   const lf=c.createGain();lf.gain.value=.5;o2.connect(lf);lf.connect(g.gain);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.0002,v*.22*vol),t+d*.3);g.gain.exponentialRampToValueAtTime(.0001,t+d);const fl=c.createBiquadFilter();fl.type='lowpass';fl.frequency.value=2400;o.connect(fl).connect(g).connect(c.destination);o.start(t);o2.start(t);o.stop(t+d+.03);o2.stop(t+d+.03)},
-  zap:(t,v,p)=>{tn(t,1800*p,300*p,.16,'sawtooth',v*.25);nz(t,.09,'highpass',3000,.7,v*.5)},
-  spool:(t,v,p,d)=>{S.servo(t,v*.7,p,d||.3)},
-  cyl:(t,v,p)=>{S.latch(t,v,p);S.slide(t+.03,v*.6,p*1.1,.1)}};
- /* per-weapon sequences: [progress 0..1 through the reload, sound, weight, pitch] (weight scales loudness, pitch the character: small and bright to big and dull) */
- const mag=(o)=>[[.1,'latch',.8,o.p*1.05],[.28,'slide',.8,o.p],[.38,'thud',.55*o.w,o.p],[.64,'slide',.65,o.p*.95],[.84,'clack',1*o.w,o.p],[.93,o.bolt||'rack',1*o.w,o.p*(o.bp||1)]];
- const RFS={AR:mag({p:.82,w:1.05,bp:.9}),SMG:mag({p:1.25,w:.85}),BR:[[.1,'latch',.9,.75],[.26,'slide',.9,.7],[.38,'thud',.8,.75],[.66,'slide',.8,.72],[.84,'clack',1.2,.7],[.93,'rack',1.25,.62]],
-  MP:mag({p:1.3,w:.8,bolt:'tick'}),CT:[[.1,'latch',.9,1.1],[.3,'slide',.6,1.2],[.4,'thud',.45,1.2],[.66,'slide',.5,1.15],[.8,'clack',.9,1.15],[.92,'rack',.95,1.1]],
-  MG:[[.08,'cyl',1,.9],[.26,'rattle',.9,1.05],[.5,'plink',.55,.95],[.58,'plink',.55,1],[.66,'plink',.55,1.05],[.74,'ratchet',.8,1,4],[.9,'clack',1.15,.85]],
-  SN:[[.08,'tick',.9,.7],[.16,'slide',.9,.7,.17],[.38,'thud',.7,.8],[.7,'slide',.7,.8],[.8,'clack',1.1,.75],[.88,'rack',1.15,.7],[.96,'clack',.8,.8]],
-  RL:[[.1,'latch',1.1,.7],[.26,'whoosh',.9,.8],[.6,'thud',1.3,.7],[.72,'clack',1.2,.6],[.86,'latch',1.2,.65],[.95,'tick',.6,1.3]],
-  RG:[[.12,'tick',.7,.9],[.22,'servo',.8,1],[.55,'plink',.6,.8],[.62,'tick',.8,1.1],[.82,'servo',.9,1.4,.25],[.95,'zap',.7,1]],
-  VMP:mag({p:1.1,w:.95}),MVR:mag({p:.95,w:1}),
-  TUR:[[.1,'latch',.9,.9],[.24,'ratchet',.9,.8,8],[.4,'slide',.7,.8],[.62,'ratchet',.8,.85,9],[.84,'clack',1.1,.8],[.93,'rack',1,.8]],
-  TRB:[[.1,'latch',.8,1],[.26,'slide',.7,1],[.36,'servo',.6,.7,.3],[.62,'slide',.65,1],[.82,'clack',1,.95],[.9,'spool',1,1.2,.3]],
-  CY:[[.08,'latch',1.1,.7],[.24,'slide',.9,.65],[.36,'thud',1,.7],[.52,'chain',.9,.9],[.7,'slide',.8,.7],[.84,'clack',1.25,.65],[.93,'rack',1.25,.6]],
-  DS:null,SG:[[.9,'pump',1.1,1]]};
- RFS.DS=[...mag({p:1.2,w:.8}).map(e=>e.slice()),...mag({p:1.15,w:.78}).map(e=>[Math.min(.99,e[0]+.07),e[1],e[2]*.9,e[3]*.95,e[4]])];
- const play=(k,e,v,t)=>{const f=S[e[1]];if(f)f(t==null?cx().currentTime:t,.16*v*(e[2]||1),e[3]||1,e[4])};
+  latch:(t,v,p,m)=>{hit(t,v*.8,p,m||'steel');hit(t+.017,v*.45,p*1.15,m||'steel')},
+  tick:(t,v,p,m)=>hit(t,v*.6,p,m||'steel'),
+  magOut:(t,v,p,d,m)=>{d=d||.14;scrape(t,d,900*p,1900*p,2.2,v*.5);hit(t+d*.9,v*.35,p,m||'steel')},
+  magDrop:(t,v,p,m)=>{thud(t,v*.7,p,.08);hit(t+.03,v*.35,p*.85,m||'poly');thud(t+.12,v*.3,p*1.1,.06)},
+  magIn:(t,v,p,d,m)=>{d=d||.1;scrape(t,d,1700*p,900*p,2.4,v*.45);hit(t+d,v*.9,p,m||'steel');thud(t+d,v*.5,p,.07)},
+  seat:(t,v,p,m)=>{hit(t,v,p,m||'steel');thud(t,v*.7,p,.08)},
+  bolt:(t,v,p,m)=>{scrape(t,.11,700*p,1600*p,2,v*.55);hit(t+.11,v*.55,p*.9,m||'steel');scrape(t+.19,.06,1600*p,900*p,2,v*.3);hit(t+.26,v*1.1,p*.8,m||'steel');thud(t+.26,v*.6,p,.09)},
+  boltBack:(t,v,p)=>{scrape(t,.2,600*p,1500*p,1.8,v*.6);hit(t+.2,v*.7,p*.85)},
+  boltFwd:(t,v,p)=>{scrape(t,.12,1500*p,700*p,1.8,v*.55);hit(t+.12,v*1.1,p*.75);thud(t+.12,v*.6,p,.09)},
+  shell:(t,v,p)=>{hit(t,v*.5,p*1.05,'brass');hit(t+.025,v*.35,p,'steel');thud(t+.01,v*.25,p*1.3,.04)},
+  pump:(t,v,p)=>{scrape(t,.15,500*p,1300*p,1.8,v*.7);hit(t+.15,v*.7,p*.8);scrape(t+.3,.13,1300*p,600*p,1.8,v*.65);hit(t+.43,v*1.2,p*.75);thud(t+.43,v*.8,p,.1)},
+  rattle:(t,v,p,n)=>{for(let i=0;i<(n||6);i++)hit(t+i*.034+R()*.02,v*(.25+R()*.25),p*(.9+R()*.35),'brass')},
+  ratchet:(t,v,p,n)=>{n=n||6;let x=t;for(let i=0;i<n;i++){hit(x,v*(.3+.08*(i%2)),p*(1+i*.02),'steel');x+=Math.max(.02,.046-i*.002)}},
+  cyl:(t,v,p)=>{hit(t,v*.7,p*1.1);scrape(t+.03,.09,800*p,1500*p,2,v*.4);hit(t+.13,v*.5,p)},
+  cylClose:(t,v,p)=>{scrape(t,.08,1500*p,800*p,2,v*.4);hit(t+.08,v*1.1,p*.9);thud(t+.08,v*.5,p,.07)},
+  ping:(t,v,p)=>{mode(t,4300*p,60,.45,v*.5);mode(t,6500*p,70,.3,v*.25);hit(t,v*.3,p*1.2)},
+  chain:(t,v,p)=>{for(let i=0;i<8;i++)hit(t+i*.04+R()*.015,v*(.2+R()*.2),p*(1+R()*.3),'alloy')},
+  rocket:(t,v,p)=>{scrape(t,.34,300*p,900*p,1.5,v*.7);thud(t+.34,v*1.1,p*.7,.14);hit(t+.34,v*.5,p*.6)},
+  hum:(t,v,p,d)=>{d=d||.3;scrape(t,d,150*p,170*p,5,v*.45);scrape(t,d,2400*p,1800*p,6,v*.08)},
+  spool:(t,v,p,d)=>{scrape(t,d||.3,2600*p,900*p,1.2,v*.35)},
+  pour:(t,v,p,d)=>{d=d||.5;scrape(t,d,1100*p,1700*p,1.4,v*.5);for(let i=0;i<10;i++)mode(t+R()*d,1500+R()*1800,16,.025,v*.18)},
+  clink:(t,v,p)=>hit(t,v,p,'cer')};
+ /* per-weapon sequences: [moment in the reload 0..1, part, loudness, pitch (small and bright high, big and dull low), then the part's own arguments] */
+ const mag=(o)=>[[.1,'latch',.85*o.w,o.p*.98,o.m],[.27,'magOut',.8*o.w,o.p,o.d||.14,o.m],[.38,'magDrop',.85*o.w,o.p*1.02,o.m],[.66,'magIn',.8*o.w,o.p,.07,o.m],[.84,'seat',1.05*o.w,o.p*.95,o.m],[.93,o.bolt||'bolt',1*o.w,o.p*.9,o.bm||o.m]];
+ const RFS={
+  AR:[[.1,'latch',.95,.8],[.27,'magOut',.9,.8,.15],[.38,'magDrop',.9,.85],[.58,'tick',.55,.85],[.67,'magIn',.8,.8,.07],[.84,'seat',1.15,.74],[.92,'bolt',1.15,.72]],
+  SMG:mag({p:1.3,w:.62,m:'poly',d:.1,bm:'alloy'}),
+  BR:[[.1,'latch',1,.65],[.26,'magOut',1,.65,.2],[.35,'ping',.8,.9],[.42,'magDrop',1,.7],[.66,'magIn',1,.65,.1],[.84,'seat',1.3,.6],[.93,'bolt',1.3,.6]],
+  MP:[[.12,'latch',.55,1.45,'poly'],[.3,'magOut',.5,1.45,.08,'poly'],[.4,'magDrop',.5,1.4,'poly'],[.66,'magIn',.55,1.4,.06,'poly'],[.82,'seat',.7,1.4,'poly'],[.92,'tick',.7,1.2,'alloy']],
+  CT:[[.1,'latch',.8,1.05],[.28,'magOut',.5,1.1,.07],[.4,'magDrop',.6,1.1],[.64,'magIn',.6,1.1,.06],[.78,'seat',.9,1.05],[.9,'bolt',.75,1.1]],
+  MG:[[.08,'cyl',1,.9],[.22,'tick',.8,1],[.27,'tick',.7,.95],[.31,'rattle',1,1.05,6],[.5,'rattle',.8,.95,6],[.62,'ratchet',.7,1,5],[.84,'cylClose',1.2,.85],[.93,'ratchet',.55,1.1,4]],
+  SG:[[.9,'pump',1.1,1]],
+  SN:[[.06,'latch',.9,.7],[.14,'boltBack',1,.7],[.34,'magOut',.8,.8,.12],[.46,'magDrop',.7,.8],[.66,'magIn',.9,.8,.09],[.8,'boltFwd',1.1,.7],[.9,'seat',.9,.7]],
+  RL:[[.1,'latch',1.1,.65],[.26,'rocket',1,.8],[.6,'seat',1.2,.55],[.74,'cylClose',1.1,.6],[.9,'latch',1,.7]],
+  RG:[[.1,'latch',.7,1,'alloy'],[.24,'hum',.8,1,.35],[.5,'tick',.6,.9,'alloy'],[.58,'seat',.8,1,'alloy'],[.78,'hum',.9,1.3,.3],[.93,'tick',.7,1.2,'alloy']],
+  VMP:mag({p:1.05,w:.85,m:'alloy',bolt:'bolt'}),MVR:mag({p:.9,w:1,m:'steel'}),
+  TUR:[[.1,'latch',.9,.9],[.24,'ratchet',.9,.8,9],[.4,'magOut',.7,.85,.12],[.62,'ratchet',.8,.85,10],[.84,'seat',1.1,.8],[.93,'bolt',1,.8]],
+  TRB:[[.1,'latch',.8,1,'alloy'],[.26,'magOut',.7,1,.1,'alloy'],[.36,'spool',.6,.8,.3],[.62,'magIn',.7,1,.08,'alloy'],[.82,'seat',1,.95,'alloy'],[.9,'spool',.8,1.2,.3]],
+  CY:[[.08,'latch',1.2,.6],[.24,'magOut',1,.6,.18],[.36,'magDrop',1,.65],[.52,'chain',.9,.9],[.7,'magIn',.9,.6,.12],[.84,'seat',1.3,.6],[.93,'bolt',1.3,.55]],
+  TEA:[[.1,'clink',.8,.9],[.22,'pour',.9,.9,.5],[.5,'clink',.5,1.1],[.7,'pour',.6,1,.3],[.9,'clink',.9,.85]]};
+ RFS.DS=[...mag({p:1.2,w:.6,m:'poly',d:.1,bm:'alloy'}),...mag({p:1.14,w:.58,m:'poly',d:.1,bm:'alloy'}).map(e=>[Math.min(.99,e[0]+.06),...e.slice(1)])];
+ const play=(e,v,t)=>{const f=S[e[1]];if(f)f(t==null?cx().currentTime:t,.105*v*(e[2]||1)*(.88+R()*.24),(e[3]||1)*(.97+R()*.06),e[4],e[5])};
  return{
-  /* the player's reload: sounds fire as the animation passes their moment; shotguns thumb a shell in for every shell the animation loads */
-  player(w,k,p,ev){const seq=RFS[k]||RFS.AR;if(p<last-.2)last=-1;if(p<=.001)last=-1;
-   if(k=='SG'){if(ev>lastEv){play(k,[0,'plink',.9,1,0],1);nz(cx().currentTime+.02,.05,'bandpass',1400,2,.05*vol)}lastEv=ev}
-   for(const e of seq)if(e[0]>last&&e[0]<=p)play(k,e,1);last=p},
+  /* the player's reload: sounds fire as the animation passes their moment; shotguns thumb a shell for every shell the animation loads */
+  player(w,k,p,ev){const seq=RFS[k]||RFS.AR;if(p<last-.2||p<=.001)last=-1;
+   if(k=='SG'){if(ev>lastEv)S.shell(cx().currentTime,.07*(.9+R()*.2),1);lastEv=ev}
+   for(const e of seq)if(e[0]>last&&e[0]<=p)play(e,1);last=p},
   reset(){last=-1;lastEv=0},
-  /* bots and other players: the whole sequence scheduled from the moment their reload starts, quieter with distance */
-  bot(b,w){try{const d=C.position.distanceTo(b.m?b.m.position:C.position),v=Math.max(0,1-d/38);if(v<.06)return;const seq=RFS[b.wk]||RFS.AR,dur=Math.max(.5,w.rl),t0=cx().currentTime;
-   if(b.wk=='SG'){for(let i=0;i<3;i++)S.plink(t0+.3+i*dur*.2,.14*v,1);S.pump(t0+dur*.88,.15*v,1);return}
-   for(const e of seq)play(b.wk,e,v,t0+e[0]*dur)}catch(x){}},
+  /* bots and other players */
+  bot(b,w){try{const d=C.position.distanceTo(b.m?b.m.position:C.position),v=Math.max(0,1-d/38);if(v<.06)return;const dur=Math.max(.5,w.rl),t0=cx().currentTime;
+   if(b.wk=='SG'){for(let i=0;i<3;i++)S.shell(t0+.3+i*dur*.2,.1*v,1);S.pump(t0+dur*.88,.15*v,1);return}
+   for(const e of RFS[b.wk]||RFS.AR)play(e,v,t0+e[0]*dur)}catch(x){}},
   S};
 })();
 
@@ -170,36 +192,29 @@ let BOTPASS=0;{const _ub=updBots;updBots=function(){BOTPASS=1;try{return _ub.app
  const _cw=castW;castW=function(o,d,max){let r=_cw.apply(this,arguments);if(BOTPASS&&SMK.length)for(const s of SMK){if(s.r<1)continue;const ox=o.x-s.x,oy=o.y-(s.y+1.4),oz=o.z-s.z,b=ox*d.x+oy*d.y+oz*d.z,c=ox*ox+oy*oy+oz*oz-s.r*s.r*.8,h=b*b-c;if(h<0)continue;const tt=-b-Math.sqrt(h);if(tt<r&&(tt>0||c<0))r=Math.max(0,tt)}return r}}
 {const _t=LX.tick;LX.tick=function(dt){_t.call(this,dt);if(run&&!paused){const t=performance.now()/1000;if(CLAY.length)clayTick(dt,t);if(SMK.length)smokeTick(dt)}}}
 
-/* ===================== Call of Duty map design for every Multiplayer map =====================
-   The old maps were mazes of hundreds of small pieces. They are rebuilt on the rules the Call of Duty map designers describe (Treyarch, Infinity Ward):
-   three lanes (north, middle, south) joining two spawns; every lane has a purpose; lane dividers with a gap in the centre for quick flanks; cover comes in PAIRS on both sides of a lane
-   so fights are head-on; no spot that sees the whole map (spawn courtyards sit behind shields, the dividers cut the sightlines); two tall landmarks so you always know where you are;
-   the layout has 180 degree symmetry, so neither team has the better side. Each map keeps its own sky, lighting, colours and materials. */
-function codLayout(M,T){const H=M.H,a=[],vv=M._v=M._v||[],B=(x,z,w,d,h,y0,c,k)=>a.push([x,z,w,d,h,y0||0,c,k]),V_=(x,z,w,d,h,y0,c,sh,tex)=>vv.push([x,z,w,d,h,y0||0,c,sh,tex]),
-  S2=(x,z,w,d,h,c,k)=>{B(x,z,w,d,h,0,c,k);B(-x,-z,w,d,h,0,c,k)};/* every piece is placed twice, turned 180 degrees about the centre */
- const h_=f=>H*f;
- /* lanes: painted strips on the ground so each lane reads at a glance */
- for(const z of[-.56,0,.56])V_(0,h_(z),h_(1.56),h_(.34),.03,0,T.lane,'b',T.laneTex);
- /* back lots: the edge of the world, a solid skyline in two heights */
- for(const s of[-1,1]){B(0,s*h_(.9),h_(2)+2,h_(.2),9,0,T.mass,T.massTex);for(const f of[-.7,-.2,.35,.8])B(f*H,s*h_(.84),h_(.3),h_(.08),13,0,T.mass,T.massTex)}
- /* spawn courtyards: a back wall, and a shield in front of the spawn so the middle lane never looks straight into it */
- for(const s of[-1,1]){B(s*h_(.95),0,h_(.1),h_(1.8),6.5,0,T.wall,T.wallTex);B(s*h_(.73),0,2,h_(.2),3.2,0,T.wall,T.wallTex)}
- /* lane dividers: two long buildings with a gap in the middle (flank route) and open ends (lane exits) */
- S2(h_(.39),-h_(.28),h_(.42),h_(.17),8,T.wall,T.wallTex);S2(-h_(.39),-h_(.28),h_(.42),h_(.17),8,T.wall,T.wallTex);
- /* two tall landmarks, one inside each divider (twins under the rotation), so every player can orient by them */
- S2(h_(.4),-h_(.28),3.2,3.2,22,T.tower,T.towerTex);for(const[x,z]of[[.4,-.28],[-.4,.28]])V_(x*H,z*H,4.6,4.6,.5,22,T.cap,'b',T.towerTex);
- /* the middle: four pylons mark the centre of the map and the Domination point B */
- for(const sx of[-1,1])for(const sz of[-1,1])B(sx*h_(.075),sz*h_(.075),1.6,1.6,4.6,0,T.wall,T.wallTex);
- /* paired cover in every lane: the same pieces on both sides of the lane's centre line; the middle lane gets taller pieces */
- for(const z0 of[-.56,0,.56])for(const sx of[-1,1])for(const xx of[.24,.38])for(const sz of[-1,1]){const tall=z0==0&&xx==.24;B(sx*h_(xx),h_(z0)+sz*h_(.075),tall?1.2:2.4,tall?2.6:1.2,tall?2.3:1.2,0,T.cover,T.coverTex)}
- M.zn=[[-h_(.5),-h_(.56)],[0,0],[h_(.5),h_(.56)]];M.fb=[[-h_(.86),0],[h_(.86),0]];
- return a}
-const COD_THEMES={
- Blockfort:{wall:0x8a8478,wallTex:'brick',mass:0x6f6a5f,massTex:'brick',cover:0x6a4a2f,coverTex:'plank',tower:0x8f897d,towerTex:'brick',cap:0x4a3a2a,lane:0x6b6a5e,laneTex:'cobble'},
- Pillars:{wall:0xcdbf9e,wallTex:'stucco',mass:0xb8a98a,massTex:'stucco',cover:0xb7ab92,coverTex:'concrete',tower:0xd8cba8,towerTex:'stucco',cap:0x8a6a4a,lane:0xa89c82,laneTex:'cobble'},
- Canyon:{wall:0x9a7a55,wallTex:'sand',mass:0x866a48,massTex:'sand',cover:0x7a6a58,coverTex:'concrete',tower:0x6e5a42,towerTex:'rust',cap:0x4a3a2a,lane:0x8a7050,laneTex:'sand'},
- Suburbia:{wall:0xcfc1a3,wallTex:'stucco',mass:0xa89c82,massTex:'stucco',cover:0x3a4a5a,coverTex:'metal',tower:0xb8473a,towerTex:'brick',cap:0x3a3028,lane:0x3a3c42,laneTex:'asphalt'},
- Boomtown:{wall:0x9c7a52,wallTex:'plank',mass:0x7a5a3c,massTex:'plank',cover:0x5a3a22,coverTex:'plank',tower:0x6d6d70,towerTex:'metal',cap:0x3a3a3c,lane:0xa08a60,laneTex:'sand'},
- Rust:{wall:0x8a5a3c,wallTex:'rust',mass:0x6b4a34,massTex:'rust',cover:0x4a4f55,coverTex:'metal',tower:0x77756f,towerTex:'metal',cap:0x3a3a3c,lane:0x6a5a48,laneTex:'concrete'},
- Decay:{wall:0x7b756c,wallTex:'concrete',mass:0x5c5851,massTex:'concrete',cover:0x4a4e52,coverTex:'metal',tower:0x6d655a,towerTex:'brick',cap:0x2f2a24,lane:0x4a4c50,laneTex:'asphalt'}};
-for(const k in COD_THEMES){const M=MAPS[k];if(!M)continue;M.b=function(){M._v=[];return codLayout(M,COD_THEMES[k])};M.deco=()=>[];M.inside=undefined;M.tb=undefined;M.lights=[];M.facade=(k=='Canyon'||k=='Rust')?0:1}
+/* ===================== Call of Duty map tuning (each map keeps its own layout) =====================
+   The rules the Call of Duty map designers describe, applied to what each map already is rather than to a template:
+   simplicity (loose clutter is thinned out; structures, stairs and walls are never touched), cover in PAIRS on both sides of every objective so fights are head-on,
+   a spawn shield in front of each team's base so the base is never in view from the far side of the map, and a measured check that no point on the map sees most of the rest.
+   Every number comes from the map's own flags, zones and boxes. */
+const MAPTUNE={Blockfort:{thin:4},Pillars:{thin:2},Canyon:{thin:4,wings:1},Suburbia:{thin:2},Boomtown:{thin:1},Rust:{thin:3,axis:'z',wings:1},Decay:{thin:5}};
+function mapTune(name,cfg){const M=MAPS[name];if(!M||M.zm)return;const ob=M.b,od=M.deco;
+ M.b=function(){const L=ob.call(this),rm=M._rm=[],top=L.filter(e=>e[4]>2.6&&(e[5]||0)<.5&&e[7]!='n'),touch=(e)=>{for(const t of top){if(Math.abs(e[0]-t[0])<(e[2]+t[2])/2+.7&&Math.abs(e[1]-t[1])<(e[3]+t[3])/2+.7)return true}return false};
+  const out=[];let i=0;
+  for(const e of L){const loose=e[4]<2.4&&e[4]>.3&&(e[5]||0)<.4&&Math.max(e[2],e[3])<5.6&&e[7]!='n'&&Math.abs(e[0])<M.H-2&&Math.abs(e[1])<M.H-2;
+   if(loose&&cfg.thin>1&&!touch(e)){i++;if(i%cfg.thin!=0){rm.push([e[0]-e[2]/2-.25,e[1]-e[3]/2-.25,e[0]+e[2]/2+.25,e[1]+e[3]/2+.25]);continue}}out.push(e)}
+  /* the map's own cover palette: the most common colour and surface among its low pieces, and among its walls */
+  const mode=(f)=>{const c={};let best=null,n=0;for(const e of out){if(!f(e))continue;const k=e[6]+'|'+e[7];c[k]=(c[k]||0)+1;if(c[k]>n){n=c[k];best=e}}return best?[best[6],best[7]]:[0x777777,undefined]},cov=mode(e=>e[4]>.9&&e[4]<1.8&&Math.max(e[2],e[3])<4.6&&(e[5]||0)<.4),wal=mode(e=>e[4]>2.6&&e[4]<12&&(e[5]||0)<.4);
+  const free=(x,z,w,d,m,ex)=>{if(Math.abs(x)>M.H-3||Math.abs(z)>M.H-3)return false;ex=ex==null?2.6:ex;for(const p of[...M.zn,...M.fb])if(Math.abs(x-p[0])<w/2+ex&&Math.abs(z-p[1])<d/2+ex)return false;for(const e of out){if(e[7]=='n'||(e[5]||0)>2.2)continue;if(e[4]<.3)continue;if(Math.abs(x-e[0])<(w+e[2])/2+m&&Math.abs(z-e[1])<(d+e[3])/2+m)return false}return true};
+  const zax=cfg.axis=='z',add=(x,z,w,d,h,c,m,ex)=>{if(!free(x,z,w,d,m==null?.9:m,ex))return false;out.push([x,z,w,d,h,0,c[0],c[1]]);return true};
+  /* paired cover at every Domination point: two pieces either side of the line between the teams, on both its sides */
+  for(const[zx,zz]of M.zn)for(const s of[-1,1])for(const t of[-1,1]){const dx=zax?t*4.6:s*4.2,dz=zax?s*4.2:t*4.6;add(zx+dx,zz+dz,zax?1.2:2.5,zax?2.5:1.2,1.25,cov)}
+  /* spawn shields: a wall between each team's base and the middle of the map, wide enough to break the line down the centre */
+  for(const f of M.fb){const L_=Math.hypot(f[0],f[1])||1,vx=-f[0]/L_,vz=-f[1]/L_,qx=zax?1:0,qz=zax?0:1;let ok=false,sx_=0,sz_=0;for(const k of[6.5,5,8,4.2,9.5,3.4,11,13])for(const l of[0,3.2,-3.2,6,-6,9,-9]){if(ok)break;sx_=f[0]+vx*k+qx*l;sz_=f[1]+vz*k+qz*l;ok=add(sx_,sz_,zax?6.5:1.2,zax?1.2:6.5,3.1,wal,.45,1.9)}(M._tune=M._tune||[]).push(ok);
+   /* open maps get wings: two shorter walls either side, a shallow U that closes the base off from the long sightlines */
+   if(ok&&cfg.wings)for(const s of[-1,1])add(sx_+vx*2.2+qx*s*6.8,sz_+vz*2.2+qz*s*6.8,zax?4.6:1.2,zax?1.2:4.6,2.8,wal,.45,1.9)}
+  /* drop the decorations that stood on thinned pieces */
+  if(M._v)M._v=M._v.filter(e=>!(e[4]<2.3&&(e[5]||0)<.6&&rm.some(r=>e[0]>r[0]&&e[0]<r[2]&&e[1]>r[1]&&e[1]<r[3])));
+  return out};
+ M.deco=function(){const d=od?od.call(this):[],rm=M._rm||[];return d.filter(e=>!(e[4]<2.3&&(e[5]||0)<.6&&rm.some(r=>e[0]>r[0]&&e[0]<r[2]&&e[1]>r[1]&&e[1]<r[3])))}}
+for(const k in MAPTUNE)mapTune(k,MAPTUNE[k]);

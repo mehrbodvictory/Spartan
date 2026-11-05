@@ -2,30 +2,55 @@
 /* ---------- Zombies map 2: WESTMINSTER, LONDON. Big Ben stands over the Palace Yard; the power is OFF until you find the substation switch; its own weapon, The Brew (a teapot blaster that fires scalding tea),
    is unlocked by the Great British Brew easter egg. No Nitrogen Fists on this map: it keeps the RayGun and the Katana. ---------- */
 
-/* ---------- The Brew: a teapot blaster. Hot tea splashes, scalds (slows) and steams. Zombies map only: never in Multiplayer, never in the box until the easter egg is done. ---------- */
-W.TEA={n:'The Brew',d:70,r:.36,m:14,rs:3,sp:.012,rc:2.4,pel:1,au:0,rl:2.3,len:.5,col:0xc98a3b,ex:{R:2.6,d:52,imp:0,w:'TEA',c:0xd9953f}};
-WG.TEA=[.5,0xc98a3b,0,0xffc070];
-GS.TEA={n:[[.14,'bandpass',1300,.34],[.22,'lowpass',650,.3,.03],[.05,'highpass',5200,.12]],o:[['sine',320,110,.18,.3],['triangle',880,420,.07,.1]]};
+/* ---------- The Brew: a Victorian steam-powered tea cannon. It fires a thick beam of scalding tea that goes right through a line of zombies, then splashes and slows everything it touches.
+   Zombies maps only: never in Multiplayer, never in the box until the easter egg is done. ---------- */
+W.TEA={n:'The Brew',d:150,r:.3,m:12,rs:3,sp:.003,rc:2,pel:1,au:0,rl:2.1,len:.55,col:0xc98a3b,ex:{R:3.6,d:140,imp:0,w:'TEA',c:0xd9953f}};
+WG.TEA=[.6,0xb8733a,0,0xffb040];
+GS.TEA={n:[[.3,'bandpass',1200,.4,0,.9,1.8],[.2,'lowpass',520,.35,.04],[.06,'highpass',4800,.12]],o:[['sine',170,70,.2,.3]]};
 ZSKIP.push('TEA');ZWP.TEA=0;
 RLK.TEA='mag';
-/* the model: a porcelain teapot on a pistol grip. The spout is the barrel, the lid has a steaming knob, the handle is the sight, the magazine is a cup */
-MODELS.TEA=function(g,rm){const k=gunKit(g,rm),M=k.M,por=rm||M(0xf2ece0),blue=M(0x2b4f9e),gold=M(0xc9a23a),dk=M(0x15171a),tea=k.E?k.E(0xb5651d):M(0xb5651d),steel=M(0x8a9098),mags=[];
- /* teapot body: a rounded belly built from stacked cylinders */
- k.cyl(.075,.1,0,.03,.12,por);k.cyl(.105,.1,0,.075,.12,por);k.cyl(.12,.1,0,.14,.12,por);k.cyl(.105,.07,0,.2,.12,por);k.cyl(.06,.05,0,.24,.12,por);
- k.cyl(.126,.012,0,.138,.12,blue);k.cyl(.108,.012,0,.1,.12,blue);k.cyl(.075,.014,0,.045,.12,gold);
- for(let i=0;i<6;i++){const a=i/6*6.283;k.box(.012,.05,.012,Math.cos(a)*.123,.14,.12+Math.sin(a)*.123,blue)}
- /* lid + knob + steam vent */
- k.cyl(.07,.02,0,.272,.12,por);k.sph(0,.3,.12,.028,.028,.028,gold);k.cyl(.012,.03,0,.27,.12,dk);
- /* spout / barrel */
- k.cyl(.04,.2,0,.12,.31,por);k.cyl(.03,.18,0,.14,.45,por);k.cyl(.034,.04,0,.14,.55,gold);k.cyl(.02,.02,0,.14,.575,dk);
- k.box(.02,.03,.04,0,.24,.46,por);
- /* handle (loop) at the back, doubles as the rear sight */
- k.box(.026,.15,.026,0,.15,-.08,por);k.box(.026,.026,.1,0,.225,-.04,por);k.box(.026,.026,.1,0,.075,-.04,por);k.box(.024,.012,.03,0,.23,-.095,gold);
- /* pistol grip + trigger */
- k.box(.04,.12,.05,0,-.04,.06,dk,.3);k.box(.05,.014,.06,0,-.105,.045,gold,.3);k.box(.006,.03,.09,0,.0,.12,steel);k.box(.01,.03,.01,0,-.01,.1,steel);
- /* cup magazine: a teacup hanging under the pot */
- mags.push(k.cyl(.046,.07,0,-.04,.2,por),k.cyl(.052,.014,0,.0,.2,blue),k.cyl(.036,.012,0,-.08,.2,gold),k.cyl(.04,.006,0,.0,.2,tea));
- g.userData.a={r:[0,-.06,.05],l:[0,.0,.44],m:[0,-.06,.2]};g.userData.mags=mags;return g};
+/* the model: riveted copper boiler with a teapot lid on top, brass bands, a pressure gauge, a glowing sight-glass tube, a curved brass spout-nozzle with a glowing amber mouth, copper pipes,
+   a mahogany stock with a brass butt plate, a leather pistol grip, and a teacup on a saucer as the magazine */
+MODELS.TEA=function(g,rm){const k=gunKit(g,rm),M=k.M,E=k.E,cop=rm||M(0xb8733a),brass=M(0xc9a23a),mah=M(0x4a2616),leather=M(0x1d130c),por=M(0xf4efe4),blue=M(0x2b4f9e),dk=M(0x15171a),gun=M(0x2a2d31),steel=M(0x8a9098),amb=E(0xffa530),cream=E(0xfff0c8),mags=[];
+ /* boiler: a long copper drum with domed ends, three brass bands and a ring of rivets on each */
+ k.cyl(.088,.42,0,.15,.2,cop,.088,22);k.sph(.088,0,.15,.41,cop,1,1,.6);k.sph(.088,0,.15,-.01,cop,1,1,.6);
+ for(const z of[.06,.2,.34]){k.cyl(.093,.022,0,.15,z,brass,.093,22);for(let i=0;i<10;i++){const a=i/10*6.283;k.sph(.007,Math.cos(a)*.094,.15+Math.sin(a)*.094,z,steel)}}
+ /* the teapot lid on top of the boiler: filler neck, porcelain dome, gold knob, a tiny whistle */
+ k.cylY(.05,.03,0,.245,.2,brass);k.cylY(.04,.02,0,.265,.2,por);k.sph(.045,0,.275,.2,por,1,.62,1);k.sph(.014,0,.31,.2,brass);k.cylY(.011,.05,.045,.28,.13,brass);k.sph(.014,.045,.31,.13,brass);
+ for(let i=0;i<8;i++){const a=i/8*6.283;k.box(.008,.012,.008,Math.cos(a)*.052,.262,.2+Math.sin(a)*.052,blue)}
+ /* pressure gauge on the left, with an emissive face and a needle */
+ k.cylY(.045,.02,.1,.15,.13,brass,0,Math.PI/2);k.cylY(.037,.022,.104,.15,.13,cream,0,Math.PI/2);k.box(.003,.03,.003,.109,.152,.13,dk,.9);for(let i=0;i<7;i++){const a=-1.2+i*.4;k.box(.002,.008,.002,.11,.15+Math.cos(a)*.032,.13+Math.sin(a)*.032,dk,a)}k.sph(.007,.11,.15,.13,brass);
+ /* sight-glass tube with glowing tea and brass fittings */
+ k.cylY(.011,.13,-.098,.14,.3,amb);k.cylY(.016,.02,-.098,.2,.3,brass);k.cylY(.016,.02,-.098,.08,.3,brass);k.cylY(.007,.02,-.092,.2,.3,brass,0,Math.PI/2);k.cylY(.007,.02,-.092,.08,.3,brass,0,Math.PI/2);
+ /* frame under the boiler, trigger group, leather pistol grip with a brass backstrap */
+ k.box(.072,.07,.32,0,.035,.2,gun);k.box(.06,.012,.28,0,.075,.2,steel);k.box(.1,.03,.1,0,.0,.06,gun);
+ k.box(.046,.125,.058,0,-.072,.075,leather,.32);k.box(.012,.12,.06,.0,-.07,.045,brass,.32);k.box(.05,.016,.07,0,-.14,.055,brass,.32);
+ k.box(.006,.032,.1,0,-.005,.13,steel);k.box(.007,.034,.012,0,-.012,.095,steel);k.box(.005,.026,.008,0,-.003,.12,steel);
+ /* mahogany stock, brass butt plate and a small crest */
+ k.box(.056,.1,.2,0,.045,-.13,mah);k.box(.056,.085,.12,0,.02,-.26,mah,-.14);k.box(.058,.11,.014,0,.0,-.332,brass,-.14);k.box(.058,.014,.2,0,.098,-.13,brass);k.box(.003,.05,.05,.029,.04,-.13,blue);k.box(.004,.03,.03,.0305,.04,-.13,brass);
+ /* the nozzle: a curved teapot spout in tapering copper and brass sections, a heat sleeve and a glowing amber mouth */
+ k.cyl(.052,.1,0,.15,.47,cop,.042,18);k.cyl(.042,.14,0,.152,.59,cop,.034,16);k.cyl(.034,.14,0,.158,.72,brass,.03,14);k.cyl(.03,.1,0,.166,.84,brass,.034,14);
+ k.cyl(.046,.016,0,.168,.9,brass,.052,14);k.cyl(.036,.02,0,.168,.912,E(0xffb040),.036,14);k.cyl(.022,.025,0,.168,.92,dk,.022,10);
+ for(let i=0;i<8;i++){const a=i/8*6.283;k.box(.007,.007,.05,Math.cos(a)*.044,.152+Math.sin(a)*.044,.62,dk)}
+ /* copper pipes from the boiler to the nozzle, with elbows, and a valve wheel */
+ for(const s of[-1,1]){k.cyl(.008,.34,s*.062,.2,.55,cop);k.sph(.012,s*.062,.2,.38,brass);k.sph(.012,s*.062,.2,.72,brass);k.cylY(.008,.04,s*.062,.18,.38,cop)}
+ k.ring(.026,.005,0,.215,.4,brass);for(let i=0;i<4;i++){const a=i*Math.PI/2;k.box(.004,.05,.004,0,.215,.4,brass,0,0,a)}k.cyl(.007,.04,0,.215,.38,brass);
+ /* teacup magazine on its saucer, with a blue band, a gold rim, tea inside and a handle */
+ mags.push(k.cylY(.034,.075,0,-.02,.3,por,0,0,.054),k.cylY(.078,.012,0,-.06,.3,por),k.cylY(.056,.012,0,.005,.3,blue),k.cylY(.055,.004,0,.026,.3,brass),k.cylY(.047,.004,0,.021,.3,E(0xb5651d)),k.ring(.022,.006,.063,-.012,.3,por));
+ k.box(.052,.016,.052,0,.018,.3,gun);
+ /* a lamp that shows the cannon is hot */
+ k.sph(.01,0,.083,.44,amb);
+ g.userData.a={r:[0,-.07,.075],l:[0,-.02,.36],m:[0,-.05,.3]};g.userData.mags=mags;return g};
+/* the beam: a thick stream of tea (a dark outer glow, an amber body, a pale hot core) with droplets and steam along its length */
+function teaBeam(o,d,len,raw){const s=raw?o.clone():o.clone().add(d.clone().multiplyScalar(.7)).add(V(0,-.12,0)),e=o.clone().add(d.clone().multiplyScalar(len)),mid=s.clone().add(e).multiplyScalar(.5),L=s.distanceTo(e),dir=e.clone().sub(s).normalize();
+ for(const[r,c,op,k]of[[.24,0x6a3a14,.2,1],[.13,0xc98a3b,.5,1.3],[.055,0xffe0b0,.95,2.2]]){const mt=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:op});mt.color.multiplyScalar(k);const m=new THREE.Mesh(bmG,mt);m.position.copy(mid);m.scale.set(r,L,r);m.quaternion.setFromUnitVectors(V(0,1,0),dir);S.add(m);fx.push({m,l:.26,fade:op,r})}
+ try{const dm=TEAB.m||(TEAB.m=(()=>{const q=new THREE.MeshBasicMaterial({color:0xd9953f});q.color.multiplyScalar(1.7);return q})());
+  for(let i=0,n=Math.min(24,Math.floor(L/1.3));i<n;i++){const p=s.clone().lerp(e,Math.random());p.x+=(Math.random()-.5)*.4;p.y+=(Math.random()-.5)*.4;p.z+=(Math.random()-.5)*.4;const m=new THREE.Mesh(sg,dm),sc=.035+Math.random()*.06;m.scale.set(sc,sc*1.2,sc);m.position.copy(p);S.add(m);JX.teas.push({m,v:V((Math.random()-.5)*1.2,Math.random()*.8,(Math.random()-.5)*1.2),s:sc,t:0})}
+  for(let i=0;i<5;i++)JX.h.addSp({p:s.clone().lerp(e,Math.random()*Math.min(1,10/L)),s0:.3,s1:1.1,life:.9,c:[.9,.88,.84],op:.3,tex:JX.h.puffTex,add:false,v:V(0,.5,0),dr:.9})}catch(x){}}
+const TEAB={};
+/* the beam goes through everything on its line: every zombie close to it takes a scalding hit of its own (the first one is hit by the shot itself) */
+function teaPierce(o,d,len,w,first){if(typeof bots=='undefined')return;const hits=[];for(const b of bots){if(!b.zom||!b.al)continue;const vx=b.x-o.x,vy=(b.y||0)+1-o.y,vz=b.z-o.z,t=vx*d.x+vy*d.y+vz*d.z;if(t<1||t>len)continue;const px=vx-d.x*t,py=vy-d.y*t,pz=vz-d.z*t;if(Math.hypot(px,py,pz)>(b.big?1.7:1.15))continue;if(Math.abs(t-first)<1)continue;hits.push([t,b])}
+ hits.sort((a,b)=>a[0]-b[0]);for(const[t,b]of hits.slice(0,5))boom(V(b.x,(b.y||0)+1,b.z),{R:1.6,d:Math.round(w.ex.d*.7),imp:0,w:'TEA',c:0xd9953f})}
 /* tea splash: amber droplets, drifting steam and a puddle that steams away (same idea as the RayGun ooze, a different look) */
 {const{cv,addSp,rnd,flareTex,puffTex,F,hi}=JX.h,dm=[1.9,1.4,1].map(k=>{const m=new THREE.MeshBasicMaterial({color:0xd9953f});m.color.multiplyScalar(k);return m}),
  pt=cv(128,128,(g,w,h)=>{const r=g.createRadialGradient(64,64,3,64,64,62);r.addColorStop(0,'rgba(240,190,110,.95)');r.addColorStop(.5,'rgba(170,95,35,.85)');r.addColorStop(.9,'rgba(120,60,20,.5)');r.addColorStop(1,'rgba(90,40,10,0)');g.fillStyle=r;g.fillRect(0,0,w,h)}),
