@@ -3,7 +3,7 @@
 /* ---------- shared building toolkit + the map Rust ----------
    Box format: [x,z,w,d,top,y0,colour,texture] (collision + visuals). Visual only (V and deco): [x,z,w,d,top,y0,colour,shape,texture], shape b box, e glow, g glass, s sphere, c cylinder, k cone.
    Open maps have no tall walls. The play area is enclosed by a fence with an invisible wall on top (barrierLine) and the rest of the world is detailed beyond the fence. */
-const MK={
+var MK={
  rnd(seed){let s=seed||7;return()=>(s=(s*16807)%2147483647)/2147483647},
  /* wall along x (hz) or z with openings ops=[[offset from centre,width,bottom,top]...] measured from y0 */
  wall(B,hz,cx,cz,len,t,y0,y1,ops,c,k){ops=(ops||[]).slice().sort((p,q)=>p[0]-q[0]);let cur=-len/2;
@@ -333,8 +333,8 @@ function multi(B,o){const{x,z,w,d,fl=2,fh=3.6,t=.45,c,k='stucco',rc,rk,dr={},wn=
  const stw=1.7,n=Math.ceil(fh/.3),run=n*.55;
  for(let f=1;f<=fl;f++){const y=f*fh,fl_=f-1,north=fl_%2==0,zz=north?z-d/2+t+stw/2+.1:z+d/2-t-stw/2-.1,x0=x-w/2+t+.3;if(f<fl)MK.slab(B,x,z,w-2*t,d-2*t,y,y-.35,rc||c,'concrete',[x0+run/2,zz,run+.4,stw+.3]);else if(roof)B(x,z,w+.3,d+.3,y+.3,y-.1,rc||c,rk||'concrete')}
  for(let f=0;f<fl-1;f++){const north=f%2==0,zz=north?z-d/2+t+stw/2+.1:z+d/2-t-stw/2-.1,x0=x-w/2+t+.3;MK.stairs(B,x0,zz,stw,n,'e',rc||c,'concrete',fh/n,.55,f*fh)}}
-const EDGE=(a,x0,z0,x1,z1,h,c,k,t=1.2)=>{const hz=Math.abs(x1-x0)>=Math.abs(z1-z0),L=hz?Math.abs(x1-x0):Math.abs(z1-z0),cx=(x0+x1)/2,cz=(z0+z1)/2;a.push([cx,cz,hz?L:t,hz?t:L,h,0,c,k]);a.push([cx,cz,hz?L:t,hz?t:L,14,0,0,'n'])};
-const free_=(a,x,z,m=1)=>!a.some(b=>b[4]>.5&&b[5]<2&&x>b[0]-b[2]/2-m&&x<b[0]+b[2]/2+m&&z>b[1]-b[3]/2-m&&z<b[1]+b[3]/2+m);
+var EDGE=(a,x0,z0,x1,z1,h,c,k,t=1.2)=>{const hz=Math.abs(x1-x0)>=Math.abs(z1-z0),L=hz?Math.abs(x1-x0):Math.abs(z1-z0),cx=(x0+x1)/2,cz=(z0+z1)/2;a.push([cx,cz,hz?L:t,hz?t:L,h,0,c,k]);a.push([cx,cz,hz?L:t,hz?t:L,14,0,0,'n'])};
+var free_=(a,x,z,m=1)=>!a.some(b=>b[4]>.5&&b[5]<2&&x>b[0]-b[2]/2-m&&x<b[0]+b[2]/2+m&&z>b[1]-b[3]/2-m&&z<b[1]+b[3]/2+m);
 
 /* =============================== BLOCKFORT =============================== */
 MAPS.Blockfort={d:'Medieval castle: keep, gatehouse, barracks, chapel, smithy, stables and a market court',H:40,open:1,sky:0x9ec9ea,gr:0x5f7f48,gt:'grass',bc:0x9a958a,hemi:.9,hemiC:0xf4f8ff,hemiG:0x4a5a3a,sunI:.95,sunC:0xfff4dc,fogF:140,
@@ -522,7 +522,7 @@ MAPS.Canyon={d:'Mining gorge: trestle bridge, mill, mine tunnel, water tower, ra
    stone walls, ruined walls, rock ridges, hedges, adobe walls, depending on the map) separate the lanes, with crossover gaps every so often so players can rotate between lanes. Each lane
    also gets its own tint on the ground so it reads at a glance. Dividers are only placed where nothing already stands, so the map's own buildings act as divider pieces too.
    The Hollow Estate zombies map is a survival layout and is not divided. ---------- */
-const LANES={
+var LANES={
  Rust:{zs:[-10,10],x:[-20,20],style:'container',seg:6,gap:4.4,col:[0x9a3a2a,0x3a5a6a,0x6b6a45,0x8a5a2a],tint:[0x8a7a5a,0x9a8660,0x7a7258]},
  Decay:{zs:[-15,16],x:[-40,40],style:'wreck',seg:8,gap:4.6,col:[0x6a6a2a,0x3a4a5a,0x5a2a2a,0x4a4a4a],tint:[0x5a5a52,0x4e4e4a,0x56564c]},
  Blockfort:{zs:[-9.5,9.5],x:[-27,27],style:'stone',seg:8,gap:4.4,col:[0x9a958a],tint:[0x6a6a60,0x7a7468,0x6a6a60]},
@@ -546,3 +546,49 @@ MK.lanes=function(a,v,name){const C_=LANES[name];if(!C_)return;const rnd=MK.rnd(
  for(let k=0;k<2;k++){const z=C_.zs[k],step=C_.seg+C_.gap*2.4;let x=C_.x[0]+(k?step*.5:0);/* isolated blocks (a container stack, a wreck, a wall stub, a ruin) with wide open ground between them: the lanes are three routes you can walk through, not walls */while(x+C_.seg<=C_.x[1]){const len=C_.seg*(.8+.4*rnd()),cx=x+len/2,jz=z+(rnd()-.5)*.8;if(free(cx,jz,len,2.2,1.0))piece(cx,jz,len,k);x+=step}}}
 for(const n of Object.keys(LANES)){const M=MAPS[n];if(!M||!M.b)continue;const _b=M.b;M.b=function(){const a=_b.apply(this,arguments);this._v=this._v||[];MK.lanes(a,this._v,n);return a}}
 ;
+
+/* ===================== DRY DOCK =====================
+   The smallest map in the game: a 34 x 34 m shipyard at golden hour. A ship's hull sits on keel blocks in the middle: a tunnel runs underneath it from end to end and a railed deck runs on top, with stairs up at both ends
+   (and crate steps onto the container roofs in the corners). Each corner is a different container stack, a control hut on stilts overlooks the north east, and a gantry crane and a ring of bollards frame the quay.
+   Everything is within a sprint of everything else: it is built for fast, close fights. ===================== */
+MAPS['Dry Dock']={d:'Tiny shipyard at golden hour: a hull on blocks with a tunnel under it and a deck on top, container stacks and a control hut. The smallest map',H:17,open:1,sky:0xf2b27a,gr:0x6a6a68,gt:'concrete',bc:0x9a8f80,hemi:.9,hemiC:0xffe2c0,hemiG:0x5a5048,sunI:1.05,sunC:0xffc890,fogF:120,
+ fb:[[-12.6,0],[12.6,0]],zn:[[-8,-9.5],[0,10],[8.5,-3]],inside:(x,z)=>Math.abs(x)<14.6&&Math.abs(z)<14.6,
+ lights:[[-9,5.4,-10.5,0xffb060,1.3,26],[9.5,5.4,10.5,0xffb060,1.3,26],[0,5,0,0xffe0b0,.6,18],[10.5,3.6,-10.5,0xfff0c0,.9,12]],
+ b(){const a=[],vv=(MAPS['Dry Dock']._v=MAPS['Dry Dock']._v||[]);vv.length=0;const B=(x,z,w,d,h,y0,c,k)=>a.push([x,z,w,d,h,y0||0,c,k]),V=(x,z,w,d,h,y0,c,s,t)=>vv.push([x,z,w,d,h,y0||0,c,s||'b',t]),
+  RED=0xa83a2c,BLUE=0x2f5f9e,GRN=0x3a7a4a,ORG=0xd08a2a,GRY=0x7a8087,YEL=0xd7b02a,HULL=0x46607a,DECK=0x8a7a60,WOOD=0x7a5a3a,CONC=0x9a968a,rnd=MK.rnd(23);
+  /* the hull: keel blocks, two side plates (a tunnel between them), the deck, a bow and a stern, rails with gaps, stairs at both ends */
+  for(let i=-4;i<=4;i++){B(i*2.1,-3.1,.7,.7,.7,0,WOOD,'plank');B(i*2.1,3.1,.7,.7,.7,0,WOOD,'plank')}
+  for(const s of[-1,1]){B(0,s*3.1,18.2,.45,2,.7,HULL,'metal');B(0,s*3.1,18.4,.12,2.05,.65,0x2a3a4a,'metal')}
+  B(0,0,18.6,7,2.4,2,DECK,'plank');
+  for(const s of[-1,1]){B(-9.35,s*1.6,.5,3,1.8,.7,HULL,'metal');B(9.35,s*1.6,.5,3,1.8,.7,HULL,'metal')}
+  for(const[rx,rz,rw,rd]of[[-6.4,-3.2,5.2,.14],[3.6,-3.2,9.6,.14],[-3.2,3.2,9.6,.14],[6.8,3.2,4.4,.14],[-9.2,-1,.14,4.2],[-9.2,2.4,.14,1.6],[9.2,-2.4,.14,1.6],[9.2,1,.14,4.2]])B(rx,rz,rw,rd,3.3,2.4,0xc8c2b0,'metal');
+  MK.stairs(B,-9.3,0,2.6,8,'w',0x6a655a,'metal',.3,.55,0);MK.stairs(B,9.3,0,2.6,8,'e',0x6a655a,'metal',.3,.55,0);
+  B(-3.4,1.7,1.8,1,3.4,2.4,0x6a4a2a,'plank');B(3.8,-1.5,1,1.8,3.4,2.4,0x6a4a2a,'plank');B(0.4,-2.4,.9,.9,3.2,2.4,RED,'metal');
+  V(-2.2,0,1.4,1.4,6.4,2.4,0x555a60,'c','metal');V(-2.2,0,1.7,1.7,.3,6.2,0x2a2c30,'c');V(6.2,0,2.6,1.6,3.6,2.4,0xcfc9b6,'b','stucco');V(6.2,0,2.7,1.7,.2,6,0x6a4a3a,'b');
+  for(let i=-8;i<=8;i++)V(i*1.1,-3.62,.18,.06,.5,-.1,0x2a3a4a,'b');
+  V(0,-3.5,18.4,.06,.25,.9,0x9a2a20,'b','metal');V(0,3.5,18.4,.06,.25,.9,0x9a2a20,'b','metal');
+  /* four corners, four different container stacks; crate steps up to each stack's roof */
+  const C=(x,z,w,d,c,y0)=>{B(x,z,w,d,(y0||0)+2.4,y0||0,c,'metal');for(const s of[-.42,-.14,.14,.42]){V(x+(w>d?w*s:0),z+(w>d?0:d*s),w>d?.05:w+.06,w>d?d+.06:.05,2.3,(y0||0)+.06,0x00000030,'b')}};
+  /* north west: two containers in an L, steps on the north side */
+  C(-10.2,-11.6,6,2.4,RED);C(-13,-8.4,2.4,6,BLUE);B(-7,-12.8,1.3,1.3,.8,0,WOOD,'plank');B(-7,-11.4,1.3,1.3,1.6,0,WOOD,'plank');B(-8.4,-9.6,1.2,1.2,.8,0,WOOD,'plank');
+  /* south west: a gap you can run through, one container stacked on another */
+  C(-11.5,10.5,2.4,6,GRN);C(-8.2,12.6,6,2.4,ORG);C(-8.2,12.6,6,2.4,GRY,2.4);B(-12.8,7,1.3,1.3,.8,0,WOOD,'plank');B(-11.4,6.3,1.3,1.3,1.6,0,WOOD,'plank');
+  /* south east: three short containers in a row facing the deck */
+  for(let i=0;i<3;i++)C(11.8,6.2+i*2.7,2.4,2.4,[ORG,RED,BLUE][i]);B(9.2,7.2,1.2,1.2,.8,0,WOOD,'plank');B(9.2,8.4,1.2,1.2,1.6,0,WOOD,'plank');
+  /* north east: the control hut on stilts, stairs up on its west side, crates beneath */
+  for(const[px,pz]of[[8.6,-12.1],[12.4,-12.1],[8.6,-8.9],[12.4,-8.9]])B(px,pz,.4,.4,2.6,0,0x6a655a,'metal');
+  MK.room(B,{x:10.5,z:-10.5,w:4.4,d:3.6,h:2.5,y0:2.6,c:0xc9c2b0,k:'stucco',roof:1,rc:0x6a4a3a,rk:'shingle',dr:{w:[[0,1.2,2.2]]},wn:{n:[[-.9,1.2],[1,1]],e:[[0,1.4]],s:[[0,1.6]]}});
+  B(10.5,-10.5,4.4,3.6,2.6,2.2,0x555a60,'plank');
+  MK.stairs(B,3.8,-10.5,1.6,8,'e',0x6a655a,'metal',.325,.55,0);B(10.5,-10.5,.8,.8,3.0,2.6,0x3a3c40,'metal');
+  B(6.4,-6.6,1.6,1.6,1.2,0,WOOD,'plank');B(7.6,-5.4,1.2,1.2,.8,0,WOOD,'plank');B(13,-6,1.3,3.2,1.3,0,GRN,'metal');
+  /* low cover around the deck so the middle has places to hide */
+  B(-4.8,-6.4,1.6,1.1,1.1,0,WOOD,'plank');B(4.2,6.6,1.6,1.1,1.1,0,WOOD,'plank');B(-5.6,6.2,1.2,1.2,.9,0,GRY,'metal');B(5.8,-7,1.2,1.2,.9,0,GRY,'metal');B(0,-9.4,3.2,.6,1,0,CONC,'concrete');B(0,9.6,.6,3.2,1,0,CONC,'concrete');
+  /* a forklift parked by the stern stairs */
+  B(-12.4,3.2,2.4,1.2,1.1,0,YEL,'metal');V(-12.4,3.2,1.2,1.1,1.6,1.1,0x2a2c30,'b');V(-13.9,3.2,.2,.9,2.2,0,0x6a6a6e,'b');V(-11.6,2.6,.3,.3,.8,.05,0x111111,'c');V(-11.6,3.8,.3,.3,.8,.05,0x111111,'c');
+  /* ---- dressing outside the play area: quay edge, bollards, the gantry crane, distant stacks ---- */
+  for(let i=-8;i<=8;i++){V(i*2,-16.2,.16,.16,1,0,0x2a2a2a,'c');V(i*2,16.2,.16,.16,1,0,0x2a2a2a,'c');V(-16.2,i*2,.16,.16,1,0,0x2a2a2a,'c');V(16.2,i*2,.16,.16,1,0,0x2a2a2a,'c')}
+  for(const s of[-1,1]){V(s*15.4,-15.6,1,1,13,0,YEL,'b','metal');V(s*15.4,15.6,1,1,13,0,YEL,'b','metal')}V(0,-15.6,31,1.1,1.1,13,YEL,'b','metal');V(0,15.6,31,1.1,1.1,13,YEL,'b','metal');V(-4,-15.6,2.4,1.4,1.4,11.6,0x2a2c30,'b');V(5,15.6,2.4,1.4,1.4,11.6,0x2a2c30,'b');
+  for(let i=0;i<7;i++){const c=[RED,BLUE,GRN,ORG,GRY][i%5];V(-30+i*2.6,-22,2.4,6,2.4,0,c,'b','metal');V(-29.5+i*2.7,-22,2.4,6,2.4,2.4,[GRN,ORG,RED,GRY,BLUE][i%5],'b','metal')}
+  for(let i=0;i<5;i++)V(24+i*2.6,24,2.4,6,2.4,0,[BLUE,RED,ORG,GRN,GRY][i%5],'b','metal');
+  V(0,-30,60,30,.04,-.2,0x2f5f7a,'b');V(0,34,60,26,.04,-.2,0x2f5f7a,'b');
+  return a}};

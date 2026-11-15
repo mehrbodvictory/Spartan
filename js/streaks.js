@@ -2,9 +2,9 @@
 /* ===================== sk_data.js ===================== */
 /* ---------- killstreaks: the table (name, category, kills needed, unlock level, description) and a 3D model for every one of them.
    The models are used in the world (placed devices, aircraft, drones, crates) and rendered into the icons of the Killstreaks screen. ---------- */
-const SKC=['Radar & Reconnaissance','Disruption & Electronic Warfare','Supply & Team Support','Traps & Remote Explosives','Sentry Turrets & Ground Robotics','Guided Missiles & Guided Bombs','Directed Bombardments & Air Strikes','Choppers & Heavy Gunships','Armored Suits & Reinforcements','Heavy Infantry Weapons','Orbital Space Weapons','Game-Ending Nuke'];
+var SKC=['Radar & Reconnaissance','Disruption & Electronic Warfare','Supply & Team Support','Traps & Remote Explosives','Sentry Turrets & Ground Robotics','Guided Missiles & Guided Bombs','Directed Bombardments & Air Strikes','Choppers & Heavy Gunships','Armored Suits & Reinforcements','Heavy Infantry Weapons','Orbital Space Weapons','Game-Ending Nuke'];
 /* id, name, category index, kills, unlock level, description */
-const STK_=[
+var STK_=[
  ['uav','UAV',0,3,1,'Pings basic enemy locations as periodic dots on the mini-map.'],
  ['advuav','Advanced UAV',0,5,6,'Shows real-time enemy positions and the direction they are facing, with no radar delay.'],
  ['pradar','Personal Radar',0,4,3,'A small drone that follows you and scans for enemies in your immediate proximity.'],
@@ -50,8 +50,8 @@ const STK_=[
  ['satellite','Super Satellite',10,14,44,'Space station: kinetic rod strikes, smoke canisters and a tactical supply drop.'],
  ['annihil','Annihilation',10,15,48,'An orbital high-energy particle beam that burns everything it sweeps over.'],
  ['nuke','Nuke',11,30,1,'Launches by itself at 30 kills in a row. It cannot be equipped. When it detonates the match ends and the player who called it wins.']];
-const STK={},STKL=[];for(const[id,n,c,k,lv,d]of STK_){STK[id]={id,n,c,k,lv,d};STKL.push(STK[id]);if(typeof UNL!='undefined')UNL['sk:'+id]=lv}
-const SK_DEF=['uav','care','precision'];
+var STK={},STKL=[];for(const[id,n,c,k,lv,d]of STK_){STK[id]={id,n,c,k,lv,d};STKL.push(STK[id]);if(typeof UNL!='undefined')UNL['sk:'+id]=lv}
+var SK_DEF=['uav','care','precision'];
 
 /* ---------- models ---------- */
 function skModel(id){const g=new THREE.Group(),M={},mat=c=>M[c]||(M[c]=new THREE.MeshLambertMaterial({color:c})),em=c=>M['e'+c]||(M['e'+c]=new THREE.MeshBasicMaterial({color:c}));
@@ -122,8 +122,8 @@ function skModel(id){const g=new THREE.Group(),M={},mat=c=>M[c]||(M[c]=new THREE
    SK.objs: things you placed or called in (turrets, drones, crates, helicopters ...). Every object can have hp: enemy bots with a line of sight shoot it down, an EMP disables it.
    SK.rc: remote control / gunner mode: the camera moves to the vehicle or gun, the player body stands still. SK.ea: enemy air support, the target of Flak Guns, PAL turrets, EMP and your gunships.
    Kills made by killstreaks never feed the killstreak counter. In private matches the streaks are local to the player who earned them. */
-const SK={got:{},objs:[],q:[],t:0,uavT:0,advT:0,prT:0,cuavT:0,empT:0,flakT:0,rc:null,suit:null,ping:[],pingT:0,ea:[],eaT:70,nok:0,fp:0,trp:0,air:[],bombs:[],fires:[],lines:[],marks:[],heavyBack:null};
-const foes=()=>bots.filter(b=>b.al&&!ally(b)&&!b.out);
+var SK={got:{},objs:[],q:[],t:0,uavT:0,advT:0,prT:0,cuavT:0,empT:0,flakT:0,rc:null,suit:null,ping:[],pingT:0,ea:[],eaT:70,nok:0,fp:0,trp:0,air:[],bombs:[],fires:[],lines:[],marks:[],heavyBack:null};
+var foes=()=>bots.filter(b=>b.al&&!ally(b)&&!b.out);
 function skGnd(x,z){let h=0;for(const b of bx)if((b.y0||0)<.4&&b.h<4&&x>b.x0&&x<b.x1&&z>b.z0&&z<b.z1&&b.h>h)h=b.h;return h}
 function skSpot(maxd){maxd=maxd||7;const o=C.position.clone(),d=aimDir(),t=Math.max(1.2,Math.min(maxd,castW(o,d,maxd)-.5)),x=o.x+d.x*t,z=o.z+d.z*t;return V(x,skGnd(x,z),z)}
 function skAimPoint(maxd){const o=C.position.clone(),d=aimDir(),t=Math.min(maxd||90,castW(o,d,maxd||90));return o.add(d.multiplyScalar(t))}
@@ -189,9 +189,9 @@ function skReset(){for(const o of SK.objs.slice())skRemove(o,false);for(const e 
 /* ######## sk_use.js ######## */
 /* ===================== sk_use.js ===================== */
 /* ---------- what each killstreak does when you use it ---------- */
-const rndI=n=>Math.random()*n|0,rndP=a=>a[rndI(a.length)];
-const skNear=(o,max)=>{let b0=null,bd=max||1e9;for(const b of foes()){const d=Math.hypot(b.x-o.x,b.z-o.z);if(d<bd){bd=d;b0=b}}return b0};
-const skNearLos=(o,max,h)=>{let b0=null,bd=max||1e9;for(const b of foes()){const d=Math.hypot(b.x-o.x,b.z-o.z);if(d<bd&&navLos(o.x,o.z,b.x,b.z)){bd=d;b0=b}}return b0};
+var rndI=n=>Math.random()*n|0,rndP=a=>a[rndI(a.length)];
+var skNear=(o,max)=>{let b0=null,bd=max||1e9;for(const b of foes()){const d=Math.hypot(b.x-o.x,b.z-o.z);if(d<bd){bd=d;b0=b}}return b0};
+var skNearLos=(o,max,h)=>{let b0=null,bd=max||1e9;for(const b of foes()){const d=Math.hypot(b.x-o.x,b.z-o.z);if(d<bd&&navLos(o.x,o.z,b.x,b.z)){bd=d;b0=b}}return b0};
 function skM(id,sc,rot){const m=skModel(id);m.scale.setScalar(sc||1);return m}
 /* ---------- aircraft that fly a line across the map and drop bombs ---------- */
 function skFly(o){const c=skAimPoint(80),f=V(-Math.sin(yaw),0,-Math.cos(yaw)),L=H*1.3,len=2*L,n=o.n||1,px=-f.z,pz=f.x;
@@ -245,7 +245,7 @@ function skDrone(o){return rcStart(Object.assign({elec:1,turn:2.6,hint:'Mouse st
 function skGunner(o){return rcStart(Object.assign({elec:0,fireT:0,hint:'Aim with the mouse · LMB fire',tick(r,dt,edge){r.ang=(r.ang||0)+dt*.25;r.x=Math.cos(r.ang)*r.orbit;r.z=Math.sin(r.ang)*r.orbit;r.fireT-=dt;r.shoot(r,dt,edge)},cam(r){return V(r.x,r.y,r.z)}},o))}
 function skGunFire(r,dmg,R,quiet,iv,name){if(r.fireT>0)return;r.fireT=iv;const o=V(r.x,r.y,r.z),d=V(-Math.sin(r.hy)*Math.cos(r.hp),Math.sin(r.hp),-Math.cos(r.hy)*Math.cos(r.hp)),t=Math.min(160,castW(o,d,160)),p=o.clone().add(d.clone().multiplyScalar(t));p.y=Math.max(.3,p.y);skLine(o.clone().add(V(.5,-1,0)),p,0xffe080,.06);skBlast(p,R,dmg,name,quiet)}
 /* ---------- the streaks ---------- */
-const SKB={
+var SKB={
  uav(){SK.uavT=30;uav=30;SK.pingT=0;msg('UAV online',1.5)},
  advuav(){SK.uavT=30;SK.advT=30;uav=30;msg('Advanced UAV online',1.5)},
  pradar(){SK.prT=45;skAdd({id:'pradar',n:'Personal Radar',m:skM('pradar',.5),x:P.x,y:2.3,z:P.z,hp:45,air:1,elec:1,life:45,tick(o,dt){o.x+=(P.x+Math.cos(SK.t*.9)*1.2-o.x)*Math.min(1,dt*3);o.z+=(P.z+Math.sin(SK.t*.9)*1.2-o.z)*Math.min(1,dt*3);o.y=2.4+Math.sin(SK.t*3)*.12;o.m.rotation.y+=dt*2},end(){SK.prT=0}});msg('Personal Radar online',1.5)},
@@ -297,8 +297,8 @@ function skStartSuit(k,t,mhp,sp,wk){if(SK.suit)skEndSuit('');SK.suit={k,t,sp,mhp
 /* ===================== sk_ui.js ===================== */
 /* ---------- killstreak loadout: 3 selected streaks (L.ks), awarding by kills, the HUD, using them (keys 3 to 6 use the ready ones in the order you earned them),
    and the SCORESTREAKS screen: a grid of every streak with its model, description and cost, three SELECTED slots at the bottom. Opened from the Killstreaks tile in the loadout screen. ---------- */
-const skSel=()=>{if(!Array.isArray(L.ks)||L.ks.length!=3)L.ks=SK_DEF.slice();return L.ks};
-const skOK=id=>!!STK[id]&&(typeof unlocked=='function'?unlocked('sk:'+id):true);
+var skSel=()=>{if(!Array.isArray(L.ks)||L.ks.length!=3)L.ks=SK_DEF.slice();return L.ks};
+var skOK=id=>!!STK[id]&&(typeof unlocked=='function'?unlocked('sk:'+id):true);
 {const _san=sanitize;sanitize=function(){_san.apply(this,arguments);const k=skSel();for(let i=0;i<3;i++)if(!skOK(k[i])||k[i]=='nuke')k[i]=SK_DEF[i]}}
 function skAward(){if(mode=='Zombies')return;for(const id of skSel()){const s=STK[id];if(!s||SK.got[id]||q.includes(id))continue;if(ks>=Math.max(1,s.k-hl())){SK.got[id]=1;q.push(id);msg(s.n+' ready: press '+(2+q.length),2.5);if(typeof popup=='function')popup(s.n.toUpperCase(),'KILLSTREAK READY')}}
  if(ks>=30&&!SK.got.nuke&&!over&&!P.dead&&!SK.nk){SK.got.nuke=1;if(typeof popup=='function')popup('TACTICAL NUKE','30 KILLS');SKB.nuke()}}
@@ -306,10 +306,10 @@ useStreak=function(i){i=i||0;if(mode=='Zombies')return zUse();if(P.dead||SK.rc||
 ksHud=function(){const sel=skSel(),row=(id)=>{const s=STK[id],t=Math.max(1,s.k-hl()),qi=q.indexOf(id),rdy=qi>=0,used=!rdy&&SK.got[id];return `<div class="kt ${rdy?'rdy':used?'used':''}"><b>${s.n}</b><i>${rdy?'['+(qi+3)+'] READY':used?'USED':Math.min(ks,t)+' / '+t}</i></div>`},
  h=sel.map(row).join('')+q.filter(id=>!sel.includes(id)).map(row).join('');if(h!=ksC){ksC=h;$('#kst').innerHTML=`<small>KILLSTREAKS · ${ks}</small>`+h}};
 /* ---------- images ---------- */
-const skImg=id=>{const u=objImg('sk_'+id,()=>skModel(id));return u||''};
-const skTag=id=>{const u=skImg(id);return u?`<img src="${u}" alt="">`:''};
+var skImg=id=>{const u=objImg('sk_'+id,()=>skModel(id));return u||''};
+var skTag=id=>{const u=skImg(id);return u?`<img src="${u}" alt="">`:''};
 /* ---------- screen ---------- */
-const SKU={sel:'uav',slot:0,cat:-1};
+var SKU={sel:'uav',slot:0,cat:-1};
 function skOpen(){SKU.sel=skSel()[SKU.slot]||'uav';$$('#nav button').forEach(x=>x.classList.remove('on'));$$('.pn').forEach(p=>p.classList.toggle('on',p.id=='p-ks'));skRender()}
 function skBack(){const b=document.querySelector('#nav button[data-p="load"]');if(b)b.click()}
 function skRender(){const e=$('#p-ks');if(!e)return;const sel=skSel(),cur=STK[SKU.sel]||STK.uav,lock=!skOK(cur.id),hid=cur.id=='nuke'&&lock;
@@ -329,8 +329,8 @@ try{ldRender()}catch(e){}
 /* ===================== sk_net.js ===================== */
 /* ---------- killstreaks in multiplayer: every placed device, aircraft and helicopter is mirrored to the other players as a model, they can shoot it down (the owner applies the damage),
    explosions are shown to everybody, and the NUKE is announced to the whole lobby and ends the match for everyone. Rocket Launcher and RayGun deal extra damage to streaks. ---------- */
-let NUKE_BY=0;
-const skMul=w=>w&&w.k=='RG'?3.5:w&&w.k=='RL'?4:1;
+var NUKE_BY=0;
+var skMul=w=>w&&w.k=='RG'?3.5:w&&w.k=='RL'?4:1;
 SK.uid=0;SK.gh={};SK.na=0;SK.nk=0;
 {const _sm=skModel;skModel=function(id){const g=_sm.apply(this,arguments);if(g&&g.userData)g.userData.mid=id;return g}}
 {const _a=skAdd;skAdd=function(o){const r=_a.apply(this,arguments);if(r&&!r.uid)r.uid=++SK.uid;return r}}
@@ -368,7 +368,7 @@ function skNukeSeq(by,mine){if(SK.nk)return;SK.nk=1;let n=8;const who=mine?'YOU'
     if(!netOn)endGame('Victory · Nuke');
     else if(isHost){NUKE_BY=by;const win=teamMode()?(mpTeams[by]||myTeam)==myTeam:by==myId;endGame(win?'Victory':'Defeat')}},1800)}},1000)}
 /* ---------- power weapons (Rocket Launcher, Sniper) are lost on death and never carried into the next match ---------- */
-const PWK=['RL','SN'];
+var PWK=['RL','SN'];
 function dropPower(){const had=wp.length;wp=wp.filter(w=>!(w.pw||PWK.includes(w.k)&&!w.heavy));if(!wp.length)wp=[{k:L.p,...eff(L.p,L.pa),mag:0,res:0}];if(wp.length!=had){cur=0;rel=0;try{setGun()}catch(e){}}}
 {const _d=die;die=function(){const was=P.dead;_d.apply(this,arguments);if(!was&&mode!='Zombies')dropPower()}}
 {const _g=startGame;startGame=function(){wp=wp.filter(w=>!PWK.includes(w.k));_g.apply(this,arguments);if(mode!='Zombies')dropPower()}}
@@ -416,7 +416,7 @@ GS.TRB={n:[[.07,'lowpass',4600,.34],[.025,'highpass',3400,.24],[.12,'bandpass',1
    i = idle pose offset [x,y,z, pitch,yaw,roll] (fades out when aiming so the sight line is never moved), b = breathing [height, sideways, speed], m = how much it sways while moving,
    s = extra pose while sprinting, d = draw-in motion [x,y,z, pitch,yaw,roll, seconds], k = recoil kick per shot [pitch, yaw, roll, push back, randomness, recovery speed].
    HOLD3[k] (what other players and bots look like): [idle height, idle forward, idle pitch, idle roll, run pitch, run roll, run height, breathing size, breathing speed]. ---------- */
-const HOLD={
+var HOLD={
  AR:{i:[0,0,0,0,0,0],b:[.003,.002,1.1],m:1,s:[0,-.02,0,.1,-.05,.05],d:[.05,-.28,.1,.5,-.3,.15,.42],k:[.05,0,.02,.03,.3,12]},
  MVR:{i:[.005,-.005,.01,.02,0,0],b:[.0045,.003,.8],m:.8,s:[.01,-.03,0,.12,-.08,.08],d:[.08,-.32,.12,.6,-.35,.2,.55],k:[.075,.02,.05,.045,.5,9]},
  TRB:{i:[-.005,0,0,-.01,.02,-.02],b:[.0025,.002,1.3],m:1.1,s:[-.01,-.02,0,.08,.12,-.1],d:[-.06,-.26,.1,.55,.4,-.2,.38],k:[.032,.008,.012,.02,.2,16]},
@@ -435,12 +435,12 @@ const HOLD={
  GL:{i:[.03,-.04,.06,.08,-.06,0],b:[.006,.004,.55],m:.7,s:[.02,-.02,0,.1,-.2,.1],d:[.1,-.45,.2,.9,-.3,.2,.8],k:[.14,.02,.05,.16,0,7]},
  TUR:{i:[-.008,.002,.012,-.015,.025,-.03],b:[.0028,.002,1.5],m:1.2,s:[-.02,-.02,0,.1,.2,-.12],d:[-.07,-.27,.1,.55,.4,-.2,.34],k:[.03,.014,.026,.016,.7,17]},
  FT:{i:[.02,-.02,.04,.04,0,0],b:[.005,.004,1],m:.8,s:[.01,-.02,0,.1,-.05,.05],d:[.08,-.35,.15,.7,-.2,.1,.6],k:[.015,.01,.02,.01,.8,16]}};
-const HOLD3={AR:[0,0,0,0,.12,-.05,-.03,.008,1.1],MVR:[-.01,0,.02,0,.2,-.08,-.04,.01,.8],TRB:[0,0,-.01,.02,.1,.05,-.03,.008,1.3],TUR:[0,0,-.01,.02,.12,.08,-.03,.007,1.5],SMG:[.01,.02,0,-.05,.15,.2,-.02,.006,1.6],VMP:[.015,.02,0,-.08,.2,.25,-.02,.006,1.4],
+var HOLD3={AR:[0,0,0,0,.12,-.05,-.03,.008,1.1],MVR:[-.01,0,.02,0,.2,-.08,-.04,.01,.8],TRB:[0,0,-.01,.02,.1,.05,-.03,.008,1.3],TUR:[0,0,-.01,.02,.12,.08,-.03,.007,1.5],SMG:[.01,.02,0,-.05,.15,.2,-.02,.006,1.6],VMP:[.015,.02,0,-.08,.2,.25,-.02,.006,1.4],
  BR:[0,0,.02,0,.14,-.04,-.03,.01,.75],SG:[.01,0,.06,.03,.28,-.1,-.04,.01,.7],CY:[-.01,.01,.08,0,.32,-.12,-.05,.012,.55],CT:[.03,.05,.12,-.02,.3,0,.02,.004,1.8],MG:[.03,.06,.1,0,.3,0,.02,.004,1.5],
  MP:[.03,.05,.04,.06,.25,.1,0,.005,2],RG:[.02,.04,0,-.08,.1,.12,-.02,.008,2.4],SN:[-.01,0,.04,0,.3,-.05,-.04,.012,.6],RL:[.02,-.02,.1,0,.4,-.15,-.06,.014,.5],MNG:[-.01,.01,.08,0,.3,-.1,-.05,.012,.6],GL:[.02,-.02,.1,0,.35,-.12,-.05,.012,.6],FT:[0,0,.05,0,.2,-.05,-.03,.01,1]};
 function hold3(b,mvf,run,id){const T=HOLD3[b.wk]||HOLD3.AR;b.hr=(b.hr||0)+((run?1:0)-(b.hr||0))*.12;const br=Math.sin(t0*T[8]+id)*T[7]*(1-.6*b.hr);
  return[0,T[0]+br*.5+b.hr*T[6],T[1],T[2]+b.hr*T[4]+br*.8,Math.sin(t0*T[8]*.5+id)*T[7]*.4,T[3]+b.hr*T[5]]}
-const HA={a:null,t:9,w:'',kx:[0,0,0,0],kv:[0,0,0,0]};
+var HA={a:null,t:9,w:'',kx:[0,0,0,0],kv:[0,0,0,0]};
 function holdPose(dt){const o=[0,0,0,0,0,0],w=cw();if(!w||!run||P.dead||xrS)return o;const h=HOLD[w.k]||HOLD.AR,ads=ST.ads||0,spr=P.sprG==null?(P.spr||0):P.sprG,idle=1-ads,mv=Math.min(1,Math.hypot(P.mx||0,P.mz||0)/7);
  for(let n=0;n<6;n++)o[n]+=h.i[n]*idle+(h.s?h.s[n]*spr:0);
  const bs=(1-.7*ads)*(1-mv*.7),sp=h.b[2];o[1]+=Math.sin(t0*sp*2.4)*h.b[0]*bs;o[0]+=Math.sin(t0*sp*1.3+1)*h.b[1]*bs;o[3]+=Math.sin(t0*sp*2.4+.5)*h.b[0]*.6*bs;
@@ -458,13 +458,13 @@ function holdPose(dt){const o=[0,0,0,0,0,0],w=cw();if(!w||!run||P.dead||xrS)retu
 /* ===================== binds.js ===================== */
 /* ---------- feature 1: rebindable controls. The game reads keys through RB(): a physical key is translated into the key the game expects for that action. Rebinding an action to a key that another action
    already uses swaps the two. Saved on this device (sd-keys). The UI is the Controls section at the bottom of Settings. ---------- */
-const ACT=[['fwd','Move forward','KeyW','Movement'],['back','Move backward','KeyS','Movement'],['left','Move left','KeyA','Movement'],['right','Move right','KeyD','Movement'],['jump','Jump / stand / mantle','Space','Movement'],['sprint','Sprint','ShiftLeft','Movement'],['crouch','Crouch / slide','KeyC','Movement'],['prone','Prone / dive','ControlLeft','Movement'],['walk','Walk','AltLeft','Movement'],['autorun','Auto run','KeyH','Movement'],
+var ACT=[['fwd','Move forward','KeyW','Movement'],['back','Move backward','KeyS','Movement'],['left','Move left','KeyA','Movement'],['right','Move right','KeyD','Movement'],['jump','Jump / stand / mantle','Space','Movement'],['sprint','Sprint','ShiftLeft','Movement'],['crouch','Crouch / slide','KeyC','Movement'],['prone','Prone / dive','ControlLeft','Movement'],['walk','Walk','AltLeft','Movement'],['autorun','Auto run','KeyH','Movement'],
  ['reload','Reload','KeyR','Combat'],['inspect','Inspect weapon','KeyY','Combat'],['melee','Melee (katana)','KeyV','Combat'],['fmode','Fire mode','KeyB','Combat'],['mount','Weapon mount','KeyT','Combat'],['next','Next weapon','Digit1','Combat'],['prev','Previous weapon','Digit2','Combat'],
- ['lethal','Lethal (frag)','KeyE','Equipment'],['tact','Tactical (flashbang)','KeyQ','Equipment'],['use','Interact / buy / revive / skip killcam','KeyF','Equipment'],['field','Field upgrade','KeyX','Equipment'],['ks1','Killstreak slot 1','Digit3','Equipment'],['ks2','Killstreak slot 2','Digit4','Equipment'],['ks3','Killstreak slot 3','Digit5','Equipment'],['ks4','Killstreak slot 4','Digit6','Equipment'],
+ ['lethal','Lethal','KeyE','Equipment'],['tact','Tactical','KeyQ','Equipment'],['use','Interact / buy / revive / skip killcam','KeyF','Equipment'],['field','Second equipment (Danger Zone / Strategist)','KeyX','Equipment'],['det','Detonate remote charges','KeyG','Equipment'],['gum','Use your Chewable (player-activated gums)','KeyJ','Equipment'],['ks1','Killstreak slot 1','Digit3','Equipment'],['ks2','Killstreak slot 2','Digit4','Equipment'],['ks3','Killstreak slot 3','Digit5','Equipment'],['ks4','Killstreak slot 4','Digit6','Equipment'],
  ['sb','Scoreboard','Tab','Interface'],['map','Map','KeyM','Interface'],['nv','Night vision','KeyN','Interface'],['chat','Open chat','Enter','Interface'],['quick','Quick chat','KeyZ','Interface']];
-let BIND={},REV={};try{BIND=JSON.parse(localStorage.getItem('sd-keys')||'{}')||{}}catch(e){BIND={}}
-const DEFC=new Set(ACT.map(a=>a[2])),FORBID=['Escape','F1','F3','F6','F5','F11','F12','Backspace','MetaLeft','MetaRight','ContextMenu'];
-const bindOf=id=>BIND[id]||ACT.find(a=>a[0]==id)[2];
+var BIND={},REV={};try{BIND=JSON.parse(localStorage.getItem('sd-keys')||'{}')||{}}catch(e){BIND={}}
+var DEFC=new Set(ACT.map(a=>a[2])),FORBID=['Escape','F1','F3','F6','F5','F11','F12','Backspace','MetaLeft','MetaRight','ContextMenu'];
+var bindOf=id=>BIND[id]||ACT.find(a=>a[0]==id)[2];
 function bindRebuild(){REV={};for(const a of ACT)REV[bindOf(a[0])]=a[2]}
 function RB(c){if(REV[c]!==undefined)return REV[c];return DEFC.has(c)?'Unbound':c}
 bindRebuild();
@@ -472,16 +472,16 @@ function bindSave(){try{localStorage.setItem('sd-keys',JSON.stringify(BIND))}cat
 function bindSet(id,code){const def=ACT.find(a=>a[0]==id)[2],old=bindOf(id),other=ACT.find(a=>a[0]!=id&&bindOf(a[0])==code);
  if(other){if(old==ACT.find(a=>a[0]==other[0])[2])delete BIND[other[0]];else BIND[other[0]]=old}
  if(code==def)delete BIND[id];else BIND[id]=code;bindSave()}
-const keyName=c=>({Space:'Space',ShiftLeft:'L-Shift',ShiftRight:'R-Shift',ControlLeft:'L-Ctrl',ControlRight:'R-Ctrl',AltLeft:'L-Alt',AltRight:'R-Alt',Tab:'Tab',Enter:'Enter',CapsLock:'Caps',Backquote:'`',Minus:'-',Equal:'=',Comma:',',Period:'.',Slash:'/',Semicolon:';',Quote:"'",BracketLeft:'[',BracketRight:']',Backslash:'\\'}[c]||String(c).replace(/^Key/,'').replace(/^Digit/,'').replace(/^Numpad/,'Num ').replace(/^Arrow/,'Arrow '));
-let CAP=null;
+var keyName=c=>({Space:'Space',ShiftLeft:'L-Shift',ShiftRight:'R-Shift',ControlLeft:'L-Ctrl',ControlRight:'R-Ctrl',AltLeft:'L-Alt',AltRight:'R-Alt',Tab:'Tab',Enter:'Enter',CapsLock:'Caps',Backquote:'`',Minus:'-',Equal:'=',Comma:',',Period:'.',Slash:'/',Semicolon:';',Quote:"'",BracketLeft:'[',BracketRight:']',Backslash:'\\'}[c]||String(c).replace(/^Key/,'').replace(/^Digit/,'').replace(/^Numpad/,'Num ').replace(/^Arrow/,'Arrow '));
+var CAP=null;
 function bindUI(){const el=$('#rbg');if(!el)return;let h='',g='';for(const a of ACT){if(a[3]!=g){g=a[3];h+=`<h3>${g}</h3>`}const ch=BIND[a[0]]!=null;h+=`<div class="rbr"><span>${a[1]}</span><button class="rbk ${CAP==a[0]?'cap':''} ${ch?'chg':''}" data-rb="${a[0]}">${CAP==a[0]?'Press a key…':keyName(bindOf(a[0]))}</button><button class="rbx" data-rbr="${a[0]}" ${ch?'':'disabled'} title="Restore default">↺</button></div>`}el.innerHTML=h}
 addEventListener('keydown',e=>{if(!CAP)return;e.preventDefault();e.stopImmediatePropagation();const id=CAP;CAP=null;if(e.code=='Escape'){bindUI();return}if(e.code=='Backspace'){delete BIND[id];bindSave();bindUI();return}
  if(FORBID.includes(e.code)){bindUI();return}bindSet(id,e.code);bindUI()},true);
 addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-rb],[data-rbr],#rbreset');if(!b)return;if(b.id=='rbreset'){BIND={};bindSave();CAP=null;bindUI();return}
  if(b.dataset.rbr){delete BIND[b.dataset.rbr];bindSave();bindUI();return}CAP=b.dataset.rb;bindUI()});
 /* ---------- gameplay options saved on this device ---------- */
-const OPT=(()=>{let o={kc:1,chat:1,hold:1};try{Object.assign(o,JSON.parse(localStorage.getItem('sd-opt')||'{}'))}catch(e){}return o})();
-const optSave=()=>{try{localStorage.setItem('sd-opt',JSON.stringify(OPT))}catch(e){}};
+var OPT=(()=>{let o={kc:1,chat:1,hold:1};try{Object.assign(o,JSON.parse(localStorage.getItem('sd-opt')||'{}'))}catch(e){}return o})();
+var optSave=()=>{try{localStorage.setItem('sd-opt',JSON.stringify(OPT))}catch(e){}};
 (function(){const ps=$('#p-set');if(!ps)return;const d=document.createElement('div');d.id='rebind';
  d.innerHTML=`<h2>Gameplay options</h2><label>Killcam<select id="o-kc"><option value="1">On: watch how you died</option><option value="0">Off</option></select></label><label>Chat<select id="o-chat"><option value="1">On</option><option value="0">Off (hide all messages)</option></select></label><label>Weapon hold animations<select id="o-hold"><option value="1">Full</option><option value="0.5">Reduced</option><option value="0">Off (original game motion)</option></select></label>
  <h2>Controls</h2><p class="sub">Click an action, then press the new key. Esc cancels, Backspace (or the arrow) restores the default. If the key is already used, the two actions swap. Mouse buttons and controller bindings are fixed.</p><div id="rbg"></div><button class="btn sm" id="rbreset">Reset all controls</button>`;ps.appendChild(d);
@@ -490,11 +490,11 @@ const optSave=()=>{try{localStorage.setItem('sd-opt',JSON.stringify(OPT))}catch(
 /* ===================== chat.js ===================== */
 /* ---------- feature 2: in-game chat. Enter opens it (team channel in team modes, Tab switches between TEAM and ALL), Z opens quick chat (1-8: callouts, the first two also drop a ping), messages travel
    peer to peer to everyone in the lobby, team messages are only shown to your team. Commands: /help /clear /mute name /unmute name /team /all. Rate limited on both ends, text only. ---------- */
-const CHT={open:0,q:0,ch:'all',log:[],last:0,rate:{},mute:new Set(),qt:0};
-const QCH=[['Enemy spotted!',1],['Need backup!',1],['Cover me!',0],['Watch the flank!',0],['On my way',0],['Nice shot!',0],['Thanks!',0],['Good game!',0]];
+var CHT={open:0,q:0,ch:'all',log:[],last:0,rate:{},mute:new Set(),qt:0};
+var QCH=[['Enemy spotted!',1],['Need backup!',1],['Cover me!',0],['Watch the flank!',0],['On my way',0],['Nice shot!',0],['Thanks!',0],['Good game!',0]];
 (function(){const hud=$('#hud');if(!hud)return;const c=document.createElement('div');c.id='chat';c.innerHTML='<div id="chlog"></div><div id="chin"><span id="chtag"></span><input id="chtxt" maxlength="120" autocomplete="off" spellcheck="false" placeholder="Type a message, Enter to send, Tab switches channel, Esc cancels"></div><div id="qchat"></div>';hud.appendChild(c)})();
-const chSelf=()=>($('#nm')&&$('#nm').value.trim())||'Player';
-const chTeamOn=()=>{try{return typeof teamMode=='function'&&netOn&&teamMode()}catch(e){return false}};
+var chSelf=()=>($('#nm')&&$('#nm').value.trim())||'Player';
+var chTeamOn=()=>{try{return typeof teamMode=='function'&&netOn&&teamMode()}catch(e){return false}};
 function chRender(){const el=$('#chlog');if(!el)return;const now=performance.now(),show=CHT.open?14:7;el.textContent='';for(const l of CHT.log.slice(-show)){const age=now-l.t;if(!CHT.open&&age>9000)continue;const r=document.createElement('div');r.className='chl'+(l.sys?' sys':'')+(!CHT.open&&age>6500?' old':'');if(!l.sys){const t=document.createElement('b');t.className=l.tm=='A'?'cta':l.tm=='B'?'ctb':'';t.textContent=(l.ch=='team'?'[TEAM] ':'')+l.n+': ';r.appendChild(t)}const s=document.createElement('span');s.textContent=l.m;r.appendChild(s);el.appendChild(r)}}
 function chAdd(n,m,ch,tm,sys){CHT.log.push({n,m,ch,tm,sys,t:performance.now()});if(CHT.log.length>60)CHT.log.shift();chRender()}
 function chTag(){const t=$('#chtag');if(!t)return;t.textContent=CHT.ch=='team'?'TEAM':'ALL';t.className=CHT.ch}
@@ -524,7 +524,7 @@ setInterval(()=>{if(CHT.q){CHT.qt-=.25;if(CHT.qt<=0){CHT.q=0;$('#qchat').style.d
 /* ---------- feature 3: killcam and death recap. When you die you watch your killer from an over-the-shoulder camera (walls are respected, it eases in) while a panel shows who they are, their weapon,
    the distance, and their health; a recap lists the damage you took (per attacker, with weapon) and the damage you dealt to the person who killed you. Press the interact key to skip once
    it has run for a second. The respawn timer is extended so the killcam can finish. Can be switched off in Settings. ---------- */
-const KC={on:0,t:0,dur:3.4,b:null,tp:null,cam:null,hist:[],deal:[],info:null};
+var KC={on:0,t:0,dur:3.4,b:null,tp:null,cam:null,hist:[],deal:[],info:null};
 {const _h=hurt;hurt=function(d,b){if(!P.dead&&d>0&&run)KC.hist.push({t:t0,d:Math.min(d,P.hp+P.sh),b:b||null,nm:b?(b.nm||'Enemy'):'',wk:b?b.wk:''});if(KC.hist.length>80)KC.hist.shift();return _h.apply(this,arguments)}}
 {const _hb=hitBot;hitBot=function(b,d,head){if(d>0&&b&&b.al&&run&&!SK.nok){KC.deal.push({b,d:Math.min(d,b.hp+(b.sh||0)),t:t0});if(KC.deal.length>80)KC.deal.shift()}return _hb.apply(this,arguments)}}
 {const _d=die;die=function(){const was=P.dead,k=lastBot;_d.apply(this,arguments);if(was||mode=='Zombies'||mode=='Survival'||over)return;try{kcStart(k)}catch(e){}}}
@@ -552,9 +552,9 @@ function kcamTick(dt){const e=$('#kcam');if(!e)return;if(!KC.on)return;if(!P.dea
 /* ---------- match notifications, redesigned. msg() (objective and match messages) and popup() (unlocks, streaks earned, level ups) now show as compact stacked toasts that sit BELOW the match bar
    (their position is measured from it, so they can never slide behind the scoreboard), at most 3 at a time, repeated messages refresh instead of stacking. Kill messages (+1 Kill, Headshot!, Double Kill!...)
    become small points under the crosshair that rise and fade. The old centre banner is hidden. ---------- */
-const NT={list:[],last:'',lastT:0};
+var NT={list:[],last:'',lastT:0};
 (function(){const hud=$('#hud');if(!hud)return;const c=document.createElement('div');c.id='notes';hud.appendChild(c);const p=document.createElement('div');p.id='pts';hud.appendChild(p)})();
-const ntKind=t=>/\bflag\b|captur|zone|hill|hardpoint|domination|objective|secured|contested/i.test(t)?'obj':/ready|streak|uav|airstrike|nuke|care package|available|earned|unlocked|prestige|level/i.test(t)?'streak':/warning|danger|low|died|eliminated|lost/i.test(t)?'warn':'info';
+var ntKind=t=>/\bflag\b|captur|zone|hill|hardpoint|domination|objective|secured|contested/i.test(t)?'obj':/ready|streak|uav|airstrike|nuke|care package|available|earned|unlocked|prestige|level/i.test(t)?'streak':/warning|danger|low|died|eliminated|lost/i.test(t)?'warn':'info';
 function ntShow(html,kind,secs,key,card){const box=$('#notes');if(!box)return;const now=performance.now();
  const same=NT.list.find(n=>n.key==key&&!n.gone);if(same){same.t=now;same.life=secs;same.el.classList.remove('old','out');return}
  const el=document.createElement('div');el.className='nt '+kind+(card?' card':'');el.innerHTML=(card?'':'<i></i>')+html;box.appendChild(el);const n={el,t:now,life:secs,key,gone:0};NT.list.push(n);
@@ -562,7 +562,7 @@ function ntShow(html,kind,secs,key,card){const box=$('#notes');if(!box)return;co
 setInterval(()=>{const now=performance.now(),live=NT.list.filter(n=>!n.gone);for(const n of NT.list){if(!n.gone&&now-n.t>n.life*1000){n.gone=1;n.el.classList.add('out');setTimeout(()=>n.el.remove(),350)}}
  live.forEach((n,i)=>n.el.classList.toggle('old',i<live.length-1&&live.length>1));NT.list=NT.list.filter(n=>!n.gone||now-n.t<n.life*1000+600);
  const tb=$('#tbar'),r=tb&&tb.firstChild?tb.getBoundingClientRect():null;document.documentElement.style.setProperty('--ntop',((r&&r.height?r.bottom:34)+12)+'px')},180);
-const esc_=x=>String(x).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+var esc_=x=>String(x).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 msg=function(t,s){t=String(t==null?'':t);if(!t)return;
  if(/^(\+\d+ Kill|Headshot!|Double Kill!|Triple Kill!|Overkill!|Killing Spree!)/i.test(t)){const p=$('#pts');if(!p)return;p.textContent='';const e=document.createElement('div');e.className='pt'+(/Headshot/i.test(t)?' hs':t[0]=='+'?'':' multi');e.textContent=t;p.appendChild(e);setTimeout(()=>e.remove(),1150);return}
  ntShow('<span>'+esc_(t)+'</span>',ntKind(t),Math.max(1.6,Math.min(4,(s||2)+.4)),t,0)};
@@ -572,28 +572,28 @@ popup=function(t,sub){ntShow('<strong>'+esc_(t)+'</strong><em>'+esc_(sub)+'</em>
 /* ---------- feature 4: medals and challenges. Medals are awarded in the match for how you play (first blood, longshot, revenge, close call, multikills, streaks, melee, explosives, air support, untouchable);
    each pays a little XP. Challenges: 3 daily and 3 weekly picked for the day / week, plus career challenges with tiers. Progress is saved on the device (signed), XP rewards go through the normal XP path.
    Screen: Multiplayer, Challenges. ---------- */
-const MST={k:0,hs:0,melee:0,expl:0,streak:0,long:0,best:0,medals:{},dmg:0,t0:0,su:0,mk:[],lastKiller:null,noHit:0,cc:[],xp0:0};
-const MEDALS={'First Blood':[50,'First kill of the match'],'Headshot':[10,'Kill with a headshot'],'Longshot':[40,'Kill from 50 m or more'],'Revenge':[40,'Kill the player who just killed you'],'Close Call':[30,'Kill while under 30 health'],
+var MST={k:0,hs:0,melee:0,expl:0,streak:0,long:0,best:0,medals:{},dmg:0,t0:0,su:0,mk:[],lastKiller:null,noHit:0,cc:[],xp0:0};
+var MEDALS={'First Blood':[50,'First kill of the match'],'Headshot':[10,'Kill with a headshot'],'Longshot':[40,'Kill from 50 m or more'],'Revenge':[40,'Kill the player who just killed you'],'Close Call':[30,'Kill while under 30 health'],
  'Double Kill':[25,'2 kills within 3.5 s'],'Triple Kill':[50,'3 kills within 3.5 s'],'Quad Kill':[100,'4 kills within 3.5 s'],'Killing Spree':[50,'5 kills in a row'],'Rampage':[100,'10 kills in a row'],'Unstoppable':[200,'15 kills in a row'],
  'Cold Steel':[30,'Melee kill'],'Frag Out':[25,'Kill with an explosive'],'Air Support':[25,'Kill with a scorestreak'],'Untouchable':[60,'5 kills without taking damage']};
-const dayKey=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
-const weekKey=()=>{const d=new Date(),t=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate());return'W'+Math.floor((t/86400000+3)/7)};
-const msReset=()=>{Object.assign(MST,{k:0,hs:0,melee:0,expl:0,streak:0,long:0,best:0,medals:{},dmg:0,t0:t0,su:0,mk:[],lastKiller:null,noHit:0,cc:[]})};
+var dayKey=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+var weekKey=()=>{const d=new Date(),t=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate());return'W'+Math.floor((t/86400000+3)/7)};
+var msReset=()=>{Object.assign(MST,{k:0,hs:0,melee:0,expl:0,streak:0,long:0,best:0,medals:{},dmg:0,t0:t0,su:0,mk:[],lastKiller:null,noHit:0,cc:[]})};
 /* challenge definitions: [id, name, description, stat, goal, xp] */
-const CHD=[['d1','Warm-up','Get 15 kills','kills',15,300],['d2','Sharpshooter','Get 8 headshots','headshots',8,400],['d3','Rifleman','12 kills with rifles','k_Rifles',12,350],['d4','Close Quarters','10 kills with SMGs and shotguns','k_Close Quarters',10,350],
+var CHD=[['d1','Warm-up','Get 15 kills','kills',15,300],['d2','Sharpshooter','Get 8 headshots','headshots',8,400],['d3','Rifleman','12 kills with rifles','k_Rifles',12,350],['d4','Close Quarters','10 kills with SMGs and shotguns','k_Close Quarters',10,350],
  ['d5','Sidearm Specialist','6 kills with sidearms','k_Sidearms',6,400],['d6','Long Shot','2 kills from 50 m or more','longshots',2,450],['d7','Knife Fight','3 melee kills','melee',3,450],['d8','Frag Out','3 kills with explosives','explosive',3,400],
  ['d9','Call Down','Use 3 scorestreaks','streaksUsed',3,350],['d10','On a Roll','Play 3 matches','matches',3,300],['d11','Victory Lap','Win 2 matches','wins',2,500],['d12','Medal Hunter','Earn 6 medals','medals',6,300]];
-const CHW=[['w1','Veteran','Get 120 kills','kills',120,1500],['w2','Headhunter','Get 50 headshots','headshots',50,1500],['w3','Winning Streak','Win 8 matches','wins',8,2000],['w4','Air Superiority','15 kills with scorestreaks','streakKills',15,1500],['w5','Marksman','10 kills from 50 m or more','longshots',10,1800],['w6','Sidearm Master','40 kills with sidearms','k_Sidearms',40,1500]];
-const CHC=[['c1','Centurion','kills',[100,500,2500],[500,1500,4000]],['c2','Headshot Hunter','headshots',[50,250,1000],[500,1500,4000]],['c3','Veteran of Arms','wins',[10,50,200],[600,2000,5000]],['c4','Medal Collector','medals',[25,100,400],[500,1500,4000]]];
-const hs2=x=>{let a=0x9e3779b9,b=0x85ebca6b;const t=x+'|ch|sd77';for(let i=0;i<t.length;i++){a=Math.imul(a^t.charCodeAt(i),2654435761);b=Math.imul(b^t.charCodeAt(i),1597334677)}return((a^b)>>>0).toString(36)};
-const rngS=seed=>{let s=0;for(const c of seed)s=(s*31+c.charCodeAt(0))>>>0;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296}};
-const pickS=(pool,seed,n)=>{const r=rngS(seed),a=pool.slice(),o=[];while(o.length<n&&a.length)o.push(a.splice(Math.floor(r()*a.length),1)[0]);return o};
-let CHST=null;
+var CHW=[['w1','Veteran','Get 120 kills','kills',120,1500],['w2','Headhunter','Get 50 headshots','headshots',50,1500],['w3','Winning Streak','Win 8 matches','wins',8,2000],['w4','Air Superiority','15 kills with scorestreaks','streakKills',15,1500],['w5','Marksman','10 kills from 50 m or more','longshots',10,1800],['w6','Sidearm Master','40 kills with sidearms','k_Sidearms',40,1500]];
+var CHC=[['c1','Centurion','kills',[100,500,2500],[500,1500,4000]],['c2','Headshot Hunter','headshots',[50,250,1000],[500,1500,4000]],['c3','Veteran of Arms','wins',[10,50,200],[600,2000,5000]],['c4','Medal Collector','medals',[25,100,400],[500,1500,4000]]];
+var hs2=x=>{let a=0x9e3779b9,b=0x85ebca6b;const t=x+'|ch|sd77';for(let i=0;i<t.length;i++){a=Math.imul(a^t.charCodeAt(i),2654435761);b=Math.imul(b^t.charCodeAt(i),1597334677)}return((a^b)>>>0).toString(36)};
+var rngS=seed=>{let s=0;for(const c of seed)s=(s*31+c.charCodeAt(0))>>>0;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296}};
+var pickS=(pool,seed,n)=>{const r=rngS(seed),a=pool.slice(),o=[];while(o.length<n&&a.length)o.push(a.splice(Math.floor(r()*a.length),1)[0]);return o};
+var CHST=null;
 function chFresh(){return{v:1,day:dayKey(),week:weekKey(),d:{},w:{},done:{},c:{},tier:{},medals:{}}}
 function chLoad(){let o=null;try{const raw=JSON.parse(localStorage.getItem('sd-ch')||'null');if(raw&&raw.g===hs2(JSON.stringify({...raw,g:0})))o=raw}catch(e){}CHST=o||chFresh();chRoll()}
 function chSave(){CHST.g=0;CHST.g=hs2(JSON.stringify(CHST));try{localStorage.setItem('sd-ch',JSON.stringify(CHST))}catch(e){}}
 function chRoll(){const dk=dayKey(),wk=weekKey();let ch=0;if(CHST.day!=dk){CHST.day=dk;CHST.d={};for(const k of Object.keys(CHST.done))if(k[0]=='d')delete CHST.done[k];ch=1}if(CHST.week!=wk){CHST.week=wk;CHST.w={};for(const k of Object.keys(CHST.done))if(k[0]=='w')delete CHST.done[k];ch=1}if(ch)chSave()}
-const chActive=()=>({d:pickS(CHD,CHST.day,3),w:pickS(CHW,CHST.week,3)});
+var chActive=()=>({d:pickS(CHD,CHST.day,3),w:pickS(CHW,CHST.week,3)});
 function chEv(stat,n=1){if(!CHST)chLoad();chRoll();const A=chActive();let any=0;
  for(const [grp,list] of [['d',A.d],['w',A.w]])for(const c of list){if(c[3]!=stat)continue;const key=grp+':'+c[0];if(CHST.done[key])continue;CHST[grp][c[0]]=Math.min(c[4],(CHST[grp][c[0]]||0)+n);any=1;
   if(CHST[grp][c[0]]>=c[4]){CHST.done[key]=1;MST.cc.push([c[1],c[5]]);try{giveXP(c[5])}catch(e){}popup('CHALLENGE COMPLETE',c[1]+' · +'+c[5]+' XP')}}
@@ -642,7 +642,7 @@ function aarInject(t){const f=$('#fbd'),c=$('#fcont');if(!f||!c)return;const row
 /* ---------- feature 6: threat awareness. Live grenades near you show a pulsing arrow around the crosshair pointing at them (red for frags, white for flashbangs) with a warning beep, and enemy footsteps are heard
    in 3D: left/right by direction, louder when closer, muffled behind walls, faster when sprinting, silent when crouched or prone. Both can be switched off in Settings. ---------- */
 (function(){const hud=$('#hud');if(!hud)return;const d=document.createElement('div');d.id='danger';hud.appendChild(d)})();
-const TH={pool:[],fsT:new WeakMap(),warned:new WeakSet()};
+var TH={pool:[],fsT:new WeakMap(),warned:new WeakSet()};
 function thArrow(i){let e=TH.pool[i];if(!e){e=document.createElement('div');e.className='dg';e.innerHTML='<i></i><b></b>';$('#danger').appendChild(e);TH.pool[i]=e}return e}
 function thStep(b,dist,ang,blocked){try{ac=ac||new AudioContext();const t=ac.currentTime,g=ac.createGain(),p=ac.createStereoPanner?ac.createStereoPanner():null,f=ac.createBiquadFilter(),len=Math.floor(ac.sampleRate*.07),bf=ac.createBuffer(1,len,ac.sampleRate),d=bf.getChannelData(0);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.2);
  const s=ac.createBufferSource();s.buffer=bf;f.type='lowpass';f.frequency.value=blocked?320:760+(Math.random()-.5)*160;g.gain.value=Math.max(.0001,(blocked?.5:1)*.2*Math.pow(Math.max(0,1-dist/26),1.5)*(typeof vol=='number'?vol:1));
@@ -702,8 +702,8 @@ function thTick(dt){const box=$('#danger');if(!box)return;const on=OPT.threat!==
  {const f=fetch_(KF),sg=fetch_(KS);let why=f?'flagged: '+f:0;if(!why){if(sg==null){why=prof.all?'unlock-all':bad()}else if(sg!==sig()&&sg!==sigOld())why='profile edited outside the game';else why=bad()}
   if(why)wipe(why);else{/* profiles from before unlock tokens existed: prestiges already earned are paid out once */if(prof.tok==null){prof.tok=Math.min(10,prof.pres|0);prof.perm=[];try{save()}catch(e){}}resync()}}
  /* the game's own progress functions: the signature is refreshed right after they run */
- const guard=name=>{const o=globalThis[name];return function(){legit++;try{return o.apply(this,arguments)}finally{legit--;if(!legit&&!flagged&&!bad())resync()}}};
- giveXP=guard('giveXP');wkill=guard('wkill');wzkill=guard('wzkill');zRoundDone=guard('zRoundDone');wpres=guard('wpres');doPrestige=guard('doPrestige');tokenSpend=guard('tokenSpend');
+ const guard=o=>{return function(){legit++;try{return o.apply(this,arguments)}finally{legit--;if(!legit&&!flagged&&!bad())resync()}}};
+ giveXP=guard(giveXP);wkill=guard(wkill);wzkill=guard(wzkill);zRoundDone=guard(zRoundDone);wpres=guard(wpres);doPrestige=guard(doPrestige);tokenSpend=guard(tokenSpend);
  {const dv=$('#dev'),od=dv&&dv.onclick;if(dv&&od)dv.onclick=function(e){if(!e||!e.isTrusted){strike('dev menu used by a script');return}if(e.target&&e.target.dataset&&e.target.dataset.d=='reset')store(KS,null);devOK=1;legit++;try{od.call(this,e)}finally{legit--;if(!flagged)resync()}}}
  /* damage taken while a hit lands: it must lower health, and not be absorbed forever */
  {const _h=hurt;hurt=function(d,b){const was=P.dead,pre=P.hp+P.sh;_h.apply(this,arguments);if(!was&&d>1&&run&&!over&&mode!='Zombies'&&!(typeof OI!='undefined'&&OI.on)&&!P.dead){const post=P.hp+P.sh;if(post>=pre-.0001){if(++still>=5)soft('invulnerable')}else{still=0;hist.push([performance.now(),pre-post])}}}}
@@ -713,12 +713,12 @@ function thTick(dt){const box=$('#danger');if(!box)return;const on=OPT.threat!==
  {const _sg=startGame;startGame=function(){hist=[];still=0;overT=0;softHit=0;return _sg.apply(this,arguments)}}
  {const _eg=endGame;endGame=function(){const r=_eg.apply(this,arguments);if(!softHit&&!flagged){const n=softN();if(n>0)store('sd-gs',String(n-1))}return r}}
  /* references to the functions that decide progress and damage, taken now that every script has loaded */
- const names_=['skStartSuit','giveXP','wkill','wzkill','zRoundDone','wpres','doPrestige','tokenSpend','permHas','unlocked','okSet','camos','zcamos','allCamos','wd','hurt','die','hitBot','takeDmg','eff','shoot','respawn','startGame','boom','featKill'],ref=names_.map(n=>globalThis[n]);
+ const names_=['skStartSuit','giveXP','wkill','wzkill','zRoundDone','wpres','doPrestige','tokenSpend','permHas','unlocked','okSet','camos','zcamos','allCamos','wd','hurt','die','hitBot','takeDmg','eff','shoot','respawn','startGame','boom','featKill'],cur_=()=>[skStartSuit,giveXP,wkill,wzkill,zRoundDone,wpres,doPrestige,tokenSpend,permHas,unlocked,okSet,camos,zcamos,allCamos,wd,hurt,die,hitBot,takeDmg,eff,shoot,respawn,startGame,boom,featKill],ref=cur_();
  const WSN={};for(const k in W){const w=W[k];WSN[k]=[w.d,w.r,w.m,w.pel,w.sp,w.rc,w.rl,w.ex?w.ex.d:0,w.ex?w.ex.R:0]}
  const wchg=()=>{for(const k in WSN){const w=W[k];if(!w)return k+' removed';const n=[w.d,w.r,w.m,w.pel,w.sp,w.rc,w.rl,w.ex?w.ex.d:0,w.ex?w.ex.R:0],o=WSN[k];for(let i=0;i<n.length;i++)if(n[i]!==o[i])return'weapon table '+k}for(const k in W)if(!WSN[k])return'new weapon '+k;return 0};
  /* cheap checks every frame, the heavy ones about once a second */
  const tick=dt=>{if(flagged)return;
-  for(let i=0;i<names_.length;i++)if(globalThis[names_[i]]!==ref[i]){strike('game function replaced: '+names_[i]);return}
+  {const c_=cur_();for(let i=0;i<names_.length;i++)if(c_[i]!==ref[i]){strike('game function replaced: '+names_[i]);return}}
   if(!SK.suit)suitReg=0;else if(!suitReg||SK.suit.t>suitT0+1||SK.suit.k&&!SUITS[SK.suit.k]){soft('suit state edited');return}
   const hpCap=SK.suit?suitMax:400;
   if(run&&!over&&P&&!P.dead){
@@ -734,7 +734,50 @@ function thTick(dt){const box=$('#danger');if(!box)return;const on=OPT.threat!==
  {const _ft=featTick;featTick=function(dt){_ft.apply(this,arguments);tick(dt)}}
  ref[names_.indexOf('hurt')]=hurt;ref[names_.indexOf('hitBot')]=hitBot;ref[names_.indexOf('shoot')]=shoot;ref[names_.indexOf('startGame')]=startGame;
 
- /* ---------- secret menu: click the S of SPARTAN five times, then type "ohio". Real clicks and key presses only (scripts cannot open it or press its buttons). Everything it changes is signed, so the anti-cheat accepts it;
+ /* ===================== ANTI-CHEAT v2: console calls, spoofed bots, spawned killstreaks, edited points, replaced built-ins, frozen tables =====================
+    The game also runs inside one closure when it is served over https (see the loader in index.html), so the console cannot even see these variables. These checks cover everything else (local copies, userscripts, a debugger):
+    - a game function called from the console, a snippet, eval or an extension is a hard strike (the call stack gives it away);
+    - every bot must have been made by the game itself (addBot / mkZombie are registered), killstreaks may only be added by the award code, kill streak / kill / round / points counters cannot jump;
+    - Array, Object, JSON, Math, Function, timers, storage and addEventListener are compared with the originals every tick, and an Error.prepareStackTrace hook is refused;
+    - weapon, attachment, perk, grenade and equipment tables are frozen, so editing them does nothing at all. */
+ {
+  const NAT=[[Array.prototype,'push'],[Array.prototype,'splice'],[Array.prototype,'filter'],[Array.prototype,'forEach'],[Array.prototype,'map'],[Array.prototype,'includes'],[Object,'defineProperty'],[Object,'assign'],[Object,'keys'],[Object,'freeze'],[JSON,'parse'],[JSON,'stringify'],[Math,'random'],[Math,'hypot'],[Function.prototype,'call'],[Function.prototype,'apply'],[Function.prototype,'bind'],[Function.prototype,'toString'],[window,'setTimeout'],[window,'setInterval'],[window,'requestAnimationFrame'],[performance,'now'],[Date,'now'],[Storage.prototype,'setItem'],[Storage.prototype,'getItem'],[EventTarget.prototype,'addEventListener']].filter(([o,k])=>o&&typeof o[k]=='function'),NR=NAT.map(([o,k])=>o[k]);
+  const BAD=/<anonymous>:\d+:\d+|\bVM\d+:\d+|eval at |debugger eval|snippet:\/\/|-extension:|^\s*(global|eval) code/m,
+   foreign=()=>{try{return BAD.test(new Error().stack||'')}catch(e){return false}},
+   gw=(name,fn)=>function(){if(foreign())strike('console call: '+name);return fn.apply(this,arguments)};
+  /* functions the game itself calls from its own files; from anywhere else they are a cheat. The new wrappers are put into the identity list too, so replacing them later is caught as well. */
+  const WR=(n,f)=>{const g=gw(n,f),i=names_.indexOf(n);if(i>=0)ref[i]=g;return g};
+  startGame=WR('startGame',startGame);respawn=WR('respawn',respawn);die=WR('die',die);hurt=WR('hurt',hurt);hitBot=WR('hitBot',hitBot);takeDmg=WR('takeDmg',takeDmg);boom=WR('boom',boom);featKill=WR('featKill',featKill);shoot=WR('shoot',shoot);
+  const okB=new WeakSet(),mk=(n,f)=>{const g=function(){const n0=bots.length;if(foreign())strike('console call: '+n);const r=f.apply(this,arguments);for(let i=n0;i<bots.length;i++)okB.add(bots[i]);return r};return g};
+  addBot=mk('addBot',addBot);mkZombie=mk('mkZombie',mkZombie);zPuppet=mk('zPuppet',zPuppet);for(const b of bots)okB.add(b);
+  let lq=0;const lgQ=(n,f)=>function(){if(foreign())strike('console call: '+n);lq++;try{return f.apply(this,arguments)}finally{lq--}};
+  skAward=lgQ('skAward',skAward);skReward=lgQ('skReward',skReward);skGiveHeavy=gw('skGiveHeavy',skGiveHeavy);skAmmo=gw('skAmmo',skAmmo);useStreak=gw('useStreak',useStreak);kcGive=gw('kcGive',kcGive);zGive=gw('zGive',zGive);
+  var id2=[addBot,mkZombie,zPuppet,skAward,skReward,skGiveHeavy,skAmmo,useStreak,kcGive,zGive],c2=()=>[addBot,mkZombie,zPuppet,skAward,skReward,skGiveHeavy,skAmmo,useStreak,kcGive,zGive];
+  const fz=o=>{if(o&&typeof o=='object'&&!Object.isFrozen(o)){Object.freeze(o);for(const k in o){const v=o[k];if(v&&typeof v=='object')fz(v)}}};try{fz(W);fz(A);fz(K);fz(GR);fz(EQN);fz(UNL)}catch(e){}
+  let ksL=0,killsL=0,ksW=0,kW=0,qL=0,ptsL=null,ptsW=0,rL=0,t2=0,bi=0;
+  const tick2=dt=>{if(flagged)return;t2+=dt;
+   {const c=c2();for(let i=0;i<c.length;i++)if(c[i]!==id2[i]){strike('game function replaced (2): '+i);return}}
+   for(let i=0;i<NAT.length;i++)if(NAT[i][0][NAT[i][1]]!==NR[i]){strike('built-in replaced: '+NAT[i][1]);return}
+   if(Error.prepareStackTrace&&!flagged){soft('stack trace hook');return}
+   if(!run||over)return;
+   /* bots: all of them made by the game, and not an absurd number of them */
+   if(bots.length>70){soft('too many bots');return}
+   if(t2-bi>.5){bi=t2;for(const b of bots)if(!okB.has(b)){soft('spoofed bot');return}}
+   /* killstreaks: the queue only grows inside the award code, and only so far */
+   if(q.length>qL&&lq==0&&mode!='Zombies'){strike('killstreaks added from outside the game');return}if(q.length>14){soft('killstreak queue too long');return}qL=q.length;
+   /* counters cannot jump */
+   if(typeof ks=='number'){ksW=Math.max(0,ksW-dt*2.5)+Math.max(0,ks-ksL);if(ks-ksL>30||ksW>45){soft('kill streak edited');return}ksL=ks}
+   if(typeof kills=='number'){kW=Math.max(0,kW-dt*2.5)+Math.max(0,kills-killsL);if(kills-killsL>40||kW>70){soft('kills edited');return}killsL=kills}
+   if(mode=='Zombies'&&typeof zq!='undefined'&&zq){
+    if(ptsL!=null){const g=zq.pts-ptsL;if(g>0)ptsW+=g}ptsL=zq.pts;ptsW=Math.max(0,ptsW-dt*3000);
+    if(ptsW>60000||!isFinite(zq.pts)||zq.pts>3e6||zq.pts<-1){soft('points edited');return}
+    if(rL&&zq.r>rL+1&&!netOn){soft('round edited');return}rL=zq.r;
+    for(const w of wp){if(w&&(w.pm>10||w.mag>w.m+1||w.m>3000)){soft('weapon numbers edited');return}}}
+   else{ptsL=null;rL=0}};
+  setInterval(()=>tick2(.9),900);{const _f=featTick;featTick=function(dt){_f.apply(this,arguments);tick2(dt)}}
+ }
+
+ /* ---------- secret menu: opened by typing a passphrase (only its hash is in the code). Real clicks and key presses only (scripts cannot open it or press its buttons). Everything it changes is signed, so the anti-cheat accepts it;
     a profile edited here is marked as a dev profile. ---------- */
  {let arm=0,clicks=0,ct=0,buf='';for(const h of document.querySelectorAll('#brand h1,#home header h1'))if(!h.querySelector('.sS'))h.innerHTML=h.innerHTML.replace(/^S/,'<span class="sS">S</span>');
   const lab=k=>k.startsWith('sk:')?((STK[k.slice(3)]||{n:k}).n+' (streak)'):((typeof nm=='function'?nm(k):k)),itm=k=>`${lab(k)}`;
@@ -761,8 +804,11 @@ function thTick(dt){const box=$('#danger');if(!box)return;const on=OPT.threat!==
   el.addEventListener('click',e=>{if(!e.isTrusted){strike('secret menu used by a script');return}const b=e.target.closest('[data-s]');if(b&&act[b.dataset.s])act[b.dataset.s]()});
   el.addEventListener('change',e=>{if(!e.isTrusted)return;const c=e.target.closest&&e.target.closest('[data-sp]');if(c){apply(()=>{prof.perm=prof.perm||[];const k=c.dataset.sp,i=prof.perm.indexOf(k);if(c.checked&&i<0)prof.perm.push(k);if(!c.checked&&i>=0)prof.perm.splice(i,1)})}});
   el.addEventListener('keydown',e=>{if(e.key=='Escape')act.close();e.stopPropagation()});el.addEventListener('keyup',e=>e.stopPropagation());
-  for(const sS of document.querySelectorAll('.sS'))sS.addEventListener('click',e=>{if(!e.isTrusted)return;e.stopPropagation();const n=performance.now();if(n-ct>3500)clicks=0;ct=n;if(++clicks>=5){clicks=0;arm=n+20000;buf=''}});
-  addEventListener('keydown',e=>{if(!e.isTrusted||!arm||performance.now()>arm||run||el.style.display!='none')return;buf=(buf+(e.key||'')).toLowerCase().slice(-4);if(buf=='ohio'){arm=0;buf='';render();el.style.display='flex'}})}
+  /* the way in: type the passphrase on the menu. Nothing on screen hints at it and the code holds only a salted PBKDF2 hash (100,000 rounds), never the phrase or how it is typed. Real key presses only, never in a match or online. */
+  {var kb='',busy=0,pend=0;var E=s=>new TextEncoder().encode(s),SM={s:'7993a2ccaa3bf6afd4e42704',n:100000,l:23,h:'fa86149b4fc6bad452ac90088084a13eb70b1bd3e86be0debc82e0c6c80484c0'};
+   var chk=()=>{if(busy){pend=1;return}if(kb.length<SM.l||!window.crypto||!crypto.subtle)return;busy=1;
+    crypto.subtle.importKey('raw',E(kb),'PBKDF2',false,['deriveBits']).then(k=>crypto.subtle.deriveBits({name:'PBKDF2',salt:E(SM.s),iterations:SM.n,hash:'SHA-256'},k,256)).then(b=>{if([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')===SM.h){kb='';render();el.style.display='flex'}}).catch(()=>{}).then(()=>{busy=0;if(pend){pend=0;chk()}})};
+   addEventListener('keydown',e=>{if(!e.isTrusted||run||el.style.display!='none'||(typeof netOn!='undefined'&&netOn)||!e.key||e.key.length!=1)return;kb=(kb+e.key.toLowerCase()).slice(-SM.l);chk()})}}
  document.addEventListener('visibilitychange',()=>{if(!document.hidden){slowT=0;tick(.1)}});
 })();
 
@@ -770,7 +816,7 @@ function thTick(dt){const box=$('#danger');if(!box)return;const on=OPT.threat!==
    1. Semtex: a sticky lethal (see GR in core.js): it sticks to walls, floors and enemies, blinks faster as the fuse runs down and beeps.
    2. Quick Fix perk: every kill instantly restores health and shield, with a green pulse.
    3. Weapon inspect (Y): the gun is lifted, turned to show both sides and the mechanism is checked with a flourish. Firing, aiming, sprinting, reloading, meleeing or swapping cancels it. */
-const INSP={t:0,d:2.5,c1:0,c2:0};
+var INSP={t:0,d:2.5,c1:0,c2:0};
 function actInspect(){if(!run||P.dead||over||paused||INSP.t>0)return;const w=cw();if(!w||w.heavy&&0)return;if((P.spr||0)>.3||ST.ads>.3||rel>0||(typeof meleeOut=='function'&&meleeOut()))return;INSP.t=.0001;INSP.c1=INSP.c2=0;beep(520,.05,'triangle',.05)}
 {const _hp=holdPose;holdPose=function(dt){const o=_hp.apply(this,arguments);if(INSP.t<=0)return o;
   if(trig||ST.ads>.25||(P.spr||0)>.3||rel>0||P.dead||!run||(typeof meleeOut=='function'&&meleeOut())){INSP.t=0;return o}
@@ -843,8 +889,8 @@ function skFlakDeploy(){SK.flakT=50;const pts=[];for(let i=0;i<3;i++){const a=i*
    Points feed your killstreak count and XP: killing 50 (the normal kill), confirming 100, a teammate confirming your kill 25, denying 25 (plus a Retrieved medal for your own tag).
    Networking: the HOST owns the tags and the score. Every death the host sees (its own bots, its own death, and the 'dead' message of a guest) drops a tag and is announced with 'kd'.
    The host decides who picks a tag up (it knows every player's position) and announces it with 'kg'; each client then plays the effect and pays out its own rewards. Guests never create tags. */
-const KC_WIN=100,KC_LIFE=16;let kc={A:0,B:0},kcTags=[],kcFly=[],kcSt={conf:0,deny:0},kcSeq=0,kcSeen={},kcA=null;
-const kcMe=()=>netOn?myId:'me',kcNid=e=>e===P?kcMe():e?(e.net?e.id:'b'+e.i):'',kcByNid=id=>id==kcMe()?P:(id?bots.find(b=>(b.net?b.id:'b'+b.i)==id):null)||null;
+var KC_WIN=100,KC_LIFE=16;var kc={A:0,B:0},kcTags=[],kcFly=[],kcSt={conf:0,deny:0},kcSeq=0,kcSeen={},kcA=null;
+var kcMe=()=>netOn?myId:'me',kcNid=e=>e===P?kcMe():e?(e.net?e.id:'b'+e.i):'',kcByNid=id=>id==kcMe()?P:(id?bots.find(b=>(b.net?b.id:'b'+b.i)==id):null)||null;
 /* shared assets, built once: beveled dog tag plates, chain beads, glow and beam textures */
 function kcAssets(){if(kcA)return kcA;
  const rr=(w,h,r)=>{const s=new THREE.Shape();s.moveTo(-w/2+r,-h/2);s.lineTo(w/2-r,-h/2);s.quadraticCurveTo(w/2,-h/2,w/2,-h/2+r);s.lineTo(w/2,h/2-r);s.quadraticCurveTo(w/2,h/2,w/2-r,h/2);s.lineTo(-w/2+r,h/2);s.quadraticCurveTo(-w/2,h/2,-w/2,h/2-r);s.lineTo(-w/2,-h/2+r);s.quadraticCurveTo(-w/2,-h/2,-w/2+r,-h/2);return s};

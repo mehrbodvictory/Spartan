@@ -4,20 +4,20 @@
    Textures, materials, the environment map and post-processing come from lumen.js (LX).
    Map boxes are [x,z,w,d,h,y0,colour,kind]: kind is a texture (brick stucco plank concrete asphalt grass shingle tile metal sand rust cobble), 'glass' / 'glow', or 'n' for collision only.
    Visual-only extras (map._v and map.deco) are [x,z,w,d,h,y0,colour,shape,texture] with shape b box, e glow box, g glass box, s sphere, c cylinder, k cone. ---------- */
-let gfxQ=LX.q,skyM=null,skyC=null,gfxL=[],gt_=0;
+var gfxQ=LX.q,skyM=null,skyC=null,gfxL=[],gt_=0;
 R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFShadowMap;
-const SHMAX=(()=>{try{return R.capabilities.maxTextureSize||2048}catch(e){return 2048}})(),SHS=2048;
+var SHMAX=(()=>{try{return R.capabilities.maxTextureSize||2048}catch(e){return 2048}})(),SHS=2048;
 sun.shadow.mapSize.set(SHS,SHS);{const k=sun.shadow.camera;k.left=k.bottom=-46;k.right=k.top=46;k.near=1;k.far=150}sun.shadow.bias=-.0004;sun.shadow.normalBias=.04;S.add(sun.target);
 function setGfx(q){gfxQ=q;LX.setQuality(q);sun.castShadow=q!='low'}setGfx(gfxQ);
 /* the shadow texel in world units (used to keep shadow edges from shimmering) */
-const SH_TEXEL=92/SHS;
+var SH_TEXEL=92/SHS;
 
 /* ---------- surfaces ---------- */
-const TS={brick:2.4,stucco:3,plank:1.6,concrete:3,asphalt:4,grass:4,shingle:1.8,tile:2,metal:2,sand:3.2,rust:2,cobble:2.2};
+var TS={brick:2.4,stucco:3,plank:1.6,concrete:3,asphalt:4,grass:4,shingle:1.8,tile:2,metal:2,sand:3.2,rust:2,cobble:2.2};
 function gTex(kind){return LX.tex(kind).map}
 /* normal strength per kind and metalness for the metallic ones */
-const KP={brick:[1.5,0],stucco:[.8,0],plank:[1,0],concrete:[.95,0],asphalt:[1,0],grass:[.7,0],shingle:[1.2,0],tile:[.6,.05],metal:[.7,.8],sand:[.7,0],rust:[1,.5],cobble:[1.5,0]};
-const GM={};
+var KP={brick:[1.5,0],stucco:[.8,0],plank:[1,0],concrete:[.95,0],asphalt:[1,0],grass:[.7,0],shingle:[1.2,0],tile:[.6,.05],metal:[.7,.8],sand:[.7,0],rust:[1,.5],cobble:[1.5,0]};
+var GM={};
 function gMat(kind,col){const k=kind+col;if(GM[k])return GM[k];let m;
  if(!LX.pbr){m=kind=='glow'?new THREE.MeshBasicMaterial({color:col}):kind=='glass'||kind=='glassL'?new THREE.MeshLambertMaterial({color:col,emissive:0x0a1626}):kind=='flat'||kind=='foliage'?new THREE.MeshLambertMaterial({color:col}):new THREE.MeshLambertMaterial({color:col,map:gTex(kind),vertexColors:true})}
  else{const S_=THREE.MeshStandardMaterial;
@@ -41,19 +41,19 @@ function addBox(a,x,yc,z,sx,sy,sz,ts,ao){const hx=sx/2,hy=sy/2,hz=sz/2,F=[[[0,1,
    let v=fs*tint;if(ao!=null&&side){const q=Math.min(1,Math.max(0,(yc+vs[i][1]-ao)/1.4));v=fs*tint*(.55+.45*q*q*(3-2*q))}
    c.push(v,v,v)}
   a.u.push(0,0,w/ts,0,w/ts,h/ts,0,h/ts);a.i.push(b,b+1,b+2,b,b+2,b+3)}}
-const cyHi=new THREE.CylinderGeometry(1,1,1,20),coHi=new THREE.ConeGeometry(1,1,20),sgHi=new THREE.SphereGeometry(1,20,14);
+var cyHi=new THREE.CylinderGeometry(1,1,1,20),coHi=new THREE.ConeGeometry(1,1,20),sgHi=new THREE.SphereGeometry(1,20,14);
 /* lumpy tree crowns: a few variants of a noisy sphere with smooth radial normals */
-const leafG=[0,1,2].map(i=>{const g=new THREE.SphereGeometry(1,18,13),p=g.attributes.position,n=g.attributes.normal;let sd=i*977+5;const r=()=>(sd=(sd*16807)%2147483647)/2147483647,ph=[r()*6,r()*6,r()*6,r()*6];
+var leafG=[0,1,2].map(i=>{const g=new THREE.SphereGeometry(1,18,13),p=g.attributes.position,n=g.attributes.normal;let sd=i*977+5;const r=()=>(sd=(sd*16807)%2147483647)/2147483647,ph=[r()*6,r()*6,r()*6,r()*6];
  for(let k=0;k<p.count;k++){const x=p.getX(k),y=p.getY(k),z=p.getZ(k),l=1+.17*(Math.sin(x*3.1+ph[0])*Math.cos(z*2.7+ph[1])+.6*Math.sin(y*4.3+x*2+ph[2])+.4*Math.sin(z*5.7+y*3+ph[3]))*.7,L=Math.hypot(x,y,z)||1;p.setXYZ(k,x*l,y*l,z*l);n.setXYZ(k,x/L,y/L,z/L)}
  p.needsUpdate=true;n.needsUpdate=true;return g});
-const isLeaf=col=>{const c=new THREE.Color(col);return c.g>c.r*1.06&&c.g>c.b*1.12};
+var isLeaf=col=>{const c=new THREE.Color(col);return c.g>c.r*1.06&&c.g>c.b*1.12};
 function gfxVis(e,acc){const[x,z,w,d,h,y0=0,col,sh,tex]=e,t=h-y0,yc=(h+y0)/2;
  if(!sh||sh=='b'){const k=tex||texKind(w,d,h,y0,col);addBox(acc(k+col,gMat(k,col)),x,yc,z,w,t,d,TS[k]||2,y0)}
  else if(sh=='e')addBox(acc('glow'+col,gMat('glow',col)),x,yc,z,w,t,d,1);
  else if(sh=='g')addBox(acc('glass'+col,gMat('glass',col)),x,yc,z,w,t,d,1);
  else{const leaf=sh!='c'&&isLeaf(col),geo=sh=='s'?(leaf&&LX.pbr?leafG[(Math.abs(x*7+z*3)|0)%3]:sgHi):sh=='c'?cyHi:coHi,m=new THREE.Mesh(geo,gMat(leaf?'foliage':'flat',col));m.scale.set(w/2,sh=='s'?t/2:t,d/2);m.position.set(x,sh=='s'?yc:y0+t/2,z);if(sh=='s'&&leaf)m.rotation.y=(x*1.7+z)%6.28;m.castShadow=true;m.receiveShadow=true;mapG.add(m)}}
 /* windows, frames, sills and a cornice on every tall building of maps flagged facade; on night and dusk maps a share of the windows are lit */
-function facade(list,acc){const lp={'Hollow Estate':.4,London:.35,Canyon:.18,Decay:.16,Boomtown:.1}[sel.map]||0,gl=acc('fw',gMat('glass',0x2a3a4a)),gL=acc('fwl',gMat('glassL',0xffb14a)),fr=acc('ff',gMat('plank',0xe8e4d8)),co=acc('fc',gMat('concrete',0x55524c)),sl=acc('fs',gMat('concrete',0x8a867c));
+function facade(list,acc){const lp={'Hollow Estate':.4,London:.08,Canyon:.18,Decay:.16,Boomtown:.1}[sel.map]||0,gl=acc('fw',gMat('glass',0x2a3a4a)),gL=acc('fwl',gMat('glassL',0xffb14a)),fr=acc('ff',gMat('plank',0xe8e4d8)),co=acc('fc',gMat('concrete',0x55524c)),sl=acc('fs',gMat('concrete',0x8a867c));
  for(const[x,z,w,d,h,y0,col,kind]of list){if(kind=='n'||(y0||0)>0||h<2.4||w<3.5||d<3.5||h>14)continue;const rows=h>5.2?2:1;
   for(const sd of[[1,0],[-1,0],[0,1],[0,-1]]){const L=sd[0]?d:w,n=Math.max(1,Math.floor(L/3.2));for(let i=0;i<n;i++){const t=((i+.5)/n-.5)*L;for(let r=0;r<rows;r++){const yy=1.9+r*2.5;if(yy+.7>h-.3)continue;
     const cx=sd[0]?x+sd[0]*(w/2+.03):x+t,cz=sd[1]?z+sd[1]*(d/2+.03):z+t,lit=Math.random()<lp;addBox(lit?gL:gl,cx,yy,cz,sd[0]?.06:1.2,1.4,sd[0]?1.2:.06,1);addBox(fr,cx,yy,cz,sd[0]?.04:1.45,1.65,sd[0]?1.45:.04,1.6);
@@ -100,8 +100,8 @@ function gfxTick(dt){gt_+=dt;LX.tick(dt);if(skyM)skyM.position.copy(C.position);
    Canyon: sunset with a huge low sun and long glowing cloud streaks.                  Suburbia: friendly summer sky, small clouds and a jet contrail.
    Boomtown: ochre dust storm, thick dust bands, a dark storm wall, smoke columns.     Rust: bleached desert noon, heat haze, mesas, an oil flare plume.
    Decay: heavy green-grey overcast, smoke columns and a ruined skyline.              Hollow Estate: night with a huge moon, stars, thin moonlit cloud, bats and a red horizon glow. ---------- */
-const SKY_SUN={Blockfort:[.45,.75,-.35],Pillars:[-.2,.92,.3],Canyon:[-.86,.2,.3],Suburbia:[.3,.7,.5],Boomtown:[.6,.5,-.4],Rust:[.1,.85,-.5],Decay:[-.3,.45,.2],'Hollow Estate':[-.5,.55,.4]};
-const skyDir=()=>{const d=SKY_SUN[sel.map]||[.45,.7,.3],l=Math.hypot(...d);return d.map(v=>v/l)};
+var SKY_SUN={Blockfort:[.45,.75,-.35],Pillars:[-.2,.92,.3],Canyon:[-.86,.2,.3],Suburbia:[.3,.7,.5],Boomtown:[.6,.5,-.4],Rust:[.1,.85,-.5],Decay:[-.3,.45,.2],London:[.38,.6,.5],'Dry Dock':[.55,.3,-.45],'Hollow Estate':[-.5,.55,.4]};
+var skyDir=()=>{const d=SKY_SUN[sel.map]||[.45,.7,.3],l=Math.hypot(...d);return d.map(v=>v/l)};
 function gfxSky(M){const W=1024,Hh=512,c=document.createElement('canvas');c.width=W;c.height=Hh;const g=c.getContext('2d'),name=sel.map,hz='#'+new THREE.Color(M.sky).getHexString(),hy=Hh/2;let sd=name.length*977+13;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
  const sdir=skyDir(),phi0=Math.atan2(sdir[2],-sdir[0]),sx=((phi0<0?phi0+Math.PI*2:phi0)/(Math.PI*2))*W,sy=Math.acos(sdir[1])/Math.PI*Hh;
  const grad=(stops)=>{const gr=g.createLinearGradient(0,0,0,Hh);for(const[p,col]of stops)gr.addColorStop(p,col);g.fillStyle=gr;g.fillRect(0,0,W,Hh)};
@@ -142,6 +142,26 @@ function gfxSky(M){const W=1024,Hh=512,c=document.createElement('canvas');c.widt
   glow(sx,sy,180,[[0,'rgba(240,244,230,.55)'],[.3,'rgba(220,230,215,.2)'],[1,'rgba(210,220,205,0)']]);
   for(const x of[W*.15,W*.4,W*.63,W*.86])column(x,9,200,'rgba(40,44,42,A)',.7);
   g.fillStyle='#3a4240';for(let x=0;x<W;x+=11){const h=10+rnd()*(rnd()<.2?70:34);g.fillRect(x,hy-h,9+rnd()*8,h);if(rnd()<.25)g.fillRect(x+2,hy-h-12-rnd()*18,2,14)}sil('#4a5452',ridge(10,.05,.1,2));haze('rgba(150,165,160,A)',60,.8)}
+ else if(name=='Dry Dock'){grad([[0,'#2a2f5a'],[.18,'#5a4a7a'],[.34,'#c0668a'],[.46,'#f09a5a'],[.5,hz],[1,hz]]);
+  glow(sx,sy,380,[[0,'rgba(255,244,214,1)'],[.06,'rgba(255,214,150,.95)'],[.2,'rgba(255,160,90,.45)'],[1,'rgba(255,120,60,0)']]);
+  for(let i=0;i<14;i++)streak(rnd()*W,hy*(.08+rnd()*.4),320+rnd()*320,8+rnd()*10,.42,'rgba(255,170,120,A)');
+  for(let i=0;i<22;i++)puff(rnd()*W,hy*(.3+rnd()*.5),150+rnd()*240,50+rnd()*60,.9,'rgba(255,196,150,A)','rgba(120,80,120,A)');
+  sil('#3a3050',ridge(7,.04,.09,2));g.fillStyle='#2a2438';for(let x=0;x<W;x+=9){const h=5+rnd()*(rnd()<.2?26:10);g.fillRect(x,hy-h,6+rnd()*8,h)}
+  g.strokeStyle='#241e30';g.lineWidth=3;for(const px of[.18,.62,.86]){const cx=W*px;g.beginPath();g.moveTo(cx,hy);g.lineTo(cx,hy-58);g.lineTo(cx+46,hy-58);g.lineTo(cx+46,hy-46);g.moveTo(cx+10,hy);g.lineTo(cx+10,hy-58);g.stroke();g.fillStyle='#241e30';g.fillRect(cx-5,hy-64,60,5)}
+  g.fillStyle='#241e30';g.beginPath();g.moveTo(W*.4,hy);g.lineTo(W*.4+10,hy-12);g.lineTo(W*.4+120,hy-12);g.lineTo(W*.4+140,hy);g.fill();g.fillRect(W*.4+30,hy-30,34,18);g.fillRect(W*.4+78,hy-22,22,10);
+  for(let k=0;k<3;k++){const bx=rnd()*W,by=hy*(.4+rnd()*.3);for(let i=0;i<5;i++)bird(bx+i*14+rnd()*8,by+Math.abs(i-2)*5+rnd()*5,5+rnd()*2)}
+  haze('rgba(255,170,120,A)',60,.7)}
+ else if(name=='London'){grad([[0,'#2a6fd0'],[.2,'#4f98e6'],[.38,'#93c4f0'],[.5,hz],[1,hz]]);
+  glow(sx,sy,320,[[0,'rgba(255,253,238,1)'],[.05,'rgba(255,247,216,.95)'],[.2,'rgba(255,238,196,.38)'],[1,'rgba(255,232,186,0)']]);
+  for(let i=0;i<12;i++)streak(rnd()*W,hy*(.06+rnd()*.42),300+rnd()*320,8+rnd()*10,.38,'rgba(255,255,255,A)');
+  for(let i=0;i<26;i++)puff(rnd()*W,hy*(.28+rnd()*.52),150+rnd()*250,56+rnd()*64,.92,'rgba(255,255,255,A)','rgba(146,162,196,A)');
+  g.strokeStyle='rgba(255,255,255,.55)';g.lineWidth=2;g.beginPath();g.moveTo(W*.08,hy*.62);g.lineTo(W*.46,hy*.4);g.stroke();g.strokeStyle='rgba(255,255,255,.18)';g.lineWidth=6;g.beginPath();g.moveTo(W*.08,hy*.62);g.lineTo(W*.46,hy*.4);g.stroke();
+  sil('#8fa9c4',ridge(7,.05,.11,2));
+  g.fillStyle='#7e97b2';for(let x=0;x<W;x+=7){const h=6+rnd()*(rnd()<.15?34:16);g.fillRect(x,hy-h,5+rnd()*6,h)}
+  g.fillStyle='#6f89a6';g.beginPath();g.moveTo(W*.7,hy);g.lineTo(W*.7+9,hy-82);g.lineTo(W*.7+18,hy);g.fill();g.fillRect(W*.3,hy-30,10,30);g.beginPath();g.moveTo(W*.3-2,hy-30);g.lineTo(W*.3+5,hy-46);g.lineTo(W*.3+12,hy-30);g.fill();
+  g.strokeStyle='#6f89a6';g.lineWidth=2;g.beginPath();g.arc(W*.52,hy-30,28,0,7);g.stroke();for(let i=0;i<12;i++){const a=i/12*6.283;g.beginPath();g.moveTo(W*.52,hy-30);g.lineTo(W*.52+Math.cos(a)*28,hy-30+Math.sin(a)*28);g.stroke()}
+  for(let k=0;k<4;k++){const bx=rnd()*W,by=hy*(.4+rnd()*.3);for(let i=0;i<5;i++)bird(bx+i*14+rnd()*8,by+Math.abs(i-2)*5+rnd()*5,5+rnd()*2)}
+  haze('rgba(222,234,246,A)',70,.78)}
  else{grad([[0,'#02040a'],[.2,'#070c1c'],[.4,'#0f1a30'],[.5,hz],[1,hz]]);stars(380,1);
   glow(sx,sy,260,[[0,'rgba(235,242,255,.9)'],[.1,'rgba(190,205,255,.45)'],[.4,'rgba(130,150,220,.15)'],[1,'rgba(110,130,200,0)']]);
   g.save();g.beginPath();g.arc(sx,sy,34,0,7);g.clip();const mg=g.createRadialGradient(sx-8,sy-8,2,sx,sy,36);mg.addColorStop(0,'#fbfdff');mg.addColorStop(1,'#c9d4ea');g.fillStyle=mg;g.fillRect(sx-40,sy-40,80,80);g.fillStyle='rgba(120,135,170,.4)';for(let i=0;i<9;i++){g.beginPath();g.arc(sx+(rnd()-.5)*50,sy+(rnd()-.5)*50,2+rnd()*7,0,7);g.fill()}g.restore();

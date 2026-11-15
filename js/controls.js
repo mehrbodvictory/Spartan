@@ -2,10 +2,10 @@
 /* ===================== controls.js ===================== */
 /* ---------- full control scheme shared by keyboard + mouse, controller and VR: aim down sights, stances (crouch, slide, prone, dive), walk, auto-run, tactical sprint,
    lethal and tactical equipment, field upgrade, armor plates, fire mode, weapon mount, steady aim, ping, night vision, scoreboard and map ---------- */
-const ST={ads:0,adsIn:0,ax:0,ay:-.12,az:-.4,zoom:.2,eye:1.65,crouch:0,prone:0,slide:0,dive:0,walk:0,auto:0,tac:0,tacCd:0,lastShift:-9,mount:0,steady:0,nv:0,tN:2,field:0,fieldCd:0,fm:{},sj:0,flash:0,sc:0,mapOn:0,sbOn:0,pings:[],qi:0};
+var ST={ads:0,adsIn:0,ax:0,ay:-.12,az:-.4,zoom:.2,eye:1.65,crouch:0,prone:0,slide:0,dive:0,walk:0,auto:0,tac:0,tacCd:0,lastShift:-9,mount:0,steady:0,nv:0,tN:2,field:0,fieldCd:0,fm:{},sj:0,flash:0,sc:0,mapOn:0,sbOn:0,pings:[],qi:0};
 function ctlReset(){mvReset();Object.assign(ST,{ads:0,adsIn:0,eye:1.65,crouch:0,prone:0,slide:0,dive:0,walk:0,auto:0,tac:0,tacCd:0,mount:0,steady:0,tN:2,field:0,fieldCd:0,sj:0,flash:0});for(const p of ST.pings)S.remove(p.m);ST.pings=[];const e=$('#flash');if(e)e.style.opacity=0}
 /* ---------- ADS: put the sight line of the current weapon on the camera axis ---------- */
-const _sgC=setGun;setGun=function(){_sgC.apply(this,arguments);const w=cw();if(!w)return;const k=w.k,l=(WG[k]||WG.AR)[0],pz=-.14+.1*l;let s=null,rel_=.22,zm=.2;
+var _sgC=setGun;setGun=function(){_sgC.apply(this,arguments);const w=cw();if(!w)return;const k=w.k,l=(WG[k]||WG.AR)[0],pz=-.14+.1*l;let s=null,rel_=.22,zm=.2;
  if(k=='AR'){const t=knG.userData.sight;if(t)s={yt:t.yt,zr:t.zr-.12}}else if(k=='VMP')s=vmpG.userData.sight;else if(k=='RG')s=rgG.userData.sight;else if(k=='SN'){s={yt:.11,zr:pz-(l*.35-.14)};rel_=.1}else s=fpG.userData.sight;
  if(['CT','MG','MP'].includes(k))rel_=.3;zm=k=='SN'?.62:k=='RL'?.25:['SMG','VMP','MP'].includes(k)?.16:k=='SG'?.14:['CT','MG'].includes(k)?.12:.22;
  ST.zoom=zm;ST.ax=0;if(s){ST.ay=-s.yt;ST.az=-rel_-s.zr}else{ST.ay=-.1;ST.az=-.4};ST.mount=0};
@@ -27,15 +27,17 @@ function ctlTick(dt){meleeTick(dt);if(P.dead){ST.adsIn=0;ST.ads=0;ST.slide=ST.di
  for(let i=ST.pings.length-1;i>=0;i--){const p=ST.pings[i];p.t-=dt;p.m.position.y=p.y+Math.sin(t0*4)*.15;p.m.rotation.y+=dt*2;if(p.t<=0){S.remove(p.m);ST.pings.splice(i,1)}}
  if(ST.mapOn)drawMap();if(ST.sbOn&&(ST.sbT=(ST.sbT||0)-dt)<=0){ST.sbT=.5;drawSb()}}
 /* ---------- actions ---------- */
-const sprinting=()=>(P.spr||0)>.55;
+var sprinting=()=>(P.spr||0)>.55;
 function actCrouch(){if(P.dead)return;if(sprinting()&&ST.slide<=0){ST.slide=.85;ST.crouch=0;ST.prone=0;return}ST.prone=0;ST.crouch=ST.crouch?0:1}
 function actProne(){if(P.dead)return;if(sprinting()&&ST.dive<=0){ST.dive=.5;ST.crouch=0;ST.prone=0;P.vy=3.5;P.on=0}else{ST.crouch=0;ST.prone=ST.prone?0:1}}
 function actJumpPress(){if(ST.crouch||ST.prone){ST.crouch=ST.prone=0;ST.sj=1}}
 function actAds(on){if(on&&typeof cw=='function'&&cw()&&cw().dual&&!(typeof MV!='undefined'&&MV.eq))on=0;ST.adsIn=on?1:0;if(typeof zDashIn=='function')zDashIn(on)}
-function actTactical(){if(P.dead||ST.tN<=0)return;ST.tN--;const d=aimDir(),m=new THREE.Mesh(sg,new THREE.MeshLambertMaterial({color:0xeeeeee,emissive:0x555555}));m.scale.setScalar(.1);S.add(m);grs.push({m,p:C.position.clone(),v:d.multiplyScalar(14).add(V(0,3,0)),t:1.3,g:{fuse:1.3,R:0,d:0,imp:0,tac:1}});msg('Flashbang · '+ST.tN+' left',1)}
+function actTactical(){return typeof eqUse=='function'?eqUse(2):actTactical0()}
+function actTactical0(){if(P.dead||ST.tN<=0)return;ST.tN--;const d=aimDir(),m=new THREE.Mesh(sg,new THREE.MeshLambertMaterial({color:0xeeeeee,emissive:0x555555}));m.scale.setScalar(.1);S.add(m);grs.push({m,p:C.position.clone(),v:d.multiplyScalar(14).add(V(0,3,0)),t:1.3,g:{fuse:1.3,R:0,d:0,imp:0,tac:1}});msg('Flashbang · '+ST.tN+' left',1)}
 function flashBoom(p){burst(p,40,0xffffff,9,.5,.25);beep(2400,.5,'sine',.08);for(const b of bots){if(!b.al||(typeof ally=='function'&&ally(b)&&b.team!='z')||b.net)continue;const d=Math.hypot(b.x-p.x,b.z-p.z);if(d<18&&navLos(p.x,p.z,b.x,b.z))b.stun=Math.max(b.stun||0,3.5*(1-d/26))}
  const d=Math.hypot(P.x-p.x,P.z-p.z);if(d<22&&!P.dead){const v=V(p.x-C.position.x,p.y-C.position.y,p.z-C.position.z).normalize(),dot=aimDir().dot(v);ST.flash=Math.max(ST.flash,2.4*(1-d/22)*(dot>0?1:.35))}}
-function actField(){if(P.dead)return;if(ST.fieldCd>0){msg('Field upgrade recharging '+Math.ceil(ST.fieldCd)+'s',1);return}ST.field=6;ST.fieldCd=45;P.sh=P.msh;msg('ADRENALINE: faster, shield restored',1.5);beep(500,.2,'sine',.06)}
+/* X: the second equipment slot (Danger Zone: a second lethal, Strategist: a second tactical). The old Adrenaline field upgrade is gone. */
+function actField(){if(P.dead)return;if(typeof eqUse=='function')eqUse(1)}
 function actFireMode(){const w=cw();if(!w)return;if(!w.au){msg(w.n+(w.burst?': 3-round burst':': semi-auto only'),1);return}ST.fm[w.k]=ST.fm[w.k]?0:1;msg(w.n+': '+(ST.fm[w.k]?'Single':'Auto'),1)}
 function actMount(){if(ST.ads<.5){return}ST.mount=ST.mount?0:1;msg(ST.mount?'Weapon mounted':'Mount released',1)}
 function actSteady(){if(ST.ads>.5){ST.steady=3;msg('Steady aim',.8)}}
@@ -92,7 +94,7 @@ addEventListener('keydown',e=>{if(run)return;const nav=p=>{const b=document.quer
 
 /* ---------- Katana: the melee weapon. Hand-built model: single-edged curved blade with a raised ridge line, fuller grooves, a wavy temper line and a pointed tip, gold collar and washers,
    an iron guard with gold studs, a cord-wrapped grip over ray skin with a diamond wrap and ornaments, a gold collar and pommel cap and a red tassel ---------- */
-const kat={t:0};
+var kat={t:0};
 function buildKatana(){const g=new THREE.Group(),L=.7,w=.034,t=.0075,sori=.03,ph=(c,s)=>new THREE.MeshPhongMaterial({color:c,shininess:s,specular:0xffffff}),
  steel=ph(0xcfd6de,140),ridge=ph(0xe4eaf0,200),temper=ph(0xf8fbff,220),groove=new THREE.MeshLambertMaterial({color:0x4a525c}),gold=ph(0xc9a94d,70),iron=ph(0x2a2a30,40),white=new THREE.MeshLambertMaterial({color:0xe6e0d0}),wrap=new THREE.MeshLambertMaterial({color:0x14161a}),red=new THREE.MeshLambertMaterial({color:0x8a1414}),
  cv=y=>sori*Math.pow(y/L,2),N=16,
@@ -115,8 +117,8 @@ function buildKatana(){const g=new THREE.Group(),L=.7,w=.034,t=.0075,sori=.03,ph
  for(const sd of[1,-1]){bx_(.012,.017,.004,gold,0,-.1,sd*.0148);bx_(.012,.017,.004,gold,0,-.176,sd*.0148);bx_(.006,.008,.0045,gold,0,-.1,sd*.0148)}
  cyl(.0188,.0178,.016,gold,-.3,.8);cyl(.0085,.0085,.018,iron,-.3,.8);const kn=new THREE.Mesh(new THREE.SphereGeometry(.007,8,6),red);kn.position.set(0,-.31,.012);g.add(kn);bx_(.006,.05,.004,red,0,-.338,.012,0,0,.1);bx_(.005,.04,.004,red,.004,-.34,.012,0,0,-.12);
  g.visible=false;return g}
-const katG=buildKatana();C.add(katG);
-const KF=[{p:0,x:.3,y:-.18,z:-.5,rx:-1.2,rz:-.95,ry:.25},{p:.22,x:.42,y:.12,z:-.42,rx:-1.0,rz:-1.55,ry:.45},{p:.55,x:-.32,y:-.22,z:-.78,rx:-1.25,rz:1.35,ry:-.35},{p:1,x:-.16,y:-.55,z:-.5,rx:-.9,rz:.9,ry:0}];
+var katG=buildKatana();C.add(katG);
+var KF=[{p:0,x:.3,y:-.18,z:-.5,rx:-1.2,rz:-.95,ry:.25},{p:.22,x:.42,y:.12,z:-.42,rx:-1.0,rz:-1.55,ry:.45},{p:.55,x:-.32,y:-.22,z:-.78,rx:-1.25,rz:1.35,ry:-.35},{p:1,x:-.16,y:-.55,z:-.5,rx:-.9,rz:.9,ry:0}];
 function katSwing(){kat.t=.5;kat.hit=0}
 function katTick(dt){if(xrS||ST.nvv){katG.visible=false;return}if(kat.t>0){kat.t-=dt;const p=cl(1-Math.max(0,kat.t)/.5,0,1);let a=KF[0],b=KF[1];for(let i=0;i<KF.length-1;i++)if(p>=KF[i].p){a=KF[i];b=KF[i+1]}let u=cl((p-a.p)/(b.p-a.p),0,1);u=u*u*(3-2*u);const L=k=>a[k]+(b[k]-a[k])*u;katG.visible=true;katG.position.set(L('x'),L('y'),L('z'));katG.rotation.set(L('rx'),L('ry'),L('rz'))}
  else if(MV.draw>.03&&melName()=='Katana'){const d=1-MV.draw,sw=Math.sin(t0*1.6)*.01;const fp=MV.flair>0?cl(1-MV.flair/.6,0,1):1,sp_=fp*fp*(3-2*fp);katG.visible=true;{const br=Math.sin(t0*1.3)*.006,mvs=Math.min(1,Math.hypot(P.mx||0,P.mz||0)/7);katG.position.set(.17-d*.12+Math.sin(bobP*.5)*.01*mvs,-.1-d*.55+sw+br+(1-sp_)*Math.sin(sp_*3.14)*.12,-.62+Math.cos(bobP)*.006*mvs);katG.rotation.set(-1.0+Math.sin(t0*.9)*.02+(MV.flair>0?Math.sin(sp_*6.283)*.5:0),.12,-.62+d*.6+Math.sin(t0*1.1)*.015+(MV.flair>0?(1-sp_)*-6.283:0))}}else katG.visible=false}
@@ -125,18 +127,18 @@ function katTick(dt){if(xrS||ST.nvv){katG.visible=false;return}if(kat.t>0){kat.t
 /* ===================== input.js ===================== */
 /* ---------- gamepad + WebXR VR: the same actions as keyboard and mouse (see controls.js), full menu navigation with the controller (spatial focus + on-screen keyboard)
    and menus inside the headset (the DOM menus are mirrored onto a panel you point at with the right controller) ---------- */
-let usingPad=false,gpEdge={},gpT=0,gpSprint=0,gpTrig=0,gpMenuI=-1,vrMode=0,xrS=null,xrRig=null,rigYaw=0,xrCtl=[],xrGunIn=0,xrSnap=0,xrWrist=null,xrWristT=0,xrEye=null,gpHS={},gpPend={};
-const QUEST=/OculusBrowser|Quest/i.test(navigator.userAgent||'');
+var usingPad=false,gpEdge={},gpT=0,gpSprint=0,gpTrig=0,gpMenuI=-1,vrMode=0,xrS=null,xrRig=null,rigYaw=0,xrCtl=[],xrGunIn=0,xrSnap=0,xrWrist=null,xrWristT=0,xrEye=null,gpHS={},gpPend={};
+var QUEST=/OculusBrowser|Quest/i.test(navigator.userAgent||'');
 try{vrMode=localStorage.getItem('sd-vr');vrMode=vrMode==null?(QUEST?1:0):+vrMode}catch(e){}
-const gpBtn=(g,i)=>!!(g.buttons[i]&&g.buttons[i].pressed),gpVal=(g,i)=>g&&g.buttons[i]?g.buttons[i].value:0,gpDz=(v,d)=>Math.abs(v)<d?0:(v-Math.sign(v)*d)/(1-d);
+var gpBtn=(g,i)=>!!(g.buttons[i]&&g.buttons[i].pressed),gpVal=(g,i)=>g&&g.buttons[i]?g.buttons[i].value:0,gpDz=(v,d)=>Math.abs(v)<d?0:(v-Math.sign(v)*d)/(1-d);
 function gpGet(){const l=navigator.getGamepads?navigator.getGamepads():[];for(const g of l)if(g&&g.connected&&g.axes.length>=4)return g;return null}
-const gpEdgeOf=(k,on)=>{const r=on&&!gpEdge[k];gpEdge[k]=on;return r};
+var gpEdgeOf=(k,on)=>{const r=on&&!gpEdge[k];gpEdge[k]=on;return r};
 /* tap / hold buttons */
 function holdBtn(id,on,dt,tap,hold,thr){thr=thr||.35;const h=gpHS[id]||(gpHS[id]={t:0,d:0,on:0});if(on){if(!h.on){h.on=1;h.t=0;h.d=0}h.t+=dt;if(!h.d&&h.t>=thr){h.d=1;hold&&hold()}}else if(h.on){h.on=0;if(!h.d&&tap)tap()}return h.on&&h.d}
-const inMatch=()=>run&&!paused&&!over&&!(typeof fin!='undefined'&&fin);
+var inMatch=()=>run&&!paused&&!over&&!(typeof fin!='undefined'&&fin);
 function pausePad(){if(!run||over)return;paused=1;trig=0;gpTrig=0;gpSprint=0;actAds(0);showPause()}
 function resumePad(){paused=0;hidePause();if(xrS)return;try{const p=R.domElement.requestPointerLock&&R.domElement.requestPointerLock();if(p&&p.catch)p.catch(()=>{})}catch(e){}}
-const resumeAny=()=>{if(vrMode&&navigator.xr&&!xrS)$('#resume').click();else resumePad()};
+var resumeAny=()=>{if(vrMode&&navigator.xr&&!xrS)$('#resume').click();else resumePad()};
 /* ---------- shared "both bumpers = field upgrade" logic: single bumper actions fire after a short delay unless the other bumper joins ---------- */
 function bumpers(dt,lb,rb,tactical,lethal,field){const e1=gpEdgeOf('bl',lb),e2=gpEdgeOf('br',rb);if((e1||e2)&&lb&&rb){field();gpPend.l=gpPend.r=0;gpPend.combo=1}else{if(e1)gpPend.l=.09;if(e2)gpPend.r=.09}
  if(!lb&&!rb)gpPend.combo=0;for(const k of['l','r'])if(gpPend[k]>0){gpPend[k]-=dt;if(gpPend[k]<=0&&!gpPend.combo)(k=='l'?tactical:lethal)()}}
@@ -156,7 +158,7 @@ function padPlay(g,dt){const lx=gpDz(g.axes[0],.2),ly=gpDz(g.axes[1],.2),rx=gpDz
  const vh=holdBtn('v',gpBtn(g,8),dt,actMap,()=>actSb(1),.3);if(!gpBtn(g,8)&&ST.sbOn&&gpHS.v&&!gpHS.v.on)actSb(0);
  if(gpEdgeOf('st',gpBtn(g,9)))pausePad()}
 /* ---------- menus with the controller: spatial focus, A press, B back, left/right changes drop-downs and sliders ---------- */
-const vis=e=>e.getClientRects().length>0&&e.getBoundingClientRect().width>1;
+var vis=e=>e.getClientRects().length>0&&e.getBoundingClientRect().width>1;
 function menuBox(){return['#osk','#dev','#pause','#end','#home','#menu'].map(s=>document.querySelector(s)).find(c=>c&&vis(c)&&getComputedStyle(c).display!='none')}
 function clickables(box){const out=[],cs=e=>getComputedStyle(e).cursor=='pointer';
  for(const e of box.querySelectorAll('*')){if(!vis(e)||e.disabled)continue;const t=e.tagName,nat=t=='BUTTON'||t=='SELECT'||t=='INPUT'||t=='TEXTAREA'||(t=='A'&&e.href);
@@ -190,7 +192,7 @@ function menuNav(g,dt){
  if(gpEdgeOf('b',gpBtn(g,BK))){if(box.id=='osk')closeOSK();else if(box.id=='pause')resumeAny();else{const b=$('#back');if(b&&vis(b))b.click();else{const t=$('#tomenu');if(t&&vis(t))t.click()}}}
  if(gpEdgeOf('s',gpBtn(g,9))&&box.id=='pause')resumeAny()}
 /* ---------- on-screen keyboard (used by controller and VR for the name and match code boxes) ---------- */
-let oskT=null;
+var oskT=null;
 function openOSK(inp){const o=$('#osk');if(!o.dataset.b){o.dataset.b=1;const rows=['1234567890','QWERTYUIOP','ASDFGHJKL','ZXCVBNM'];o.innerHTML=rows.map(r=>'<div class="r">'+[...r].map(c=>`<button data-k="${c}">${c}</button>`).join('')+'</div>').join('')+'<div class="r"><button data-k="-">-</button><button data-k=" " style="min-width:200px">space</button><button data-k="⌫">⌫</button><button data-k="OK" style="min-width:90px">Done</button></div>';
   o.onclick=e=>{const b=e.target.closest('button');if(!b||!oskT)return;const k=b.dataset.k;if(k=='OK')return closeOSK();let v=oskT.value;if(k=='⌫')v=v.slice(0,-1);else if(!oskT.maxLength||oskT.maxLength<0||v.length<oskT.maxLength)v+=(oskT.id=='jc'?k:(v.length?k.toLowerCase():k));oskT.value=v;oskT.dispatchEvent(new Event('input',{bubbles:true}));oskT.dispatchEvent(new Event('change',{bubbles:true}))}}
  oskT=inp;o.style.display='block';const f=o.querySelector('button');f&&f.focus()}
@@ -203,10 +205,10 @@ function inputTick(dt){if(xrS){vrPre(dt);return}
 addEventListener('gamepadconnected',e=>{PG.sync(e.gamepad,true)});addEventListener('gamepaddisconnected',()=>{if(!gpGet())PG.setOn(false)});
 /* ---------------- VR ---------------- */
 if(R.xr)xrCtl=[0,1].map(i=>{const c=R.xr.getController(i);c.addEventListener('connected',e=>{c.userData.hand=e.data.handedness;c.userData.gp=e.data.gamepad});c.addEventListener('disconnected',()=>{c.userData.hand=null;c.userData.gp=null});return c});
-const vrHand=h=>xrCtl.find(c=>c.userData.hand==h)||null;
+var vrHand=h=>xrCtl.find(c=>c.userData.hand==h)||null;
 function vrPanel(){const c=document.createElement('canvas');c.width=256;c.height=160;const t=new THREE.CanvasTexture(c),m=new THREE.Mesh(new THREE.PlaneGeometry(.16,.1),new THREE.MeshBasicMaterial({map:t,transparent:true,depthTest:false}));m.renderOrder=999;m.position.set(0,.03,.08);m.rotation.x=-1.1;return{m,c,g:c.getContext('2d'),t}}
 /* menu panel: a big canvas that mirrors whatever DOM menu is showing; the right controller is a laser pointer */
-let vm=null,vmT=0,vmHover=null,vmLast='',vmLatch=null;
+var vm=null,vmT=0,vmHover=null,vmLast='',vmLatch=null;
 function vrMenuInit(){const cv=document.createElement('canvas');cv.width=1280;cv.height=Math.round(1280*innerHeight/innerWidth);const tex=new THREE.CanvasTexture(cv),w=2.0,h=w*innerHeight/innerWidth,mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex,transparent:true,side:THREE.DoubleSide,depthTest:false}));mesh.renderOrder=900;
  const dot=new THREE.Mesh(new THREE.SphereGeometry(.012,8,8),new THREE.MeshBasicMaterial({color:0x62e0f0,depthTest:false}));dot.renderOrder=999;const ray=new THREE.Mesh(new THREE.CylinderGeometry(.002,.002,1,6),new THREE.MeshBasicMaterial({color:0x62e0f0,depthTest:false}));ray.renderOrder=999;
  vm={cv,c:cv.getContext('2d'),tex,mesh,dot,ray,w,h,ray_:new THREE.Raycaster(),placed:false}}
@@ -239,7 +241,7 @@ function vrMenu(dt,gr,gl){const box=menuBox();if(!vm)vrMenuInit();const rh=vrHan
  const sy=gr?gpDz(gr.axes[3]||0,.25):0;if(sy){let s=el;while(s&&s!==document.body){if(s.scrollHeight>s.clientHeight+4&&/auto|scroll/.test(getComputedStyle(s).overflowY)){s.scrollTop+=sy*500*dt;break}s=s.parentElement}}
  if(gpEdgeOf('vmb',b4(gl,5)||b4(gr,5))){if(box.id=='osk')closeOSK();else if(box.id=='pause')resumeAny();else{const b=$('#back');if(b&&vis(b))b.click()}}
  if(vmT<=0){vmT=.25;vrMirror(box)}}
-const b4=(g,i)=>!!(g&&g.buttons[i]&&g.buttons[i].pressed);
+var b4=(g,i)=>!!(g&&g.buttons[i]&&g.buttons[i].pressed);
 function vrMenuClear(){if(vm){for(const o of[vm.mesh,vm.dot,vm.ray])if(o&&o.parent)o.parent.remove(o);vm.placed=false;vmHover=null}}
 function vrStart(){vrMenuClear();xrRig=xrRig||(()=>{const r=new THREE.Group();S.add(r);return r})();S.remove(C);xrRig.add(C);rigYaw=yaw;for(const c of xrCtl)xrRig.add(c);xrGunIn=0;xrSnap=0;sun.castShadow=false;xrWrist=vrPanel();vmLatch=null;R.setAnimationLoop(gameFrame)}
 function vrEnd(){R.setAnimationLoop(null);xrS=null;if(xrRig){xrRig.remove(C);S.add(C);for(const c of xrCtl)xrRig.remove(c);if(vm){for(const o of[vm.mesh,vm.dot,vm.ray])if(o.parent)o.parent.remove(o);vm.placed=false}}C.add(gun);gun.position.set(.2,-.2,-.45);gun.rotation.set(0,0,0);if(xrWrist&&xrWrist.m.parent)xrWrist.m.parent.remove(xrWrist.m);xrWrist=null;sun.castShadow=gfxQ=='high';C.aspect=innerWidth/innerHeight;C.updateProjectionMatrix();trig=0;gpTrig=0;for(const k in key)key[k]=false;if(run&&!over&&!paused)pausePad()}
@@ -274,7 +276,7 @@ function vrPost(dt){if(!xrS)return;xrEye=C.position.clone();const rh=vrHand('rig
    g.font='24px sans-serif';g.fillStyle='#ffd27a';g.fillText(mode=='Zombies'?('Round '+($('#zr').textContent||'')+'   '+($('#zpt').textContent||'')):('Kills '+kills),12,128);xrWrist.t.needsUpdate=true}}
  else if(xrWrist&&xrWrist.m.parent)xrWrist.m.parent.remove(xrWrist.m)}
 function enterVR(){if(!navigator.xr)return false;navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','bounded-floor']}).then(s=>{xrS=s;s.addEventListener('end',vrEnd);R.xr.enabled=true;R.xr.setReferenceSpaceType('local-floor');return R.xr.setSession(s)}).then(()=>{if(xrS)vrStart()}).catch(()=>{xrS=null;if(run)_lockPtr()});return true}
-const _lockPtr=lockPtr;
+var _lockPtr=lockPtr;
 lockPtr=function(){if(xrS){paused=0;hidePause();return}if(vrMode&&navigator.xr&&run&&!over){enterVR();return}_lockPtr()};
 /* auto VR: where WebXR exists (Quest browser), the whole site opens in VR. Browsers only allow starting VR from a user gesture, so the very first click / trigger pull anywhere on the page does it
    (and the browser's own "enter VR" offer is registered where supported) */
@@ -287,11 +289,11 @@ if(navigator.xr&&navigator.xr.isSessionSupported)navigator.xr.isSessionSupported
 /* ---------- melee: tap V = quick weaker strike with the weapon in your hands (rifle butt), hold V = draw the melee weapon picked in your loadout and hit much harder.
    Melee weapons: Katana (two hands on the base of the grip, long reach, cuts up to 3 enemies) and Fists (fast, two punches alternating).
    Also builds the first-person arms: sleeves in the colour of the player character, cuff, gloved hand with palm, knuckle plate, four curled fingers and a thumb. ---------- */
-const MEL={Katana:{n:'Katana',d:100,reach:3.1,cnt:3,cd:.55,zf:1,desc:'Two-handed blade. Long reach, can hit several enemies, very high damage when drawn.'},
+var MEL={Katana:{n:'Katana',d:100,reach:3.1,cnt:3,cd:.55,zf:1,desc:'Two-handed blade. Long reach, can hit several enemies, very high damage when drawn.'},
  Fists:{n:'Fists',d:72,reach:2.4,cnt:1,cd:.4,zf:.55,desc:'Fast alternating punches. Short reach, but the quickest melee.'},
  'Nitrogen Fists':{n:'Nitrogen Fists',d:96,reach:2.8,cnt:2,cd:.36,zf:.85,desc:'Rocket-assisted gauntlets. Every strike is a thruster-driven forward slash that hits two enemies and gets louder and faster the longer you keep swinging.'}};
-const MV={down:0,h:0,f:0,draw:0,hold:0,eq:0,flair:0},MB={t:0,d:.34},FI={t:0,side:0,d:.3};
-const melName=()=>zomOn()?zMelKey():(MEL[L.me]?L.me:'Katana');
+var MV={down:0,h:0,f:0,draw:0,hold:0,eq:0,flair:0},MB={t:0,d:.34},FI={t:0,side:0,d:.3};
+var melName=()=>zomOn()?zMelKey():(MEL[L.me]?L.me:'Katana');
 function mvReset(){MV.down=MV.h=MV.f=MV.hold=MV.eq=MV.flair=0;MV.draw=0;MB.t=0;FI.t=0}
 /* V: tap = quick strike with the weapon in your hands (or put the melee weapon away if it is out), hold = whip the melee weapon out; it then stays in your hands like any weapon and the fire button swings it */
 function mvDown(){if(!run||paused||over||P.dead)return;MV.down=1;MV.h=0;MV.f=0}
@@ -316,13 +318,13 @@ function meleeTick(dt){if(MB.t>0)MB.t-=dt;if(FI.t>0)FI.t-=dt;if(MV.flair>0)MV.fl
  if(P.dead||paused||over){MV.down=0;MV.eq=0}
  if(MV.eq){ST.adsIn=0;if(trig&&!P.dead&&t0>=mn)melee()}
  MV.hold=MV.eq;MV.draw+=((MV.eq?1:0)-MV.draw)*Math.min(1,dt*(MV.eq?11:9));if(MV.draw<.01)MV.draw=0}
-const meleeOut=()=>MV.draw>.03||kat.t>0||FI.t>0;
+var meleeOut=()=>MV.draw>.03||kat.t>0||FI.t>0;
 /* weapon strike offsets used by the camera-held gun (see upd) */
-const bashP=()=>MB.t>0?Math.sin(Math.PI*(1-MB.t/MB.d)):0;
-const bashZ=()=>-.38*bashP(),bashY=()=>.05*bashP(),bashRot=()=>-.55*bashP();
+var bashP=()=>MB.t>0?Math.sin(Math.PI*(1-MB.t/MB.d)):0;
+var bashZ=()=>-.38*bashP(),bashY=()=>.05*bashP(),bashRot=()=>-.55*bashP();
 
 /* ---------- first-person arms ---------- */
-const SLV=0x3d6ad6,GLV=0x151515,CUFF=0x24262b;
+var SLV=0x3d6ad6,GLV=0x151515,CUFF=0x24262b;
 function mkFpHand(side,gm,gm2){const h=new THREE.Group(),B=(w,hh,d,x,y,z,m,rx,rz)=>{const o=new THREE.Mesh(bg,m);o.scale.set(w,hh,d);o.position.set(x,y,z);if(rx)o.rotation.x=rx;if(rz)o.rotation.z=rz;h.add(o);return o},
  S=(r,x,y,z,m,sx,sy,sz)=>{const o=new THREE.Mesh(sg,m);o.scale.set(r*(sx||1),r*(sy||1),r*(sz||1));o.position.set(x,y,z);h.add(o);return o};
  /* palm and back of the hand (the back faces local -z) */
@@ -344,7 +346,7 @@ function mkFpArm(side){const up=new THREE.Group(),fo=new THREE.Group(),L1=.6,L2=
 for(const s of['r','l']){const o=fpArm[s];C.remove(o.up);C.remove(o.fo);fpArm[s]=mkFpArm(s=='r'?1:-1)}
 
 /* ---------- arm placement while a melee weapon is out ---------- */
-const _fpu=fpUpdate;
+var _fpu=fpUpdate;
 fpUpdate=function(dt){if(!meleeOut()||!run||P.dead||over){_fpu(dt);return}
  for(const a of[fpArm.r,fpArm.l])a.up.visible=a.fo.visible=true;const pr=gun.userData.prop;if(pr)pr.visible=false;
  const SR=V(.26,-.45,.12),SL=V(-.2,-.45,.12);
@@ -366,7 +368,7 @@ fpUpdate=function(dt){if(!meleeOut()||!run||P.dead||over){_fpu(dt);return}
 /* ---------- Airstrike killstreak (8 kills): a bomber crosses the whole map high above you and carpet bombs a long line under its flight path.
    The line goes through the spot you are aiming at, in the direction you are facing, from one edge of the map to the other.
    Your own bombs never hurt you (boom() ignores the player when the blast has own:1) and never hurt teammates. ---------- */
-const STR={planes:[],bombs:[],marks:[]};
+var STR={planes:[],bombs:[],marks:[]};
 function mkBomber(){const g=new THREE.Group(),M=c=>new THREE.MeshLambertMaterial({color:c}),body=M(0x555c64),dark=M(0x30343a),wing=M(0x6a7078),red=new THREE.MeshBasicMaterial({color:0xff3a2a}),
  box=(w,h,d,x,y,z,m,rz)=>{const e=new THREE.Mesh(bg,m);e.scale.set(w,h,d);e.position.set(x,y,z);if(rz)e.rotation.z=rz;e.castShadow=false;g.add(e);return e};
  box(1.7,1.6,11,0,0,0,body);box(1.2,1.2,2.6,0,.1,6.2,body);box(1.5,.9,1.8,0,.55,-3.6,dark);
@@ -401,7 +403,7 @@ function strikeReset(){for(const p of STR.planes)S.remove(p.m);for(const b of ST
 /* ---------- attachments that really appear on the weapon: Extended Mag (a longer magazine with a base plate), Compensator (vented muzzle brake), Laser Sight (module on the side with a visible red beam),
    Long Barrel (extended barrel with a sleeve), Fast Hands (rubber wraps on the grip and handguard, a thumb rest), Hollow Point (orange tipped rounds showing in the magazine) and
    Quickdraw Grip (angled foregrip). They are added to whichever model is in use (first person, the loadout and customize previews, other players) and follow the weapon. ---------- */
-const ATT_MAT={};
+var ATT_MAT={};
 function attM(c,e){const k=c+(e?'e':'');return ATT_MAT[k]||(ATT_MAT[k]=e?new THREE.MeshBasicMaterial({color:c}):new THREE.MeshLambertMaterial({color:c}))}
 function attsFor(k){return zomOn()?[]:k==L.p?L.pa:k==L.s?L.sa:[]}
 /* y of the barrel at the muzzle, measured from the model itself: the mean height of the parts that reach the front */
@@ -462,7 +464,7 @@ function mkNitroFist(side){const g=new THREE.Group(),M=c=>new THREE.MeshLambertM
  /* swept blade fin on the outer side */
  const bl=B(.008,.17,.07,side*.098,-.15,.01,stl,0,0,side*.28),bl2=B(.008,.07,.05,side*.118,-.245,.01,stl,0,0,side*.5);B(.012,.05,.05,side*.092,-.075,.01,stl2);
  g.userData={fl,core};return g}
-const NF={rev:0,last:-9,boost:0,out:0,al:0,idle:null,rt:0};
+var NF={rev:0,last:-9,boost:0,out:0,al:0,idle:null,rt:0};
 function nfBus(){ac=ac||new AudioContext();if(!NF.bus){const c=ac.createDynamicsCompressor();c.threshold.value=-24;c.knee.value=12;c.ratio.value=10;c.attack.value=.003;c.release.value=.15;c.connect(ac.destination);NF.bus=c;const n=ac.sampleRate*1,b=ac.createBuffer(1,n,ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;NF.nb=b}return NF.bus}
 /* engine: a saw and a square through a rising low-pass with a cylinder-like tremolo, plus an exhaust whoosh; every strike in a chain starts higher and chugs faster */
 function nfEngine(rev){try{const bus=nfBus(),t=ac.currentTime,v=vol*.55;if(v<=0)return;const f0=58+rev*14,dur=.3,o=ac.createOscillator(),o2=ac.createOscillator(),lp=ac.createBiquadFilter(),am=ac.createGain(),g=ac.createGain(),lfo=ac.createOscillator(),lg=ac.createGain();
@@ -493,38 +495,41 @@ function nfImpact(f,n){setTimeout(()=>{nfHit(n);const q=V(P.x+f.x*1.7,1.25,P.z+f
 /* ---------- controller prompts: every on-screen button hint shows the buttons printed on YOUR controller (Xbox, PlayStation, Nintendo or Ouya).
    The type is read from the gamepad id (Settings can force one). The same physical buttons do the same jobs on every pad; only the names and symbols change.
    Nintendo pads also swap confirm and back in the menus (the right-hand button confirms), like every Nintendo game. Hints in the HUD, the menus and the help lists all follow. ---------- */
-const PG={on:false,type:'xbox',pref:'auto',tabI:0,rep:0,r3:false,dirty:1,h0:null,
+var PG={on:false,type:'xbox',pref:'auto',tabI:0,rep:0,r3:false,dirty:1,h0:null,
  L:{xbox:{a:'A',b:'B',x:'X',y:'Y',lb:'LB',rb:'RB',lt:'LT',rt:'RT',view:'View',menu:'Menu',ls:'LS',rs:'RS',name:'Xbox'},
   ps:{a:'✕',b:'○',x:'□',y:'△',lb:'L1',rb:'R1',lt:'L2',rt:'R2',view:'Create',menu:'Options',ls:'L3',rs:'R3',name:'PlayStation'},
   ns:{a:'B',b:'A',x:'Y',y:'X',lb:'L',rb:'R',lt:'ZL',rt:'ZR',view:'−',menu:'+',ls:'L-Stick',rs:'R-Stick',name:'Nintendo'},
   ouya:{a:'O',b:'A',x:'U',y:'Y',lb:'L1',rb:'R1',lt:'L2',rt:'R2',view:'System',menu:'Menu',ls:'L3',rs:'R3',name:'Ouya'}},
  /* what each job is bound to (same on every pad): b = button, h = it needs a hold */
- A:{use:{b:'x',h:1},melee:{b:'rs'},reload:{b:'x'},tactical:{b:'lb'},lethal:{b:'rb'},field:{b:'lb+rb'},crouch:{b:'b'},prone:{b:'b',h:1},jump:{b:'a'},sprint:{b:'ls'},fire:{b:'rt'},aim:{b:'lt'},swap:{b:'y'},ks:{b:'dright'},ping:{b:'dup'},mode:{b:'dleft'},nv:{b:'ddown',h:1},map:{b:'view'},sb:{b:'view',h:1},pause:{b:'menu'},mount:{b:'lt+rs'}},
- KBM:{F:'use',V:'melee',R:'reload',Q:'tactical',E:'lethal',X:'field',C:'crouch',Space:'jump',T:'mount',B:'mode',N:'nv',M:'map',Tab:'sb',MMB:'ping',Esc:'pause'},
+ A:{use:{b:'x',h:1},melee:{b:'rs'},reload:{b:'x'},tactical:{b:'lb'},lethal:{b:'rb'},det:{b:'rb'},field:{b:'lb+rb'},crouch:{b:'b'},prone:{b:'b',h:1},jump:{b:'a'},sprint:{b:'ls'},fire:{b:'rt'},aim:{b:'lt'},swap:{b:'y'},ks:{b:'dright'},ping:{b:'dup'},mode:{b:'dleft'},nv:{b:'ddown',h:1},map:{b:'view'},sb:{b:'view',h:1},pause:{b:'menu'},mount:{b:'lt+rs'}},
+ KBM:{F:'use',V:'melee',R:'reload',Q:'tactical',E:'lethal',G:'det',X:'field',C:'crouch',Space:'jump',T:'mount',B:'mode',N:'nv',M:'map',Tab:'sb',MMB:'ping',Esc:'pause'},
  detect(g){const id=((g&&g.id)||'').toLowerCase();if(/ouya|2836/.test(id))return'ouya';if(/054c|dualshock|dualsense|playstation|ps[345]|sony|wireless controller/.test(id))return'ps';if(/057e|nintendo|switch|pro controller|joy-?con|wii/.test(id))return'ns';return'xbox'},
  b(s){const l=PG.L[PG.type],d={dup:'D-pad ↑',ddown:'D-pad ↓',dleft:'D-pad ←',dright:'D-pad →'};return s.split('+').map(x=>d[x]||l[x]||x).join(' + ')},
  /* the label of one job, e.g. PG.l('use') = "hold □" on PlayStation */
  l(a){const d=PG.A[a];return d?(d.h?'hold ':'')+PG.b(d.b):a},
  ok(){return PG.L[PG.type][PG.type=='ns'?'b':'a']},back(){return PG.L[PG.type][PG.type=='ns'?'a':'b']},
  /* "Press F to open" -> "Hold □ to open" (only the known key words are touched) */
- t(s){if(!PG.on||typeof s!='string')return s;return s.replace(/\b(Press|Hold|Tap) (F|V|R|E|Q|X|C|T|B|N)\b/g,(m,v,k)=>{const a=PG.KBM[k],d=a&&PG.A[a];return d?(d.h?'Hold ':v+' ')+PG.b(d.b):m})},
- hint(){const l=PG.L[PG.type];return `${l.name} controller: ${l.ls} move · ${l.rs} look · ${l.rt} fire · ${l.lt} aim · ${PG.b('a')} jump · ${PG.b('b')} crouch (hold prone) · ${PG.b('x')} reload (hold use / buy / revive) · ${PG.b('y')} swap · ${l.lb} tactical · ${l.rb} lethal · ${l.lb}+${l.rb} field upgrade · ${l.ls} sprint · ${l.rs} melee (hold: draw it) · D-pad ↑ ping · D-pad ← fire mode · D-pad → killstreak · ${PG.b('view')} map · ${PG.b('menu')} pause`},
- help(){const l=PG.L[PG.type],k=(a,t)=>`<span><kbd class="pg">${a}</kbd> ${t}</span>`;return [k(l.ls,'move'),k(l.rs,'look'),k(l.ls+' held','sprint (click twice: tactical sprint, or steady aim while aiming)'),k(l.rs+' click','tap: melee strike · hold: draw your melee weapon (Nitrogen Fists: then aim = DASH) · '+l.lt+' + '+l.rs+' weapon mount'),k(l.lt,'aim'),k(l.rt,'fire'),k(l.lb,'tactical'),k(l.rb,'lethal'),k(l.lb+' + '+l.rb,'field upgrade'),
+ t(s){if(typeof s!='string')return s;return s.replace(/\b(Press|Hold|Tap|press|hold|tap) (F|V|R|E|Q|X|C|T|B|N|G)\b/g,(m,v,k)=>{const a=PG.KBM[k],d=a&&PG.A[a];if(PG.on){if(!d)return m;const hold=d.h||/^[Hh]old/.test(v);return(hold?(v[0]=='h'?'hold ':'Hold '):v+' ')+PG.b(d.b)}return v+' '+(typeof ctlKey=='function'&&a?ctlKey(a):k)})},
+ hint(){const l=PG.L[PG.type];return `${l.name} controller: ${l.ls} move · ${l.rs} look · ${l.rt} fire · ${l.lt} aim · ${PG.b('a')} jump · ${PG.b('b')} crouch (hold prone) · ${PG.b('x')} reload (hold use / buy / revive) · ${PG.b('y')} swap · ${l.lb} tactical · ${l.rb} lethal · ${l.lb}+${l.rb} second equipment (X) · ${l.ls} sprint · ${l.rs} melee (hold: draw it) · D-pad ↑ ping · D-pad ← fire mode · D-pad → killstreak · ${PG.b('view')} map · ${PG.b('menu')} pause`},
+ help(){const l=PG.L[PG.type],k=(a,t)=>`<span><kbd class="pg">${a}</kbd> ${t}</span>`;return [k(l.ls,'move'),k(l.rs,'look'),k(l.ls+' held','sprint (click twice: tactical sprint, or steady aim while aiming)'),k(l.rs+' click','tap: melee strike · hold: draw your melee weapon (Nitrogen Fists: then aim = DASH) · '+l.lt+' + '+l.rs+' weapon mount'),k(l.lt,'aim'),k(l.rt,'fire'),k(l.lb,'tactical'),k(l.rb,'lethal'),k(l.lb+' + '+l.rb,'second equipment (Danger Zone lethal or Strategist tactical) · '+l.rb+' with none left detonates remote charges'),
   k(PG.b('a'),'jump / stand / mantle'),k(PG.b('b'),'crouch / slide, hold: prone / dive'),k(PG.b('x'),'reload, hold: interact / buy / revive'),k(PG.b('y'),'swap weapon'),k('D-pad ↑','ping'),k('D-pad ↓','inventory, hold: night vision'),k('D-pad ←','fire mode'),k('D-pad →','killstreak'),k(PG.b('view'),'map, hold: scoreboard'),k(PG.b('menu'),'pause'),
   k('D-pad / stick','menus: move'),k(PG.ok(),'menus: press'),k(PG.back(),'menus: back'),k(l.lb+' / '+l.rb,'menus: previous / next tab or loadout slot'),k(PG.b('x')+' / '+PG.b('y'),'on-screen keyboard: backspace / space')].join('')},
  setOn(on){if(on===PG.on)return;PG.on=on;usingPad=on;PG.dirty=1;PG.refresh()},
- sync(g,any){if(g){const t=PG.pref=='auto'?PG.detect(g):PG.pref;if(t!==PG.type){PG.type=t;PG.dirty=1}}if(any&&!PG.on){PG.on=true;usingPad=true;PG.dirty=1}if(PG.dirty)PG.refresh()},
+ sync(g,any){if(g){const t=PG.pref=='auto'||PG.pref=='kb'?PG.detect(g):PG.pref;if(t!==PG.type){PG.type=t;PG.dirty=1}}if(any&&!PG.on&&PG.pref!='kb'){PG.on=true;usingPad=true;PG.dirty=1}if(PG.dirty)PG.refresh()},
  refresh(){PG.dirty=0;if(PG.busy)return;PG.busy=1;try{const h=$('#hint');if(h){if(PG.h0==null)PG.h0=h.textContent;const w=PG.on?PG.hint():PG.h0;if(h.textContent!==w)h.textContent=w}
-  for(const k of document.querySelectorAll('kbd')){if(k.closest('[data-pgskip]'))continue;const o=k.dataset.k0!=null?k.dataset.k0:(k.dataset.k0=k.textContent);let t=o;if(PG.on){const a=PG.KBM[o];if(a&&PG.A[a])t=PG.b(PG.A[a].b);else if(o=='LB'||o=='RB')t=PG.L[PG.type][o.toLowerCase()]}if(k.textContent!==t)k.textContent=t;k.classList.toggle('pg',PG.on&&t!==o)}
+  for(const k of document.querySelectorAll('kbd')){if(k.closest('[data-pgskip]'))continue;const o=k.dataset.k0!=null?k.dataset.k0:(k.dataset.k0=k.textContent);let t=o;if(PG.on){const a=PG.KBM[o];if(a&&PG.A[a])t=PG.b(PG.A[a].b);else if(o=='LB'||o=='RB')t=PG.L[PG.type][o.toLowerCase()]}else{const a=PG.KBM[o];if(a&&typeof ctlKey=='function')t=ctlKey(a)}if(k.textContent!==t)k.textContent=t;k.classList.toggle('pg',PG.on&&t!==o)}
   if(PG.ctlB){const w=PG.on?PG.L[PG.type].name:'';PG.ctlH.textContent='Controller'+(w?' · '+w:'');const hh=PG.help();if(PG.ctlB.dataset.t!==hh){PG.ctlB.dataset.t=hh;PG.ctlB.innerHTML=hh}}
   const s=$('#pgs');if(s&&s.value!==PG.pref)s.value=PG.pref}finally{PG.busy=0;if(PG.mo)PG.mo.takeRecords()}},
  init(){const h=$('#hint');if(h)PG.h0=h.textContent;for(const e of document.querySelectorAll('#p-set h2')){const n=e.nextElementSibling;if(!n)continue;if(/Keyboard|VR/.test(e.textContent))n.dataset.pgskip=1;if(/^Controller/.test(e.textContent)){PG.ctlH=e;PG.ctlB=n;n.dataset.pgskip=1}}
-  try{const p=localStorage.getItem('sd-pad');if(p&&(p=='auto'||PG.L[p]))PG.pref=p}catch(e){}
-  const s=$('#pgs');if(s){s.value=PG.pref;s.addEventListener('change',()=>{PG.pref=s.value;try{localStorage.setItem('sd-pad',PG.pref)}catch(e){}const g=gpGet();PG.type=PG.pref=='auto'?(g?PG.detect(g):'xbox'):PG.pref;PG.dirty=1;PG.refresh()})}
+  try{const p=localStorage.getItem('sd-pad');if(p&&(p=='auto'||p=='kb'||PG.L[p]))PG.pref=p}catch(e){}
+  const s=$('#pgs');if(s){s.value=PG.pref;s.addEventListener('change',()=>{PG.pref=s.value;try{localStorage.setItem('sd-pad',PG.pref)}catch(e){}const g=gpGet();PG.type=PG.pref=='auto'||PG.pref=='kb'?(g?PG.detect(g):PG.type):PG.pref;PG.dirty=1;PG.applyPref();PG.refresh()})}
   /* menus and panels re-render themselves: translate their hints again whenever they change */
   let tm=0;PG.mo=new MutationObserver(()=>{if(PG.busy||tm)return;tm=setTimeout(()=>{tm=0;PG.refresh()},80)});PG.mo.observe(document.body,{childList:true,subtree:true});
   /* back to keyboard and mouse: the hints switch back too */
-  const off=()=>{if(PG.on)PG.setOn(false)};addEventListener('keydown',e=>{if(e.isTrusted)off()},true);addEventListener('mousedown',off,true);let mx=0;addEventListener('mousemove',e=>{mx+=Math.abs(e.movementX||0)+Math.abs(e.movementY||0);if(mx>40){mx=0;off()}else setTimeout(()=>{mx=0},400)},true);
-  const g=gpGet();if(g){PG.type=PG.pref=='auto'?PG.detect(g):PG.pref}PG.refresh()}};
+  const off=()=>{if(PG.on&&PG.pref=='auto')PG.setOn(false)};addEventListener('keydown',e=>{if(e.isTrusted)off()},true);addEventListener('mousedown',off,true);let mx=0;addEventListener('mousemove',e=>{mx+=Math.abs(e.movementX||0)+Math.abs(e.movementY||0);if(mx>40){mx=0;off()}else setTimeout(()=>{mx=0},400)},true);
+  const g=gpGet();if(g){PG.type=PG.pref=='auto'||PG.pref=='kb'?PG.detect(g):PG.pref}PG.applyPref();PG.refresh();
+  /* some browsers only announce a pad after its first button press: look for one every second (not while the keyboard or mouse is in use) */
+  let lastIn=0;for(const ev of['keydown','mousedown','mousemove'])addEventListener(ev,()=>{lastIn=performance.now()},true);setInterval(()=>{if(PG.pref!='auto'||PG.on)return;const gg=gpGet();if(gg&&performance.now()-lastIn>2500){PG.type=PG.detect(gg);PG.on=true;usingPad=true;PG.dirty=1;PG.refresh()}},1000)},
+ applyPref(){if(PG.pref=='kb'){if(PG.on)PG.setOn(false)}else if(PG.pref!='auto'){PG.type=PG.pref;if(!PG.on){PG.on=true;usingPad=true;PG.dirty=1}}}};
 {const _m=msg;msg=function(t,d){return _m(PG.t(t),d)};const _p=popup;popup=function(a,b){return _p(a,PG.t(b))}}
 PG.init();

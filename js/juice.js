@@ -62,7 +62,7 @@ JX.explode=function(p,g){if(!hi)return;const R_=Math.max(3,g&&g.R||6),near=C.pos
    if(sh<=0){S.remove(o.m);o.m.material.dispose();P_.splice(i,1)}}};
  JX.goopClear=function(){for(const o of JX.goops)S.remove(o.m);for(const o of JX.puds){S.remove(o.m);o.m.material.dispose()}JX.goops.length=JX.puds.length=0};
  /* everyone's RayGun impact: the same visual, plus a squelch that fades with distance (the player's own shot gets its sound from boom) */
- window.rgImpact=function(p){try{JX.goop(p,W.RG.ex);const d=C.position.distanceTo(p),v=Math.max(0,1-d/45);if(v>.05){noise(.28,650,.3*v);beep(190,.2,'sawtooth',.06*v);beep(430,.14,'sine',.05*v)}}catch(e){}}}
+ window.rgImpact=function(p){try{JX.goop(p,W.RG.ex);const d=C.position.distanceTo(p),v=Math.max(0,1-d/45);if(v>.05)rgPop(v)}catch(e){}}}
 /* ---------- shooting ---------- */
 JX.muzzle=function(p,k){const d=C.position.distanceTo(p);if(d>70)return;const sg_=k=='SG',rg=k=='RG',col=rg?[3.2,.45,.85]:[3,1.9,.8];
  addSp({p:p.clone(),s0:sg_?.7:.42,s1:sg_?1.2:.7,life:.055,c:col,op:1,tex:flareTex,rot:rnd(0,6.28)});
@@ -121,7 +121,9 @@ JX.tick=function(dt){const t=T();if(JX.tickG)JX.tickG(dt);
   if(typeof cw=='function'){const w=cw(),lowAmmo=!!(w&&w.mag<=Math.max(1,w.m*.25)&&!P.dead);if(lowAmmo!==ammoC){ammoC=lowAmmo;const a=document.getElementById('am');a&&a.classList.toggle('low',lowAmmo)}}
  }else{F.speed+=(0-F.speed)*Math.min(1,dt*6);lastTot=null;lastShots=typeof shots!='undefined'?shots:0}};
 /* ---------- wrap the game functions (none of these are on the anti-cheat list) ---------- */
-const wrap=(name,fn)=>{try{const o=globalThis[name];if(typeof o=='function')globalThis[name]=fn(o);else console.warn('juice: no function '+name)}catch(e){console.warn('juice hook '+name,e)}};
+/* name-based access that also works when the whole game runs inside one closure (nothing here is a global then) */
+const SCOPE={get attFpModel(){return attFpModel},set attFpModel(v){attFpModel=v},get boom(){return boom},set boom(v){boom=v},get buildGun(){return buildGun},set buildGun(v){buildGun=v},get buildMap(){return buildMap},set buildMap(v){buildMap=v},get gfxTick(){return gfxTick},set gfxTick(v){gfxTick=v},get juiceHit(){return juiceHit},set juiceHit(v){juiceHit=v},get juiceKill(){return juiceKill},set juiceKill(v){juiceKill=v},get juiceReset(){return juiceReset},set juiceReset(v){juiceReset=v},get mkHuman(){return mkHuman},set mkHuman(v){mkHuman=v},get muzzleFlash(){return muzzleFlash},set muzzleFlash(v){muzzleFlash=v},get setGfx(){return setGfx},set setGfx(v){setGfx=v},get tr(){return tr},set tr(v){tr=v}};
+const wrap=(name,fn)=>{try{const o=SCOPE[name];if(typeof o=='function')SCOPE[name]=fn(o);else console.warn('juice: no function '+name)}catch(e){console.warn('juice hook '+name,e)}};
 /* models: guns are metal, people are cloth and skin, small boxes get rounded edges */
 const ctxWrap=(ctx,pick)=>o=>function(){const old=LX.ctx;LX.ctx=ctx;try{const r=o.apply(this,arguments);LX.bevel(pick(r,arguments));if(ctx=='char'&&LX.mergeRig)LX.mergeRig(pick(r,arguments),r);return r}finally{LX.ctx=old}};
 if(hi){wrap('buildGun',ctxWrap('gun',(r,a)=>r&&r.traverse?r:a[2]));wrap('attFpModel',ctxWrap('gun',r=>r&&r.traverse?r:null));wrap('mkHuman',ctxWrap('char',(r,a)=>a[0]))}
@@ -140,3 +142,24 @@ document.body.classList.add('gfx-'+LX.q);LX.initBright();
 wrap('juiceReset',o=>function(){const r=o.apply(this,arguments);try{if(JX.goopClear)JX.goopClear();for(const a of[JX.sp,JX.rings,JX.scorch,JX.cas])for(const x of a)S.remove(x.m||x.s);JX.sp.length=JX.rings.length=JX.scorch.length=JX.cas.length=0;lastTot=null;wasDead=0;lastShots=typeof shots!='undefined'?shots:0;F.dmg=F.boom=F.flash=F.blur=0}catch(e){}return r});
 JX.h={cv,addSp,ring,rnd,hi,flareTex,puffTex,glowTex,F};
 })();
+
+
+/* ===================== RayGun: a shot that feels good =====================
+   Sound: a bright but soft chirp (sine, high but rounded off at 7 kHz, never a harsh saw), a glassy triangle sparkle, a mid body that gives it weight, a low thump that punches in the chest,
+   a crackle of energy and a ringing tail with a fast tremolo. Every shot is detuned a little so it never sounds machine-gunned.
+   Feel: camera kick, a brief aberration and bloom pulse, the gun jumps back, pink energy sparks at the muzzle and a trail of glints along the beam. ===================== */
+pew=function(a){a=a==null?1:a;try{ac=ac||new AudioContext();const t=ac.currentTime,v=vol*a,pv=1+(Math.random()-.5)*.08,
+ O=(ty,f0,f1,d,g0,lp,dl)=>{dl=dl||0;const o=ac.createOscillator(),g=ac.createGain();o.type=ty;o.frequency.setValueAtTime(f0*pv,t+dl);o.frequency.exponentialRampToValueAtTime(f1*pv,t+dl+d);g.gain.setValueAtTime(.0001,t+dl);g.gain.linearRampToValueAtTime(g0*v,t+dl+.004);g.gain.exponentialRampToValueAtTime(.0001,t+dl+d);let n=o;if(lp){const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=lp;o.connect(f);n=f}n.connect(g);g.connect(ac.destination);o.start(t+dl);o.stop(t+dl+d+.03)};
+ O('sine',3300,1050,.17,.07,7000);O('triangle',5400,2300,.11,.026,6500);O('sawtooth',720,170,.2,.045,1700);O('sine',170,52,.16,.13);O('sine',1800,2600,.06,.03,6000,.02);
+ noise(.07,4200,.09*a);
+ const o=ac.createOscillator(),g=ac.createGain(),lf=ac.createOscillator(),lg=ac.createGain();o.type='sine';o.frequency.value=2150*pv;lf.frequency.value=22;lg.gain.value=.011*v;lf.connect(lg);lg.connect(g.gain);
+ g.gain.setValueAtTime(.0001,t+.03);g.gain.linearRampToValueAtTime(.024*v,t+.055);g.gain.exponentialRampToValueAtTime(.0001,t+.5);o.connect(g);g.connect(ac.destination);o.start(t+.03);o.stop(t+.52);lf.start(t);lf.stop(t+.52)}catch(e){}};
+/* the splash of a RayGun bolt: a rounded pop, a falling glassy sparkle and a short sizzle */
+function rgPop(v){try{ac=ac||new AudioContext();const t=ac.currentTime,vv=vol*v,
+ O=(ty,f0,f1,d,g0,lp)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=ty;o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+d);g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(g0*vv,t+.003);g.gain.exponentialRampToValueAtTime(.0001,t+d);let n=o;if(lp){const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=lp;o.connect(f);n=f}n.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+d+.02)};
+ O('sine',640,80,.22,.14);O('triangle',2800,700,.26,.05,5200);O('sine',120,45,.28,.12);noise(.22,2000,.2*v);setTimeout(()=>{try{noise(.18,5200,.07*v)}catch(e){}},40)}catch(e){}}
+{const _rb=rgBeam;rgBeam=function(o,d,len,raw){_rb.apply(this,arguments);try{
+  const H=JX.h,s=raw?o.clone():o.clone().add(d.clone().multiplyScalar(.7)).add(V(0,-.12,0));
+  if(H&&H.addSp){H.addSp({p:s.clone(),s0:.3,s1:.8,life:.12,c:[3.2,.5,1],op:1,tex:H.flareTex});const n=Math.min(9,Math.floor(len/4));for(let i=1;i<=n;i++){const p=s.clone().lerp(o.clone().add(d.clone().multiplyScalar(len)),i/(n+1));H.addSp({p,s0:.1,s1:.42+Math.random()*.2,life:.16+i*.018,c:[3,.5,.9],op:.8,tex:H.flareTex})}
+   for(let i=0;i<7;i++){H.addSp({p:s.clone().add(V((Math.random()-.5)*.1,(Math.random()-.5)*.1,(Math.random()-.5)*.1)),s0:.05,s1:.14,life:.3+Math.random()*.2,c:[3,.9,1.5],op:.9,v:V((Math.random()-.5)*2.4+d.x*2,(Math.random()-.5)*2.4+d.y*2,(Math.random()-.5)*2.4+d.z*2),dr:.88})}}
+  if(!raw){kick+=.012;shake=Math.max(shake,.35);LX.fx.shot=Math.max(LX.fx.shot,.8);LX.fx.ca=Math.max(LX.fx.ca,.5);LX.fx.pulse=Math.max(LX.fx.pulse,.35);gun.position.z+=.05;gun.rotation.x-=.05}}catch(e){}}}

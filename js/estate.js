@@ -5,16 +5,16 @@
    Everything is hand-built from primitives: thousands of small parts (furniture, books, chandeliers, tombstones...) are baked into a handful of merged meshes per area, so the detail is cheap.
    Animated things (chandeliers, flames, pendulum, fountain, doors, machines, the box, ammo crates, fog, lightning) are live objects ticked from estTick().
    Only the ten or so lights nearest to you are real point lights (a pool that hands lights over smoothly as you walk), the rest are glow sprites. ---------- */
-const EST={sd:1,cols:[],dyn:[],spots:[],pool:[],mach:{},fires:[],flames:[],tm:0,lt:{next:9,flash:0},bk:null,pend:[],walls:[],dust:[],lights:null};
-const erand=()=>(EST.sd=(EST.sd*16807)%2147483647)/2147483647,eri=(a,b)=>a+erand()*(b-a),epk=a=>a[erand()*a.length|0],esm=u=>{u=u<0?0:u>1?1:u;return u*u*(3-2*u)};
+var EST={sd:1,cols:[],dyn:[],spots:[],pool:[],mach:{},fires:[],flames:[],tm:0,lt:{next:9,flash:0},bk:null,pend:[],walls:[],dust:[],lights:null};
+var erand=()=>(EST.sd=(EST.sd*16807)%2147483647)/2147483647,eri=(a,b)=>a+erand()*(b-a),epk=a=>a[erand()*a.length|0],esm=u=>{u=u<0?0:u>1?1:u;return u*u*(3-2*u)};
 
 /* ---------- procedural textures (canvas): floors, wallpaper, rugs, paintings, glow ---------- */
-const ET={};
+var ET={};
 function estTx(n){if(ET[n])return ET[n];const t=ESTX[n]();t.wrapS=t.wrapT=THREE.RepeatWrapping;try{t.anisotropy=4}catch(e){}return ET[n]=t}
-const eg=(g,fn)=>{g.save();fn();g.restore()};
+var eg=(g,fn)=>{g.save();fn();g.restore()};
 function eStain(g,w,h,n,a){for(let i=0;i<n;i++){const x=erand()*w,y=erand()*h,r=8+erand()*40,gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,`rgba(0,0,0,${a*erand()})`);gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(x-r,y-r,r*2,r*2)}}
 function eCracks(g,w,h,n){g.strokeStyle='rgba(0,0,0,.35)';g.lineWidth=1;for(let i=0;i<n;i++){let x=erand()*w,y=erand()*h,a=erand()*6.28;g.beginPath();g.moveTo(x,y);for(let k=0;k<14;k++){a+=(erand()-.5)*1.1;x+=Math.cos(a)*9;y+=Math.sin(a)*9;g.lineTo(x,y)}g.stroke()}}
-const ESTX={
+var ESTX={
  marble:()=>zTex(512,512,(g,w,h)=>{const T=64;for(let j=0;j<8;j++)for(let i=0;i<8;i++){const dk=(i+j)%2;const v=dk?34+erand()*10:205+erand()*24;g.fillStyle=dk?`rgb(${v},${v},${v+4})`:`rgb(${v},${v-6},${v-20})`;g.fillRect(i*T,j*T,T,T);
    g.strokeStyle=dk?'rgba(255,255,255,.1)':'rgba(90,80,70,.28)';g.lineWidth=1.2;for(let k=0;k<3;k++){g.beginPath();let x=i*T+erand()*T,y=j*T;g.moveTo(x,y);for(let s=0;s<6;s++){x+=(erand()-.5)*22;y+=T/6;g.lineTo(x,y)}g.stroke()}}
   g.strokeStyle='rgba(0,0,0,.6)';g.lineWidth=2;for(let i=0;i<=8;i++){g.beginPath();g.moveTo(i*T,0);g.lineTo(i*T,h);g.moveTo(0,i*T);g.lineTo(w,i*T);g.stroke()}eStain(g,w,h,22,.5);eCracks(g,w,h,5)}),
@@ -51,22 +51,22 @@ function ePaint(n){return zTex(256,320,(g,w,h)=>{const bg=['#1a1612','#12171c','
  eStain(g,w,h,14,.7);for(let i=0;i<5;i++){g.strokeStyle='rgba(220,210,190,.18)';g.beginPath();g.moveTo(erand()*w,erand()*h);g.lineTo(erand()*w,erand()*h);g.stroke()}})}
 
 /* ---------- materials for baked geometry (vertex coloured so thousands of parts share a handful of materials) ---------- */
-const EMC={};
+var EMC={};
 function eMat(cls){if(EMC[cls])return EMC[cls];const R={s:[.92,0],w:[.52,0],m:[.42,.85],g:[.26,1],f:[1,0],c:[.7,.02],gl:[.06,.1],r:[.95,0]}[cls]||[.9,0];let m;
  if(cls=='e')m=new THREE.MeshBasicMaterial({vertexColors:true});
  else if(!LX.pbr)m=new THREE.MeshLambertMaterial({vertexColors:true});
  else m=LX.patch(new THREE.MeshStandardMaterial({vertexColors:true,roughness:R[0],metalness:R[1],envMapIntensity:cls=='m'||cls=='g'?1.35:.7}),{});
  if(cls=='gl'){m.transparent=true;m.opacity=.3;m.depthWrite=false}return EMC[cls]=m}
-const ETM={};
+var ETM={};
 function eTexMat(n){if(ETM[n])return ETM[n];const t=estTx(n);let m;
  if(!LX.pbr)m=new THREE.MeshLambertMaterial({map:t,vertexColors:true});else m=LX.patch(new THREE.MeshStandardMaterial({map:t,vertexColors:true,roughness:n=='gold'?.3:.9,metalness:n=='gold'?.9:0,envMapIntensity:.6}),{});
  if(n=='web'){m.transparent=true;m.depthWrite=false;m.side=THREE.DoubleSide}return ETM[n]=m}
 
 /* ---------- the baker: primitives are transformed into world space and merged per area and material ---------- */
-const GB=new THREE.BoxGeometry(1,1,1),GP=new THREE.PlaneGeometry(1,1),GCY={},GSP={},GTO={};
-const gCy=(rt,rb,seg)=>{const k=rt.toFixed(3)+'_'+rb.toFixed(3)+'_'+seg;return GCY[k]||(GCY[k]=new THREE.CylinderGeometry(rt,rb,1,seg,1))};
-const gSp=seg=>GSP[seg]||(GSP[seg]=new THREE.SphereGeometry(1,seg,Math.max(4,seg*.7|0)));
-const gTo=(r,seg)=>{const k=r.toFixed(3)+'_'+seg;return GTO[k]||(GTO[k]=new THREE.TorusGeometry(1,r,6,seg))};
+var GB=new THREE.BoxGeometry(1,1,1),GP=new THREE.PlaneGeometry(1,1),GCY={},GSP={},GTO={};
+var gCy=(rt,rb,seg)=>{const k=rt.toFixed(3)+'_'+rb.toFixed(3)+'_'+seg;return GCY[k]||(GCY[k]=new THREE.CylinderGeometry(rt,rb,1,seg,1))};
+var gSp=seg=>GSP[seg]||(GSP[seg]=new THREE.SphereGeometry(1,seg,Math.max(4,seg*.7|0)));
+var gTo=(r,seg)=>{const k=r.toFixed(3)+'_'+seg;return GTO[k]||(GTO[k]=new THREE.TorusGeometry(1,r,6,seg))};
 function mkBake(){const acc={},st=[new THREE.Matrix4()],yw=[0],tmp=new THREE.Vector3(),nm=new THREE.Matrix3(),col=new THREE.Color(),Q=new THREE.Quaternion(),E=new THREE.Euler(),Pv=new THREE.Vector3(),Sv=new THREE.Vector3();
  const mat=(x,y,z,sx,sy,sz,rx,ry,rz)=>{E.set(rx||0,ry||0,rz||0,'YXZ');Q.setFromEuler(E);Pv.set(x,y,z);Sv.set(sx,sy,sz);return new THREE.Matrix4().compose(Pv,Q,Sv)};
  const B={area:'x',acc,
@@ -98,7 +98,7 @@ function mkBake(){const acc={},st=[new THREE.Matrix4()],yw=[0],tmp=new THREE.Vec
 
 
 /* ---------- glow points (flames, halos), light spots and the live decoration list ---------- */
-const EC={wood:0x4a2f1c,dwood:0x2c1b10,lwood:0x6d4a2b,brass:0xb08a3a,iron:0x24262a,stone:0x7a766c,dstone:0x4d4a44,marble:0xcfc8b8,candle:0xe6d9b0,cloth:0xcfc4aa,rust:0x5a3a28,bone:0xd8d0b8,moss:0x35452a,red:0x6a1c24,green:0x2a4632,blue:0x23365a,gold:0xc9a23a,velvet:0x4a1220,black:0x101114};
+var EC={wood:0x4a2f1c,dwood:0x2c1b10,lwood:0x6d4a2b,brass:0xb08a3a,iron:0x24262a,stone:0x7a766c,dstone:0x4d4a44,marble:0xcfc8b8,candle:0xe6d9b0,cloth:0xcfc4aa,rust:0x5a3a28,bone:0xd8d0b8,moss:0x35452a,red:0x6a1c24,green:0x2a4632,blue:0x23365a,gold:0xc9a23a,velvet:0x4a1220,black:0x101114};
 function eSpot(x,y,z,col,I,dist,fl,ph){EST.spots.push({x,y,z,col,I,d:dist,fl:fl==null?1:fl,ph:ph==null?erand()*50:ph,cur:0,want:0,L:null})}
 function ePt(sys,x,y,z,r,g,b,fl){const s=EST.pts[sys];s.p.push(x,y,z);s.c.push(r,g,b);s.f.push(fl==null?1:fl,erand()*50);s.base.push(r,g,b)}
 function eFlame(x,y,z,k,light){/* a candle-sized flame: glow + soft halo (+ optionally a real light that is handed over by the pool) */
@@ -107,10 +107,10 @@ function eBig(x,y,z,k,light){/* big fire: fireplace, brazier, torch */
  ePt('F',x,y,z,1,.55,.2,1);ePt('F',x+(erand()-.5)*.2,y+.15,z+(erand()-.5)*.2,1,.7,.3,1);ePt('H',x,y+.3,z,.35*(k||1),.16*(k||1),.05*(k||1),1);EST.fires.push({x,y,z});if(light)eSpot(x,y+.4,z,0xff8a3a,light[0],light[1],1)}
 function eHalo(x,y,z,r,g,b,sys){ePt(sys||'H',x,y,z,r,g,b,0)}
 function eGlass(x,y,z,w,h,rx,ry,col,o){/* an additive glow quad (moonlight patches, window glow) */const m=new THREE.Mesh(GP,new THREE.MeshBasicMaterial({map:estTx('glow'),color:col,transparent:true,opacity:o||.3,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));m.scale.set(w,h,1);m.position.set(x,y,z);m.rotation.set(rx||0,ry||0,0);EST.pend.push(m);return m}
-const eWor=(lx,ly,lz)=>{const t=new THREE.Vector3(lx,ly,lz).applyMatrix4(EST.bk.top());return t};
+var eWor=(lx,ly,lz)=>{const t=new THREE.Vector3(lx,ly,lz).applyMatrix4(EST.bk.top());return t};
 
 /* ---------- furniture. Local origin = the middle of the base, the front faces +z ---------- */
-const FUR={
+var FUR={
  chair(c,tilt){c=c||EC.wood;BK.bot(0,.43,0,.5,.07,.5,c,'w');BK.bot(0,.5,.01,.42,.06,.42,EC.red,'f');for(const[x,z]of[[-.21,-.21],[.21,-.21],[-.21,.21],[.21,.21]])BK.cyl(x,0,z,.03,.024,.43,c,'w',6);
   for(const x of[-.21,.21])BK.cyl(x,.5,-.23,.026,.026,.62,c,'w',6);BK.bot(0,.98,-.23,.46,.1,.05,c,'w');for(let i=0;i<3;i++)BK.bot(-.12+i*.12,.58,-.23,.045,.4,.03,c,'w');BK.solid(0,0,.5,.5,.9)},
  stool(c){c=c||EC.wood;BK.cyl(0,.4,0,.2,.2,.07,c,'w',10);BK.sph(0,.46,0,.18,.05,.18,EC.red,'f');for(const a of[0,2.1,4.2])BK.rod(Math.cos(a)*.16,0,Math.sin(a)*.16,Math.cos(a)*.1,.4,Math.sin(a)*.1,.025,.02,c,'w');BK.solid(0,0,.4,.4,.5)},
@@ -195,12 +195,12 @@ function eShape(pts){const s=new THREE.Shape();pts.forEach((p,i)=>i?s.lineTo(p[0
 
 
 /* ---------- the plan: nine rooms in a 3x3 grid, a front lawn to the south, a back garden (with the crypt) to the north ---------- */
-const ERM={foyer:[-16,14,16,32],dining:[-42,14,-16,32],parlor:[16,14,42,32],ball:[-16,-6,16,14],lib:[-42,-6,-16,14],bill:[16,-6,42,14],kit:[-42,-24,-16,-6],study:[16,-24,42,-6],cons:[-16,-24,16,-6],crypt:[22,-50,46,-37]};
-const ERA={foyer:0,dining:1,parlor:2,ball:3,kit:4,lib:5,bill:6,study:7,cons:8,garden:9,crypt:10,lawn:11};
-const eInn=k=>{const r=ERM[k],ex=k=='crypt';return[r[0]+(r[0]==-42||ex?.6:.45),r[1]+(r[1]==-24||ex?.6:.45),r[2]-(r[2]==42||ex?.6:.45),r[3]-(r[3]==32||ex?.6:.45)]};
-const eRoomAt=(x,z)=>{if(typeof sel!='undefined'&&sel.map=='London')return typeof lonIn=='function'&&lonIn(x,z)?'in':null;for(const k in ERM){const r=ERM[k];if(x>r[0]&&x<r[2]&&z>r[1]&&z<r[3])return k}return null};
-const EWP={foyer:'wpRed',dining:'wpGreen',parlor:'wpBlue',ball:'wpCream',lib:'wpGreen',bill:'wpRed',kit:'wpCream',study:'wpBlue'};
-const EFL={foyer:['marble',8],dining:['parquet',8],parlor:['carpet',4],ball:['parquet',8],lib:['parquet',8],bill:['carpet',4],kit:['tile',8],study:['carpet',4],cons:['terra',6],crypt:['flag',8]};
+var ERM={foyer:[-16,14,16,32],dining:[-42,14,-16,32],parlor:[16,14,42,32],ball:[-16,-6,16,14],lib:[-42,-6,-16,14],bill:[16,-6,42,14],kit:[-42,-24,-16,-6],study:[16,-24,42,-6],cons:[-16,-24,16,-6],crypt:[22,-50,46,-37]};
+var ERA={foyer:0,dining:1,parlor:2,ball:3,kit:4,lib:5,bill:6,study:7,cons:8,garden:9,crypt:10,lawn:11};
+var eInn=k=>{const r=ERM[k],ex=k=='crypt';return[r[0]+(r[0]==-42||ex?.6:.45),r[1]+(r[1]==-24||ex?.6:.45),r[2]-(r[2]==42||ex?.6:.45),r[3]-(r[3]==32||ex?.6:.45)]};
+var eRoomAt=(x,z)=>{if(typeof sel!='undefined'&&sel.map=='London')return typeof lonIn=='function'&&lonIn(x,z)?'in':null;for(const k in ERM){const r=ERM[k];if(x>r[0]&&x<r[2]&&z>r[1]&&z<r[3])return k}return null};
+var EWP={foyer:'wpRed',dining:'wpGreen',parlor:'wpBlue',ball:'wpCream',lib:'wpGreen',bill:'wpRed',kit:'wpCream',study:'wpBlue'};
+var EFL={foyer:['marble',8],dining:['parquet',8],parlor:['carpet',4],ball:['parquet',8],lib:['parquet',8],bill:['carpet',4],kit:['tile',8],study:['carpet',4],cons:['terra',6],crypt:['flag',8]};
 
 /* ---------- the map ---------- */
 MAPS['Hollow Estate']={d:'Zombies map: the Hollow Estate, an abandoned Victorian mansion with nine rooms, a front lawn, a back garden with a graveyard and a crypt. Locked doors, perk machines, mystery boxes, wall weapons, ammo crates and Pack-a-Punch',zm:1,H:56,sky:0x141a24,gr:0x1e2a1c,bc:0x5e584e,ps:[0,29.5],skyk:'night',hemi:.62,hemiC:0x8aa0d0,hemiG:0x1a2030,sunI:.3,sunC:0x9fb4ff,fogF:80,gt:'grass',
@@ -219,7 +219,7 @@ MAPS['Hollow Estate']={d:'Zombies map: the Hollow Estate, an abandoned Victorian
   {t:'wall',k:'CY',x:-9,z:-6.5,f:'n'},{t:'wall',k:'RL',x:-33.2,z:-24.75,f:'n'},{t:'wall',k:'MP',x:-6.8,z:32.75,f:'s'},
   {t:'ammo',x:-8,z:30.95,f:'n'},{t:'ammo',x:-40.9,z:18,f:'e'},{t:'ammo',x:15.1,z:9.5,f:'w'},{t:'ammo',x:-39.5,z:-22.9,f:'s'},{t:'ammo',x:17.0,z:-9.5,f:'e'},{t:'ammo',x:40.9,z:10,f:'w'},{t:'ammo',x:-10,z:-25.3,f:'n'},{t:'ammo',x:45.0,z:-44,f:'w'}],
  b(){return estBuild()}};
-const _EM=MAPS['Hollow Estate'];_EM.post=g=>estPost(g);
+var _EM=MAPS['Hollow Estate'];_EM.post=g=>estPost(g);
 
 function estBuild(){const M=MAPS['Hollow Estate'],a=[],vv=M._v=[];EST.sd=11;EST.cols=[];EST.dyn=[];EST.spots=[];EST.pend=[];EST.fires=[];EST.mach={};EST.pendulum=[];EST.walls=[];EST.holes=[];
  EST.pts={f:{p:[],c:[],f:[],base:[],size:.34},h:{p:[],c:[],f:[],base:[],size:1.7},F:{p:[],c:[],f:[],base:[],size:.9},H:{p:[],c:[],f:[],base:[],size:3.4},s:{p:[],c:[],f:[],base:[],size:2.4}};
@@ -262,7 +262,7 @@ function estBuild(){const M=MAPS['Hollow Estate'],a=[],vv=M._v=[];EST.sd=11;EST.
  BK.area='x';estGarden();estLawn();
  for(const c of EST.cols)a.push(c);
  return a}
-let BK=null;
+var BK=null;
 
 
 /* ---------- exterior: cornice, plinth, pilasters, slate roofs, gables, chimneys, clock tower, front portico, gate pillars ---------- */
@@ -291,7 +291,7 @@ function estOuter(){BK.area='roof';const brick=0x5b4e47,slate=0x262a32;
  for(let x=-4.4;x<=4.4;x+=.35)BK.rod(x,.3,51.5,x,3.6+Math.abs(Math.sin(x*2.8))*.5,51.5,.025,.02,EC.iron,'m',4);BK.rod(-4.4,1.3,51.5,4.4,1.3,51.5,.04,.04,EC.iron,'m');BK.rod(-4.4,3.0,51.5,4.4,3.0,51.5,.04,.04,EC.iron,'m');BK.tor(0,2.2,51.5,.3,.035,EC.iron,'m',0,0,0,12);
  /* iron fence spikes along the boundary wall */
  for(const[x0,z0,x1,z1]of[[-52,-52,52,-52],[-52,52,52,52],[-52,-52,-52,52],[52,-52,52,52]]){const L=Math.hypot(x1-x0,z1-z0),n=Math.floor(L/1.2);for(let i=0;i<=n;i++){const t=i/n;BK.cyl(x0+(x1-x0)*t,3.4,z0+(z1-z0)*t,.04,0,.5,EC.iron,'m',4)}}}
-const XH0=8.4;
+var XH0=8.4;
 
 /* ---------- a room: floor, ceiling (with collapsed sections), then its furniture ---------- */
 function estRoom(k){const r=eInn(k),w=r[2]-r[0],d=r[3]-r[1],cx=(r[0]+r[2])/2,cz=(r[1]+r[3])/2,fl=EFL[k];
@@ -311,10 +311,10 @@ function estGlassRoof(r){const cx=(r[0]+r[2])/2,cz=(r[1]+r[3])/2,w=r[2]-r[0],d=r
  BK.rod(cx,7.85,r[1],cx,7.85,r[3],.07,.07,EC.iron,'m',6);for(const s of[-1,1])BK.rod(cx+s*w/2,5.62,r[1],cx+s*w/2,5.62,r[3],.07,.07,EC.iron,'m',6);for(let x=-12;x<=12;x+=6)BK.rod(x,5.6,r[1],x,5.6,r[3],.05,.05,EC.iron,'m',5);
  estHole(-4,-15);estHole(9,-9)}
 
-const at=(x,z,ry,fn)=>BK.at(x,0,z,ry,fn),PI=Math.PI;
-const eWeb=(x,y,z,ry)=>BK.at(x,y,z,ry,()=>FUR.web(1.7));
+var at=(x,z,ry,fn)=>BK.at(x,0,z,ry,fn),PI=Math.PI;
+var eWeb=(x,y,z,ry)=>BK.at(x,y,z,ry,()=>FUR.web(1.7));
 function eCounter(x,z,w,ry){BK.at(x,0,z,ry,()=>{BK.bot(0,0,0,w,.88,.7,0x5a4a3a,'w');BK.bot(0,.88,.02,w+.06,.06,.78,0x8a8478,'s');for(let i=0;i<Math.floor(w/.8);i++)BK.bot(-w/2+.4+i*.8,.1,.36,.7,.7,.02,0x3a2c20,'w');BK.solid(0,0,w,.7,.95)})}
-const ROOMS={
+var ROOMS={
  foyer(){BK.quad(0,.035,23,8,10,0xffffff,'s',-PI/2,0,'rugA',1,1);FUR.stairs(-15.45,14.5,-5.0,19.5,'e');FUR.stairs(5.0,14.5,15.45,19.5,'w');
   BK.box(0,3.6,15.95,10.2,.3,3.0,EC.dwood,'w');for(let x=-4.6;x<=4.6;x+=.5)BK.cyl(x,3.75,17.35,.022,.022,.9,EC.dwood,'w',6);BK.rod(-5,4.7,17.4,5,4.7,17.4,.05,.05,EC.dwood,'w');BK.at(0,3.75,15.2,PI,()=>FUR.painting(2.6,1.6,3));
   at(-3.9,15.4,0,()=>FUR.armor());at(3.9,15.4,0,()=>FUR.armor());at(11.5,30.9,PI,()=>FUR.clock());at(-11.5,30.9,PI,()=>FUR.table(1.4,.45,.85,EC.dwood));BK.at(-11.5,2.1,31.3,PI,()=>FUR.mirror(1.2,1.7));
@@ -374,7 +374,7 @@ const ROOMS={
 
 
 /* ---------- the back garden (graveyard, hedge maze, fountain) and the front lawn ---------- */
-const eKeep=[];const eFree=(x,z,r)=>{for(const k of eKeep)if(x>k[0]-r&&x<k[2]+r&&z>k[1]-r&&z<k[3]+r)return false;for(const c of EST.cols){if(Math.abs(x-c[0])<c[2]/2+r&&Math.abs(z-c[1])<c[3]/2+r)return false}return true};
+var eKeep=[];var eFree=(x,z,r)=>{for(const k of eKeep)if(x>k[0]-r&&x<k[2]+r&&z>k[1]-r&&z<k[3]+r)return false;for(const c of EST.cols){if(Math.abs(x-c[0])<c[2]/2+r&&Math.abs(z-c[1])<c[3]/2+r)return false}return true};
 function ePath(x0,z0,x1,z1,w,col){const L=Math.hypot(x1-x0,z1-z0),n=Math.max(1,Math.round(L/1.1)),ang=Math.atan2(x1-x0,z1-z0);eKeep.push([Math.min(x0,x1)-w/2,Math.min(z0,z1)-w/2,Math.max(x0,x1)+w/2,Math.max(z0,z1)+w/2]);
  for(let i=0;i<n;i++){const t=(i+.5)/n,x=x0+(x1-x0)*t,z=z0+(z1-z0)*t;for(let j=0;j<Math.max(2,Math.round(w/1.1));j++){const o=(j+.5)/Math.max(2,Math.round(w/1.1))-.5,v=.9+erand()*.2,c=col||0x6a655c;const r=(c>>16&255)*v|0,g=(c>>8&255)*v|0,b=(c&255)*v|0;BK.box(x+Math.cos(ang)*o*w,.03,z-Math.sin(ang)*o*w,1.12,.06,L/n+.06,(r<<16)|(g<<8)|b,'s',ang)}}}
 function estGarden(){BK.area='garden';eKeep.length=0;
@@ -413,7 +413,7 @@ function eChand(x,y,z,s){const g=new THREE.Group(),lb=mkBake();g.position.set(x,
   const w=eWor2(g,x,y,z,c*.85*s,-1.46*s,sn*.85*s);eFlame(w[0],w[1],w[2],1.1);for(let k=0;k<3;k++){const aa=a+(k-1)*.14;lb.rod(Math.cos(aa)*.85*s,-1.72*s,Math.sin(aa)*.85*s,Math.cos(aa)*.85*s,-(1.9+erand()*.3)*s,Math.sin(aa)*.85*s,.004,.004,0xcfe6f0,'gl',3);lb.sph(Math.cos(aa)*.85*s,-(1.95+erand()*.3)*s,Math.sin(aa)*.85*s,.03*s,.05*s,.03*s,0xcfe6f0,'gl',5)}}
  lb.build(g);EST.pend.push(g);const w=eWor2(g,x,y,z,0,-1.5*s,0);eSpot(w[0],w[1],w[2],0xffb066,1.5*Math.min(1.4,s),18,1);eHalo(w[0],w[1],w[2],.5*s,.32*s,.12*s,'H');
  const ph=erand()*6;EST.dyn.push({tick(dt,t){g.rotation.z=Math.sin(t*.7+ph)*.025+Math.sin(t*1.9+ph*2)*.008;g.rotation.x=Math.cos(t*.55+ph)*.02;g.rotation.y=t*.06*(ph>3?1:-1)}})}
-const eWor2=(g,x,y,z,lx,ly,lz)=>[x+lx,y+ly,z+lz];
+var eWor2=(g,x,y,z,lx,ly,lz)=>[x+lx,y+ly,z+lz];
 function eHang(x,y,z,s){const g=new THREE.Group(),lb=mkBake();g.position.set(x,y,z);lb.rod(0,0,0,0,-.9,0,.02,.02,EC.iron,'m',4);lb.cyl(0,-1.3,0,.22*s*2,.1*s*2,.4*s*2,EC.iron,'m',6);lb.cyl(0,-1.35,0,.17*s*2,.08*s*2,.32*s*2,0xffe3a8,'e',6);lb.cyl(0,-.9,0,0,.28*s*2,.18,EC.iron,'m',6);lb.build(g);EST.pend.push(g);eSpot(x,y-1.2,z,0xffd890,.9,11,.9);eHalo(x,y-1.2,z,.4,.3,.14,'H');const ph=erand()*6;EST.dyn.push({tick(dt,t){g.rotation.z=Math.sin(t*.9+ph)*.05;g.rotation.x=Math.cos(t*.7+ph)*.04}})}
 
 /* ---------- finishing: merged meshes, glow point systems, the pooled lights, the clock pendulum, fountain water, fog, moon shafts ---------- */
@@ -438,19 +438,19 @@ function estPost(g){EST.tm=0;const meshes=EST.bk.build(g);for(const o of EST.pen
 
 
 /* ===================== live objects: doors, machines, the box, wall buys, ammo crates ===================== */
-const EMM={},EG={box:new THREE.BoxGeometry(1,1,1),cyl:new THREE.CylinderGeometry(1,1,1,16),cyl8:new THREE.CylinderGeometry(1,1,1,8),sph:new THREE.SphereGeometry(1,14,10),cone:new THREE.ConeGeometry(1,1,12),pl:new THREE.PlaneGeometry(1,1),tor:new THREE.TorusGeometry(1,.06,8,28)};
+var EMM={},EG={box:new THREE.BoxGeometry(1,1,1),cyl:new THREE.CylinderGeometry(1,1,1,16),cyl8:new THREE.CylinderGeometry(1,1,1,8),sph:new THREE.SphereGeometry(1,14,10),cone:new THREE.ConeGeometry(1,1,12),pl:new THREE.PlaneGeometry(1,1),tor:new THREE.TorusGeometry(1,.06,8,28)};
 function eM(col,em,rough,metal){const k=col+'|'+(em||0)+'|'+rough+'|'+metal;if(EMM[k])return EMM[k];let m;if(LX.pbr&&(rough!=null||metal!=null))m=LX.patch(new THREE.MeshStandardMaterial({color:col,emissive:em||0,roughness:rough==null?.7:rough,metalness:metal||0,envMapIntensity:1}),{});else m=new THREE.MeshLambertMaterial({color:col,emissive:em||0});return EMM[k]=m}
 function eMk(g,geo,mat,x,y,z,sx,sy,sz,rx,ry,rz){const m=new THREE.Mesh(geo,mat);m.position.set(x||0,y||0,z||0);m.scale.set(sx==null?1:sx,sy==null?1:sy,sz==null?1:sz);m.rotation.set(rx||0,ry||0,rz||0);m.castShadow=m.receiveShadow=true;g.add(m);return m}
-const eBasic=(col,o,add)=>new THREE.MeshBasicMaterial({color:col,transparent:o!=null&&o<1,opacity:o==null?1:o,depthWrite:!(o!=null&&o<1),blending:add?THREE.AdditiveBlending:THREE.NormalBlending,side:THREE.DoubleSide});
+var eBasic=(col,o,add)=>new THREE.MeshBasicMaterial({color:col,transparent:o!=null&&o<1,opacity:o==null?1:o,depthWrite:!(o!=null&&o<1),blending:add?THREE.AdditiveBlending:THREE.NormalBlending,side:THREE.DoubleSide});
 function eCanvasMat(w,h,fn,basic){const t=zTex(w,h,fn);return basic?new THREE.MeshBasicMaterial({map:t,transparent:true,side:THREE.DoubleSide,depthWrite:false}):new THREE.MeshLambertMaterial({map:t})}
 function eSign(txt,col,w,h){const c=hex(col);return eCanvasMat(w||256,h||96,(g,W,H)=>{g.fillStyle='#07070a';g.fillRect(0,0,W,H);const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'rgba(255,255,255,.12)');gr.addColorStop(1,'rgba(0,0,0,.4)');g.fillStyle=gr;g.fillRect(0,0,W,H);g.shadowColor=c;g.shadowBlur=14;g.strokeStyle=c;g.lineWidth=4;g.strokeRect(6,6,W-12,H-12);g.font='700 '+(H*.52|0)+'px Teko,Impact,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillStyle='#fff';g.fillText(txt.toUpperCase(),W/2,H/2+4);g.shadowBlur=0;g.fillStyle=c;g.globalAlpha=.9;g.fillText(txt.toUpperCase(),W/2,H/2+4)},true)}
 THREE.Color.prototype.setGray=function(v){return this.setRGB(v,v,v)};
-const eFace=f=>FACE[f]!=null?FACE[f]:0,eFwd=f=>[Math.sin(FACE[f]||0),Math.cos(FACE[f]||0)];
-const eSwap=(f,w,d)=>(f=='e'||f=='w')?[d,w]:[w,d];
+var eFace=f=>FACE[f]!=null?FACE[f]:0,eFwd=f=>[Math.sin(FACE[f]||0),Math.cos(FACE[f]||0)];
+var eSwap=(f,w,d)=>(f=='e'||f=='w')?[d,w]:[w,d];
 
 /* ---------- flattening: the static parts of a live object (a gun on the wall, a machine's cabinet, a door leaf) are merged into one mesh so a lot of detail costs few draw calls.
    Anything animated is flagged userData.dyn and stays separate; transparent, unlit and textured parts are left alone. ---------- */
-const EFM={};
+var EFM={};
 function eFlatMat(r,m){const k=r+'|'+m;if(EFM[k])return EFM[k];return EFM[k]=LX.pbr?LX.patch(new THREE.MeshStandardMaterial({vertexColors:true,roughness:r,metalness:m,envMapIntensity:.9}),{}):new THREE.MeshLambertMaterial({vertexColors:true})}
 function eRel(mesh,root){let m=new THREE.Matrix4(),t=mesh;while(t&&t!==root){m=new THREE.Matrix4().compose(t.position,new THREE.Quaternion().setFromEuler(t.rotation),t.scale).multiply(m);t=t.parent}return m}
 function eFlatten(root,rough,metal){const list=[];const walk=o=>{for(const c of o.children){if(c.userData&&c.userData.dyn)continue;
@@ -465,7 +465,7 @@ function eFlatten(root,rough,metal){const list=[];const walk=o=>{for(const c of 
  const mesh=new THREE.Mesh(geo,eFlatMat(rough,metal));mesh.castShadow=sh;mesh.receiveShadow=true;root.add(mesh)}
 EST.objs={doors:[],mach:{},boxes:[],walls:[],crates:[],rings:[],pap:null};
 /* a weapon model for displays: built once per weapon, scaled to a fixed length, centred; barrel along x */
-const EGUN={};
+var EGUN={};
 function eGunModel(k,len){const key=k+'|'+len;if(EGUN[key])return EGUN[key].clone();let g;try{g=k=='NF'?(typeof objBuild=='function'?objBuild('nfists'):null):k=='KT'?(typeof objBuild=='function'?objBuild('katana'):null):buildGun(k)}catch(e){g=null}
  if(!g){g=new THREE.Group();eMk(g,EG.box,eM(0x2a2c30,0,.5,.7),0,0,0,.9,.1,.1)}
  const w=new THREE.Group();w.add(g);const bb=new THREE.Box3().setFromObject(g),sz=bb.getSize(new THREE.Vector3()),ct=bb.getCenter(new THREE.Vector3()),L=Math.max(sz.x,sz.y,sz.z,.01),sc=len/L;g.position.sub(ct);w.scale.setScalar(sc);
@@ -556,7 +556,7 @@ function estBox(m,idx){const g=new THREE.Group(),f=eFace(m.f),[fx,fz]=eFwd(m.f);
  o.sp={x:m.x,y:1.4,z:m.z,col:0xffd24a,I:0,d:12,fl:.5,ph:0,cur:0,want:0,L:null};EST.spots.push(o.sp);
  eFlatten(g,.7,.2);const[ww,dd]=eSwap(m.f,2.0,1.1);o.sw=[m.x,m.z,ww,dd];o.on=false;g.visible=false;zG.add(g);zboxes.push(o);EST.objs.boxes.push(o);
  zi.push({x:m.x,z:m.z,r:3.2,txt:()=>!o.on||o.st==3?'':o.st==0?'Mystery Box':o.st==2&&o.by==zMe()?'Take the '+zItemName(o.item):'',cost:()=>o.st==0?zBoxCost():0,act:()=>zBoxAct(o,idx)})}
-let o_inner=null;
+var o_inner=null;
 function estBoxState(o,st){if(st==1){burst(V(o.m.x,1,o.m.z),22,0xffd24a,6,.7,.12);noise(.25,300,.2);beep(160,.4,'triangle',.07)}else if(st==0){while(o.wm.children.length)o.wm.remove(o.wm.children[0]);o.cur=null;noise(.2,200,.2)}}
 function estBoxShow(o,k,fin){if(o.cur!==k||fin){while(o.wm.children.length)o.wm.remove(o.wm.children[0]);const it=eGunModel(k,fin?1.4:1.15);o.wm.add(it);o.cur=k}if(fin){burst(V(o.m.x,1.9,o.m.z),26,k=='RG'||k=='NF'?0xff4a4a:0x7bf08a,6,.7,.12);shake=Math.max(shake,.15)}}
 function estBoxTick(o,dt,t){const open=o.st==3?-1.9*Math.max(0,Math.sin(t*26)):o.st>0?-1.9:0,fire=zq.pu&&zq.pu.fire>0;
@@ -629,13 +629,13 @@ function estTick(dt){const t=EST.tm+=dt,M=MAPS[sel.map];if(!M||!M.zm)return;
  for(let i=O.rings.length-1;i>=0;i--){const r=O.rings[i];r.t+=dt;const u=r.t/.7;r.m.scale.setScalar(1+u*6);r.m.material.opacity=.7*(1-u);if(u>=1){r.m.parent&&r.m.parent.remove(r.m);r.m.geometry.dispose();O.rings.splice(i,1)}}
  /* the world: indoors is darker than the grounds; storms flash through the boarded windows */
  const inside=!!eRoomAt(P.x,P.z);EST.amb=(EST.amb==null?1:EST.amb);EST.amb+=((inside?.62:1)-EST.amb)*Math.min(1,dt*2.2);
- const lt=EST.lt;lt.next-=dt;if(lt.next<=0){lt.next=9+Math.random()*19;lt.flash=1;lt.rep=Math.random()<.5?2:1;setTimeout(()=>{if(zq){noise(1.6,90,.45);beep(48,1.3,'sawtooth',.09)}},350+Math.random()*1100)}
+ const lt=EST.lt,dayM=!!M.day;lt.next-=dt;if(dayM)lt.next=Math.max(lt.next,60);if(lt.next<=0){lt.next=9+Math.random()*19;lt.flash=1;lt.rep=Math.random()<.5?2:1;setTimeout(()=>{if(zq){noise(1.6,90,.45);beep(48,1.3,'sawtooth',.09)}},350+Math.random()*1100)}
  if(lt.flash>0){lt.flash=Math.max(0,lt.flash-dt*(lt.flash>.5?2.6:1.6));if(lt.flash<.3&&lt.rep>1){lt.rep--;lt.flash=.9}}
- const base=(M.hemi||.62)*(LX.pbr?.55:1);hemi.intensity=base*EST.amb*(1+lt.flash*1.7);sun.intensity=((M.sunI==null?.3:M.sunI)*(LX.pbr?1.2:1))*(1+lt.flash*3.2);if(lt.flash>.4)LX.fx.pulse=Math.max(LX.fx.pulse,lt.flash*.25);
+ const base=(M.hemi||.62)*(LX.pbr?.55:1);hemi.intensity=base*EST.amb*(1+lt.flash*(dayM?.25:1.7));sun.intensity=((M.sunI==null?.3:M.sunI)*(LX.pbr?1.2:1))*(1+lt.flash*(dayM?.3:3.2));if(lt.flash>.4)LX.fx.pulse=Math.max(LX.fx.pulse,lt.flash*(dayM?.12:.25));
  if(EST.fog)for(const f of EST.fog){f.s.position.x+=f.vx*dt;if(f.s.position.x>52)f.s.position.x=-52;if(f.s.position.x<-52)f.s.position.x=52;f.s.material.opacity=.14+.1*Math.sin(t*.3+f.ph)}
  /* the pooled lights */
  estLights(dt,t)}
-let _estLT=0;
+var _estLT=0;
 function estLights(dt,t){const sp=EST.spots,pool=EST.pool;if(!pool||!pool.length)return;_estLT-=dt;
  if(_estLT<=0){_estLT=.12;const cx=C.position.x,cz=C.position.z;for(const s of sp)s.d2=(s.x-cx)*(s.x-cx)+(s.z-cz)*(s.z-cz)+(s.I>0?0:1e6);const ord=sp.slice().sort((a,b)=>a.d2-b.d2).slice(0,pool.length),set=new Set(ord);
   for(const sl of pool)if(sl.s&&!set.has(sl.s))sl.s.want=0;for(const sl of pool)if(sl.s&&sl.s.cur<.03&&sl.s.want==0){sl.s.L=null;sl.s=null;sl.L.intensity=0}
@@ -646,7 +646,7 @@ function estLights(dt,t){const sp=EST.spots,pool=EST.pool;if(!pool||!pool.length
 function estFlicker(dt,t){const S_=EST.ptm;if(!S_)return;for(const k in S_){const e=S_[k],s=e.s,n=s.p.length/3,ca=e.col.array;if(k=='s'){const pa=e.m.geometry.attributes.position.array;for(let i=0;i<n;i++){const ph=s.f[i*2+1],u=((t*.22+ph*.17)%1);pa[i*3+1]=s.p[i*3+1]+u*6;pa[i*3]=s.p[i*3]+Math.sin(t*.7+ph)*u*1.4;const f=(1-u)*.55;ca[i*3]=s.base[i*3]*f;ca[i*3+1]=s.base[i*3+1]*f;ca[i*3+2]=s.base[i*3+2]*f}e.m.geometry.attributes.position.needsUpdate=true;e.col.needsUpdate=true;continue}
   const amp=k=='F'?.5:k=='f'?.3:.14;for(let i=0;i<n;i++){const ph=s.f[i*2+1],fl=s.f[i*2],f=fl?1+(Math.sin(t*(9+ph%6)+ph)*.5+Math.sin(t*17+ph*3)*.35)*amp+(Math.random()<.04?-.25*fl:0):1;ca[i*3]=s.base[i*3]*f;ca[i*3+1]=s.base[i*3+1]*f;ca[i*3+2]=s.base[i*3+2]*f}e.col.needsUpdate=true}}
 /* a new round: thunder, a low bell, and a red flash when the brutes come */
-function estRound(r,br){EST.lt.flash=1;EST.lt.rep=2;EST.lt.next=14+Math.random()*10;[196,147,98].forEach((f,i)=>setTimeout(()=>{beep(f,1.4,'sine',.1);beep(f*2,1,'triangle',.04)},i*620));if(br){LX.fx.dmg=Math.max(LX.fx.dmg,.35);shake=Math.max(shake,.4)}}
+function estRound(r,br){const dm=MAPS[sel.map]&&MAPS[sel.map].day;EST.lt.flash=dm?.35:1;EST.lt.rep=dm?1:2;EST.lt.next=14+Math.random()*10;if(br){LX.fx.dmg=Math.max(LX.fx.dmg,.35);shake=Math.max(shake,.4)}}
 
 /* the map is built lazily; if the Zombies mode is the saved mode make sure the menu shows the new mansion */
 if(typeof sel!=='undefined'&&sel.mode=='Zombies'&&typeof fixZM=='function'){try{fixZM();ui();buildMap()}catch(e){console.warn('estate init',e)}}

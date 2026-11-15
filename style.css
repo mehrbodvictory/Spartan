@@ -518,3 +518,76 @@ kbd.pg{font-family:system-ui,"Segoe UI Symbol","Apple Symbols",sans-serif;font-w
 .zmap i{display:inline-block;font-style:normal;font-family:Teko,Impact,sans-serif;font-size:24px;padding:2px 28px;background:var(--am);color:#1b1408;clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%)}
 .zmap:hover,.zmap:focus{transform:translateY(-3px);border-color:var(--am);background:linear-gradient(135deg,#1a3a46,#10242c)}
 #egg{display:none;position:absolute;left:50%;top:84px;transform:translateX(-50%);padding:6px 18px;font:700 22px Teko,Impact,sans-serif;letter-spacing:.06em;color:#ffd890;background:rgba(20,14,6,.7);border:1px solid #c98a3b;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);text-shadow:0 0 8px #c98a3b}
+
+/* ---- Zombies: no health or shield bars; a blood vignette replaces them ---- */
+body.zom #bars{display:none!important}
+#zblood{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .35s;background:radial-gradient(ellipse at 50% 50%,transparent 38%,rgba(120,0,6,.38) 70%,rgba(70,0,4,.82) 100%)}
+#zblood.crit{animation:zbeat .9s ease-in-out infinite}
+@keyframes zbeat{0%,100%{filter:brightness(1)}18%{filter:brightness(1.55)}34%{filter:brightness(.9)}50%{filter:brightness(1.35)}}
+
+/* ---- The Brew: heat gauge ---- */
+#teaheat{position:absolute;left:50%;bottom:calc(150px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:210px;height:12px;display:none;pointer-events:none;border-radius:7px;background:rgba(10,14,20,.62);box-shadow:0 0 0 1px rgba(255,255,255,.18),0 4px 14px rgba(0,0,0,.5);overflow:hidden}
+#teaheat i{display:block;height:100%;width:0;border-radius:7px;background:linear-gradient(90deg,#ffd9a0,#e8963a 55%,#d4402a);transition:width .08s linear}
+#teaheat b{position:absolute;left:0;right:0;top:-17px;text-align:center;font:700 13px Teko,sans-serif;letter-spacing:.2em;color:#ffe3b8;text-shadow:0 1px 4px #000}
+#teaheat.hot{animation:thot .35s ease-in-out infinite}#teaheat.vent i{background:linear-gradient(90deg,#9aa6b2,#d8dee6);animation:tvent .5s linear infinite}
+@keyframes thot{50%{box-shadow:0 0 0 1px #ff8a5a,0 0 18px #ff5a2a}}@keyframes tvent{50%{opacity:.55}}
+
+/* ---- Tier III Pack-a-Punch: threat chevrons at the screen edge (soft, nearest few only) ---- */
+.tsa{position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;opacity:0;z-index:6;will-change:transform,opacity}
+.tsa i{position:absolute;left:-11px;top:-11px;width:22px;height:22px;background:linear-gradient(180deg,rgba(255,70,50,.95),rgba(255,40,30,0));clip-path:polygon(50% 0,100% 100%,50% 72%,0 100%);filter:drop-shadow(0 0 6px rgba(255,50,40,.85))}
+
+/* ---- Zombies death sequences ---- */
+body.zdying #hud>*:not(#zdeath){opacity:0!important;transition:opacity .35s}
+#zdeath{position:fixed;inset:0;z-index:30;pointer-events:none;display:none;overflow:hidden}
+#zdeath.on{display:block}
+#zdeath .zd-v{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 46%,transparent calc(62% - var(--a,0)*52%),rgba(40,0,4,calc(.35 + var(--a,0)*.55)) 100%);backdrop-filter:grayscale(var(--g,0)) blur(calc(var(--bl,0)*1px))}
+#zdeath.k-maul .zd-v,#zdeath.k-crush .zd-v{background:radial-gradient(ellipse at 50% 46%,transparent calc(60% - var(--a,0)*50%),rgba(110,0,8,calc(.3 + var(--a,0)*.6)) 100%)}
+#zdeath.k-spirit .zd-v{background:radial-gradient(ellipse at 50% 46%,transparent calc(60% - var(--a,0)*40%),rgba(120,170,220,calc(.1 + var(--a,0)*.35)) 100%)}
+#zdeath::after{content:"";position:absolute;inset:0;background:#000;opacity:var(--f,0)}
+#zdeath .zd-b{position:absolute;left:0;right:0;height:11vh;background:#000;transition:transform 1s cubic-bezier(.2,.8,.2,1)}
+#zdeath .zd-b.top{top:0;transform:translateY(-100%)}#zdeath .zd-b.bot{bottom:0;transform:translateY(100%)}
+#zdeath.on .zd-b{transform:none}
+#zdeath .zd-t{position:absolute;left:0;right:0;bottom:17vh;text-align:center;opacity:var(--t,0);z-index:2}
+#zdeath .zd-t small{display:block;font:600 14px Teko,sans-serif;letter-spacing:.5em;color:#ffffffa0}
+#zdeath .zd-t b{display:block;font:700 clamp(46px,9vw,110px)/1 Teko,Oswald,Impact,sans-serif;letter-spacing:.14em;color:#e8dcd0;text-shadow:0 0 30px rgba(180,0,10,.7),0 4px 0 #000}
+#zdeath.k-spirit .zd-t b{color:#e8f4ff;text-shadow:0 0 34px rgba(150,200,255,.8),0 4px 0 #000}
+#zdeath .zd-t i{display:block;margin-top:8px;font:italic 400 16px Georgia,serif;letter-spacing:.12em;color:#c9b8b0}
+#zdeath .cl{position:absolute;width:5px;height:34vh;border-radius:3px;background:linear-gradient(180deg,rgba(150,0,8,0),rgba(170,0,10,.95) 18%,rgba(90,0,4,.9));transform-origin:50% 0;animation:zdcl .22s ease-out var(--d,0ms) both}
+@keyframes zdcl{from{clip-path:inset(0 0 100% 0);opacity:0}to{clip-path:inset(0);opacity:1}}
+#zdeath .bt{position:absolute;border-radius:48% 52% 55% 45%;background:radial-gradient(circle,rgba(140,0,8,.92) 0,rgba(110,0,6,.8) 40%,rgba(80,0,4,0) 70%);animation:zdbt .25s ease-out both}
+@keyframes zdbt{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* ---- kill combo counter ---- */
+#combo{position:absolute;left:50%;top:56%;transform:translateX(-50%);font:700 44px Teko,Impact,sans-serif;letter-spacing:.06em;color:#ffe08a;text-shadow:0 0 18px rgba(255,170,40,.8),0 3px 0 rgba(0,0,0,.7);opacity:0;pointer-events:none}
+#combo.on{opacity:1;animation:combopop .32s cubic-bezier(.2,1.6,.3,1) both}
+@keyframes combopop{0%{transform:translateX(-50%) scale(.4)}100%{transform:translateX(-50%) scale(1)}}
+
+/* ---- spawn shield cue ---- */
+#spawnshield{position:absolute;left:50%;top:22%;transform:translateX(-50%);padding:5px 16px;border-radius:20px;font:700 14px Teko,sans-serif;letter-spacing:.3em;color:#bfe6ff;background:rgba(40,90,140,.35);box-shadow:0 0 0 1px rgba(150,210,255,.5),0 0 24px rgba(90,170,255,.45);opacity:0;transition:opacity .3s;pointer-events:none}
+#spawnshield.on{opacity:1;animation:sshield 1s ease-in-out infinite}@keyframes sshield{50%{box-shadow:0 0 0 1px rgba(150,210,255,.8),0 0 34px rgba(90,170,255,.8)}}
+
+/* ---- Cinder Hound round: the announcer's line ---- */
+#hsub{position:fixed;left:0;right:0;bottom:24%;text-align:center;pointer-events:none;opacity:0;z-index:12;font:italic 400 clamp(20px,3.2vw,40px) Georgia,serif;letter-spacing:.14em;color:#e8c8b8;text-shadow:0 0 22px rgba(190,30,10,.85),0 3px 0 #000;transition:opacity .8s}
+#hsub.on{opacity:1}
+
+/* ---- Chewables: gum card, effect overlays, the picker ---- */
+#gumhud{position:absolute;left:22px;bottom:150px;display:none;align-items:center;gap:10px;padding:8px 14px 8px 10px;border-radius:12px;background:rgba(10,14,22,.62);box-shadow:0 0 0 1px rgba(255,255,255,.14),0 6px 18px rgba(0,0,0,.45);backdrop-filter:blur(6px);pointer-events:none}
+#gumhud.on{display:flex}#gumhud i{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff9,var(--c) 55%,#0008);box-shadow:0 0 14px var(--c)}
+#gumhud b{font:700 18px Teko,sans-serif;letter-spacing:.08em;color:#fff}#gumhud span{font:600 13px Teko,sans-serif;letter-spacing:.12em;color:#ffffffb0;margin-left:2px}
+#gmfx{position:fixed;inset:0;pointer-events:none;z-index:5}
+#gmfx.g-ghost{background:radial-gradient(ellipse,transparent 40%,rgba(150,170,220,.35));backdrop-filter:saturate(.5) brightness(1.1)}
+#gmfx.g-freeze{background:radial-gradient(ellipse,rgba(120,220,255,.08) 30%,rgba(60,170,255,.4));backdrop-filter:saturate(.6) hue-rotate(-10deg)}
+#gmfx.g-stasis{box-shadow:inset 0 0 120px rgba(120,230,255,.35)}#gmfx.g-th{box-shadow:inset 0 0 140px rgba(60,255,230,.3)}#gmfx.g-disc{box-shadow:inset 0 0 90px rgba(255,210,60,.28)}
+#gmfx.g-vint{backdrop-filter:grayscale(1) contrast(1.18) brightness(.95);background:repeating-linear-gradient(90deg,transparent 0 97px,rgba(255,255,255,.07) 97px 98px),radial-gradient(ellipse,transparent 50%,rgba(0,0,0,.5));animation:vint .12s steps(2) infinite}
+@keyframes vint{0%{background-position:0 0,0 0}50%{background-position:7px 0,0 0}}
+#gumbtn{display:block;margin:14px auto 0;padding:14px 26px;border:0;border-radius:14px;cursor:pointer;color:#fff;background:linear-gradient(135deg,#d8332a,#f0a21e);box-shadow:0 8px 24px rgba(0,0,0,.4);text-align:left}
+#gumbtn b{display:block;font:700 22px Teko,sans-serif;letter-spacing:.14em}#gumbtn i{font:italic 13px Georgia,serif;opacity:.9}
+#gumsel{position:fixed;inset:0;z-index:60;display:none;background:rgba(6,9,14,.88);overflow:auto;backdrop-filter:blur(8px)}
+#gumsel .gs-w{max-width:1100px;margin:0 auto;padding:28px 22px 60px}.gs-h{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.gs-h b{font:700 40px Teko,sans-serif;letter-spacing:.16em;color:#ffd24a}.gs-h span{flex:1;color:#b8c0cc;font:14px Georgia,serif}
+.gs-h button{padding:10px 26px;border:0;border-radius:10px;background:#ffd24a;font:700 18px Teko,sans-serif;letter-spacing:.14em;cursor:pointer}
+.gs-slots{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:18px 0 8px}.gs-s{padding:12px;border-radius:12px;border:1px dashed #ffffff40;min-height:74px;color:#ffffff90;cursor:pointer}
+.gs-s.on{border:1px solid var(--c);background:linear-gradient(160deg,color-mix(in srgb,var(--c) 30%,#0b1018),#0b1018);color:#fff;box-shadow:0 0 18px color-mix(in srgb,var(--c) 40%,transparent)}.gs-s b,.gs-c b{display:block;font:700 18px Teko,sans-serif;letter-spacing:.06em}.gs-s small,.gs-c small{font:600 11px Teko,sans-serif;letter-spacing:.14em;opacity:.7}
+.gs-g h4{margin:22px 0 8px;font:700 15px Teko,sans-serif;letter-spacing:.3em;color:#ffffff90}.gs-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.gs-c{position:relative;padding:12px 12px 12px 48px;border-radius:12px;background:#10161f;border:1px solid #ffffff1c;cursor:pointer;color:#fff;transition:transform .12s,border-color .12s}.gs-c:hover{transform:translateY(-2px);border-color:var(--c)}
+.gs-c.sel{border-color:var(--c);box-shadow:0 0 16px color-mix(in srgb,var(--c) 45%,transparent)}.gs-c.lk{opacity:.4;cursor:not-allowed}.gs-c p{margin:6px 0 0;font:12px Georgia,serif;color:#b8c0cc;line-height:1.35}
+.gs-c i,.gs-s i{position:absolute;left:12px;top:14px;width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff9,var(--c) 55%,#0008);box-shadow:0 0 12px var(--c)}.gs-s{position:relative;padding-left:48px}.gs-s i{top:16px}

@@ -41,16 +41,58 @@ MODELS.TEA=function(g,rm){const k=gunKit(g,rm),M=k.M,E=k.E,cop=rm||M(0xb8733a),b
  /* a lamp that shows the cannon is hot */
  k.sph(.01,0,.083,.44,amb);
  g.userData.a={r:[0,-.07,.075],l:[0,-.02,.36],m:[0,-.05,.3]};g.userData.mags=mags;return g};
-/* the beam: a thick stream of tea (a dark outer glow, an amber body, a pale hot core) with droplets and steam along its length */
-function teaBeam(o,d,len,raw){const s=raw?o.clone():o.clone().add(d.clone().multiplyScalar(.7)).add(V(0,-.12,0)),e=o.clone().add(d.clone().multiplyScalar(len)),mid=s.clone().add(e).multiplyScalar(.5),L=s.distanceTo(e),dir=e.clone().sub(s).normalize();
- for(const[r,c,op,k]of[[.24,0x6a3a14,.2,1],[.13,0xc98a3b,.5,1.3],[.055,0xffe0b0,.95,2.2]]){const mt=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:op});mt.color.multiplyScalar(k);const m=new THREE.Mesh(bmG,mt);m.position.copy(mid);m.scale.set(r,L,r);m.quaternion.setFromUnitVectors(V(0,1,0),dir);S.add(m);fx.push({m,l:.26,fade:op,r})}
- try{const dm=TEAB.m||(TEAB.m=(()=>{const q=new THREE.MeshBasicMaterial({color:0xd9953f});q.color.multiplyScalar(1.7);return q})());
-  for(let i=0,n=Math.min(24,Math.floor(L/1.3));i<n;i++){const p=s.clone().lerp(e,Math.random());p.x+=(Math.random()-.5)*.4;p.y+=(Math.random()-.5)*.4;p.z+=(Math.random()-.5)*.4;const m=new THREE.Mesh(sg,dm),sc=.035+Math.random()*.06;m.scale.set(sc,sc*1.2,sc);m.position.copy(p);S.add(m);JX.teas.push({m,v:V((Math.random()-.5)*1.2,Math.random()*.8,(Math.random()-.5)*1.2),s:sc,t:0})}
-  for(let i=0;i<5;i++)JX.h.addSp({p:s.clone().lerp(e,Math.random()*Math.min(1,10/L)),s0:.3,s1:1.1,life:.9,c:[.9,.88,.84],op:.3,tex:JX.h.puffTex,add:false,v:V(0,.5,0),dr:.9})}catch(x){}}
-const TEAB={};
-/* the beam goes through everything on its line: every zombie close to it takes a scalding hit of its own (the first one is hit by the shot itself) */
-function teaPierce(o,d,len,w,first){if(typeof bots=='undefined')return;const hits=[];for(const b of bots){if(!b.zom||!b.al)continue;const vx=b.x-o.x,vy=(b.y||0)+1-o.y,vz=b.z-o.z,t=vx*d.x+vy*d.y+vz*d.z;if(t<1||t>len)continue;const px=vx-d.x*t,py=vy-d.y*t,pz=vz-d.z*t;if(Math.hypot(px,py,pz)>(b.big?1.7:1.15))continue;if(Math.abs(t-first)<1)continue;hits.push([t,b])}
- hits.sort((a,b)=>a[0]-b[0]);for(const[t,b]of hits.slice(0,5))boom(V(b.x,(b.y||0)+1,b.z),{R:1.6,d:Math.round(w.ex.d*.7),imp:0,w:'TEA',c:0xd9953f})}
+/* ---------- the beam ----------
+   Hold fire: a continuous jet of scalding tea. It is ONE persistent beam (three meshes that follow your aim every frame), not a new beam per shot. Heat is the magazine:
+   every tick of the beam heats the boiler, it cools by itself when you let go, and if it runs dry the boiler OVERHEATS: steam vents and you cannot fire until it has vented (the reload).
+   Everything on the line takes damage every tick (up to 6 zombies), the end of the beam splashes and scalds. Other players see the beam too (one short message every 0.1 s). */
+var TB={hold:0,fire:0,ms:[],snd:null,splT:0,dropT:0,steamT:0,ns:0,over:0,was:0,bar:null,lastBar:'',t:0};
+function teaMake(){if(TB.ms.length)return;for(const[r,c,op,k]of[[.2,0x6a3a14,.2,1],[.11,0xc98a3b,.55,1.3],[.045,0xffe0b0,.95,2.2]]){const mt=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:op,depthWrite:false});mt.color.multiplyScalar(k);const m=new THREE.Mesh(bmG,mt);m.visible=false;m.frustumCulled=false;S.add(m);TB.ms.push({m,r,op,k})}}
+function teaNet(){if(t0-TB.ns>.1){TB.ns=t0;return true}return false}
+/* the player's own beam: called once per tick of the gun; remote shots (raw) are a short one-shot beam */
+function teaBeam(o,d,len,raw){if(!raw){TB.hold=.12;TB.fire=.16;return}
+ const s=o.clone(),e=o.clone().add(d.clone().multiplyScalar(len)),mid=s.clone().add(e).multiplyScalar(.5),L=s.distanceTo(e),dir=e.clone().sub(s).normalize();
+ for(const[r,c,op,k]of[[.2,0x6a3a14,.2,1],[.11,0xc98a3b,.55,1.3],[.045,0xffe0b0,.95,2.2]]){const mt=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:op});mt.color.multiplyScalar(k);const m=new THREE.Mesh(bmG,mt);m.position.copy(mid);m.scale.set(r,L,r);m.quaternion.setFromUnitVectors(V(0,1,0),dir);S.add(m);fx.push({m,l:.2,fade:op,r})}
+ try{for(let i=0;i<3;i++)JX.h.addSp({p:s.clone().lerp(e,Math.random()*Math.min(1,10/L)),s0:.3,s1:1.1,life:.9,c:[.9,.88,.84],op:.3,tex:JX.h.puffTex,add:false,v:V(0,.5,0),dr:.9})}catch(x){}}
+var TEAB={};
+/* every zombie close to the beam takes a scalding hit each tick (the first one is hit by the shot itself); the end of the beam splashes everything around it */
+function teaPierce(o,d,len,w,first){if(typeof bots=='undefined')return;const hits=[],dm=Math.round(w.d*.8*(typeof zmul=='function'?zmul(w):1));
+ for(const b of bots){if(!b.zom||!b.al)continue;const vx=b.x-o.x,vy=(b.y||0)+1-o.y,vz=b.z-o.z,t=vx*d.x+vy*d.y+vz*d.z;if(t<1||t>len)continue;const px=vx-d.x*t,py=vy-d.y*t,pz=vz-d.z*t;if(Math.hypot(px,py,pz)>(b.big?1.7:1.15))continue;if(Math.abs(t-first)<1)continue;hits.push([t,b])}
+ hits.sort((a,b)=>a[0]-b[0]);for(const[t,b]of hits.slice(0,5)){hitBot(b,dm,0);b.stun=Math.max(b.stun||0,.5)}
+ if(t0-TB.splT>.12){TB.splT=t0;const e=o.clone().add(d.clone().multiplyScalar(Math.min(len,first+.1)));for(const b of bots){if(!b.zom||!b.al)continue;if(Math.hypot(b.x-e.x,(b.y||0)+1-e.y,b.z-e.z)<2.4){hitBot(b,Math.round(dm*.45),0);b.stun=Math.max(b.stun||0,.9)}}}}
+/* per frame: the persistent beam, the heat bar, steam, overheating, cooling and the hissing / boiling sound */
+function teaTick(dt){const w=(typeof wp!='undefined'&&wp&&wp[cur])?wp[cur]:null,tea=!!w&&w.k=='TEA'&&run&&!P.dead&&mode=='Zombies';TB.t+=dt;
+ if(!TB.bar&&typeof document!='undefined'){const e=document.createElement('div');e.id='teaheat';e.innerHTML='<i></i><b>THE BREW</b>';const h=document.getElementById('hud');if(h){h.appendChild(e);TB.bar=e}}
+ if(!tea){for(const q of TB.ms)q.m.visible=false;if(TB.bar&&TB.lastBar!=='off'){TB.bar.style.display='none';TB.lastBar='off'}teaSound(0,0);TB.hold=0;TB.over=0;return}
+ teaMake();w.res=Math.max(w.res,w.m*3);const heat=1-Math.max(0,w.mag)/w.m,venting=rel>0;
+ if(TB.hold>0)TB.hold-=dt;if(TB.fire>0)TB.fire-=dt;
+ /* cooling: the boiler rests when you stop; during the vent it refills at the reload */
+ if(TB.hold<=0&&!venting&&w.mag<w.m)w.mag=Math.min(w.m,w.mag+dt*(w.m*.26));
+ const o=(typeof vrOrg=='function'&&vrOrg())||C.position.clone(),d=aimDir(),on=TB.hold>0&&!venting;
+ if(on){const wl=Math.min(castW(o,d,120),120),s=o.clone().add(d.clone().multiplyScalar(.7)).add(V(0,-.12,0)),e=o.clone().add(d.clone().multiplyScalar(wl)),mid=s.clone().add(e).multiplyScalar(.5),L=Math.max(.2,s.distanceTo(e)),dir=e.clone().sub(s).normalize(),fl=1+.12*Math.sin(TB.t*47)+.06*Math.sin(TB.t*23);
+  TB.ms.forEach((q,i)=>{q.m.visible=true;q.m.position.copy(mid);q.m.scale.set(q.r*fl*(i==0?1+heat*.5:1),L,q.r*fl*(i==0?1+heat*.5:1));q.m.quaternion.setFromUnitVectors(V(0,1,0),dir);q.m.material.opacity=q.op*(.88+.12*Math.sin(TB.t*31+i));if(i==2)q.m.material.color.setRGB(2.2,2.2-heat*1.1,2.2-heat*1.9)});
+  TB.dropT-=dt;if(TB.dropT<=0){TB.dropT=.07;try{const H=JX.h;for(let i=0;i<2;i++){const p=s.clone().lerp(e,Math.random()*Math.min(1,14/L));H.addSp({p,s0:.07,s1:.2,life:.4,c:[2.2,1.3,.5],op:.9,tex:H.flareTex,v:V((Math.random()-.5)*1.4,Math.random()*1.4,(Math.random()-.5)*1.4),dr:.9})}H.addSp({p:s.clone().lerp(e,Math.random()*Math.min(1,10/L)),s0:.3,s1:1.1,life:.8,c:[.9,.88,.84],op:.26,tex:H.puffTex,add:false,v:V(0,.6,0),dr:.9})}catch(x){}}
+  if(t0-TB.splT>.2&&wl<119){try{JX.tea&&JX.tea(e,{R:2.4})}catch(x){}}
+  kick+=.0012;shake=Math.max(shake,.05+heat*.12);LX.fx.pulse=Math.max(LX.fx.pulse,.1+heat*.15)}
+ else for(const q of TB.ms)q.m.visible=false;
+ /* steam from the boiler when it runs hot, a big hiss when it overheats */
+ if((heat>.62&&TB.hold>0)||venting){TB.steamT-=dt;if(TB.steamT<=0){TB.steamT=venting?.05:.12;try{const H=JX.h,p=C.position.clone().add(aimDir().multiplyScalar(.5)).add(V(.1,-.05+(Math.random()-.3)*.1,0));H.addSp({p,s0:.15,s1:venting?1.4:.8,life:venting?1.1:.7,c:[.95,.93,.9],op:venting?.45:.3,tex:H.puffTex,add:false,v:V((Math.random()-.5)*.8,.9+Math.random()*.9,(Math.random()-.5)*.8),dr:.9})}catch(x){}}}
+ if(venting&&!TB.was){TB.was=1;teaVent();shake=Math.max(shake,.5);popup&&0}if(!venting)TB.was=0;
+ teaSound(on?1:0,heat);
+ if(TB.bar){const pc=Math.round(heat*100),txt=venting?'V':pc>=100?'X':pc;const key=venting?'v'+Math.round(rel*5):pc+'';if(TB.lastBar!==key){TB.lastBar=key;TB.bar.style.display='block';const i=TB.bar.firstChild;i.style.width=(venting?100:pc)+'%';TB.bar.className=venting?'vent':heat>.75?'hot':'';TB.bar.lastChild.textContent=venting?'VENTING…':heat>.75?'OVERHEATING':'THE BREW'}}}
+{const _t=LX.tick;LX.tick=function(dt){_t.call(this,dt);try{teaTick(dt)}catch(e){}}}
+/* HUD line for the ammo counter: heat instead of rounds */
+function teaAm(){const w=cw(),h=Math.round((1-Math.max(0,w.mag)/w.m)*100);return `${rel>0?'VENT':h+'%'}<small>${rel>0?'Venting steam…':'Heat'}`}
+/* sound: a pressurised hiss, a rolling boil under it and a thin whistle that climbs as the boiler heats; stops softly */
+function teaSound(on,heat){try{if(!on&&!TB.snd)return;ac=ac||new AudioContext();const c=ac;
+ if(!TB.snd){const nb=c.createBuffer(1,c.sampleRate*2,c.sampleRate),a=nb.getChannelData(0);let p=0;for(let i=0;i<a.length;i++){p=p*.4+(Math.random()*2-1)*.6;a[i]=p}
+  const mkN=(type,f,q)=>{const s=c.createBufferSource(),fl=c.createBiquadFilter(),g=c.createGain();s.buffer=nb;s.loop=true;fl.type=type;fl.frequency.value=f;fl.Q.value=q;g.gain.value=.0001;s.connect(fl);fl.connect(g);g.connect(c.destination);s.start();return{s,fl,g}},
+  hiss=mkN('bandpass',3000,.7),boil=mkN('lowpass',260,.8),wh=c.createOscillator(),wg=c.createGain();wh.type='sine';wh.frequency.value=1700;wg.gain.value=.0001;wh.connect(wg);wg.connect(c.destination);wh.start();TB.snd={hiss,boil,wh,wg}}
+ const S_=TB.snd,t=c.currentTime,v=on?vol:0;S_.hiss.g.gain.setTargetAtTime(on?.055*v:.0001,t,.05);S_.boil.g.gain.setTargetAtTime(on?.16*v:.0001,t,.08);S_.hiss.fl.frequency.setTargetAtTime(2600+heat*1800,t,.1);S_.boil.fl.frequency.setTargetAtTime(220+Math.sin(TB.t*9)*40,t,.05);
+ S_.wh.frequency.setTargetAtTime(1500+heat*1400,t,.1);S_.wg.gain.setTargetAtTime(on&&heat>.45?.014*v*Math.min(1,(heat-.45)*3):.0001,t,.08)}catch(e){}}
+/* the overheat: a long hiss and a falling whistle */
+function teaVent(){try{ac=ac||new AudioContext();const c=ac,t=c.currentTime,n=c.sampleRate*1.4,b=c.createBuffer(1,n,c.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*Math.pow(1-i/n,1.3);
+ const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=b;f.type='highpass';f.frequency.value=1800;g.gain.setValueAtTime(.16*vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+1.4);s.connect(f);f.connect(g);g.connect(c.destination);s.start();
+ const o=c.createOscillator(),og=c.createGain();o.type='sine';o.frequency.setValueAtTime(2300,t);o.frequency.exponentialRampToValueAtTime(900,t+.9);og.gain.setValueAtTime(.035*vol,t);og.gain.exponentialRampToValueAtTime(.0001,t+.9);o.connect(og);og.connect(c.destination);o.start(t);o.stop(t+.95)}catch(e){}}
 /* tea splash: amber droplets, drifting steam and a puddle that steams away (same idea as the RayGun ooze, a different look) */
 {const{cv,addSp,rnd,flareTex,puffTex,F,hi}=JX.h,dm=[1.9,1.4,1].map(k=>{const m=new THREE.MeshBasicMaterial({color:0xd9953f});m.color.multiplyScalar(k);return m}),
  pt=cv(128,128,(g,w,h)=>{const r=g.createRadialGradient(64,64,3,64,64,62);r.addColorStop(0,'rgba(240,190,110,.95)');r.addColorStop(.5,'rgba(170,95,35,.85)');r.addColorStop(.9,'rgba(120,60,20,.5)');r.addColorStop(1,'rgba(90,40,10,0)');g.fillStyle=r;g.fillRect(0,0,w,h)}),
@@ -68,7 +110,7 @@ function teaScald(p,R){if(typeof bots=='undefined')return;for(const b of bots){i
 
 /* ===================== the map ===================== */
 MAPS.London={d:'Zombies map: Westminster, London. Big Ben over the Palace Yard, a Tube station, Parliament Square, the Abbey, a pub, a bunker and a dead substation: the power is off until you find the switch. Own weapon: The Brew',
- zm:1,H:56,open:1,facade:1,sky:0x1a2030,gr:0x2c2e34,gt:'asphalt',bc:0x8b7d62,ps:[0,46],skyk:'night',hemi:.78,hemiC:0x9fb0d8,hemiG:0x23283a,sunI:.34,sunC:0xaab8e8,fogF:150,power:1,nf:0,
+ zm:1,H:56,open:1,facade:1,day:1,sky:0xc4dcf0,gr:0x4a4c52,gt:'asphalt',bc:0x9a8c70,ps:[0,46],skyk:'day',hemi:1.05,hemiC:0xe4eeff,hemiG:0x8a8576,sunI:1.2,sunC:0xfff0d2,fogF:300,power:1,nf:0,
  outdoor:[[-8,8,8,40],[-30,-30,30,8],[-30,-42,30,-30]],links:[],lights:[],
  zs:[[-4,44,0],[4,44,0],[-5,48,0],[5,48,0],
   [0,30,1],[0,18,1],[-3,13,1],[4,22,1],[3,35,1],
@@ -91,7 +133,7 @@ MAPS.London={d:'Zombies map: Westminster, London. Big Ben over the Palace Yard, 
 MAPS.London.post=g=>estPost(g);
 /* the pooled lights, flicker and storm of the zombies pipeline belong to this map too; only the indoor test is its own */
 MAPS.London.rooms=[[-8,40,8,56],[-30,22,-8,38],[8,14,28,34],[-54,-30,-30,0],[30,-26,46,-10]];
-const lonIn=(x,z)=>MAPS.London.rooms.some(r=>x>r[0]&&x<r[2]&&z>r[1]&&z<r[3]);
+var lonIn=(x,z)=>MAPS.London.rooms.some(r=>x>r[0]&&x<r[2]&&z>r[1]&&z<r[3]);
 
 /* ---------- building the street ---------- */
 function lonBuild(){const M=MAPS.London,a=[],vv=M._v=[];EST.sd=23;EST.cols=[];EST.dyn=[];EST.spots=[];EST.pend=[];EST.fires=[];EST.mach={};EST.pendulum=[];EST.walls=[];EST.holes=[];
@@ -181,7 +223,7 @@ function noPower(){beep(110,.18,'square',.08);msg('The power is off. Find the sw
 function lonMachFx(on){const O=EST.objs,list=[],skip=new Set();for(const k in O.mach){if(k=='rev')continue;list.push(O.mach[k].g);skip.add(O.mach[k].sign)}if(O.pap)list.push(O.pap.g);const f=on?1:.07;
  for(const g of list)g.traverse(o=>{if(!o.isMesh&&!o.isSprite)return;let m=o.material;if(!m||Array.isArray(m)||!m.color||skip.has(m))return;if(!o.userData.pc){m=o.material=m.clone();o.userData.pc=m.color.clone();if(m.emissive)o.userData.pe=m.emissive.clone()}
   m.color.copy(o.userData.pc).multiplyScalar(m.isMeshBasicMaterial||m.isSpriteMaterial?f:on?1:.4);if(m.emissive&&o.userData.pe)m.emissive.copy(o.userData.pe).multiplyScalar(f)})}
-const LONEGG={got:[0,0,0],boil:0,kills:0,done:0,tt:0,items:[]};
+var LONEGG={got:[0,0,0],boil:0,kills:0,done:0,tt:0,items:[]};
 function lonPowerOn(quiet){if(zq.power)return;zq.power=1;lonMachFx(true);const lv=EST.lon&&EST.lon.lever;if(lv){lv.on=1}
  if(!quiet){EST.lt.flash=1;EST.lt.rep=3;LX.fx.pulse=Math.max(LX.fx.pulse,.5);shake=Math.max(shake,.5);noise(1.2,200,.5);beep(60,1.2,'sawtooth',.14);[392,523,659,784].forEach((f,i)=>setTimeout(()=>beep(f,.5,'triangle',.07),300+i*140));
   for(const k in EST.objs.mach){const o=EST.objs.mach[k];burst(V(o.g.position.x,1.6,o.g.position.z),22,0xfff0b0,6,.8,.12)}if(EST.objs.pap)burst(V(EST.objs.pap.g.position.x,1.6,EST.objs.pap.g.position.z),30,0xa070ff,6,.8,.14);
@@ -192,7 +234,7 @@ function lonPowerOn(quiet){if(zq.power)return;zq.power=1;lonMachFx(true);const l
 function lonAct(a){if(netOn&&!isHost){netSend({t:'zlon',a,by:zMe()});return}lonDo(a)}
 function lonDo(a){if(a=='power'){if(zq.power)return;lonPowerOn();return}if(!zq.power)return;const E=LONEGG;
  if(a.startsWith('item')){const i=+a[4];if(E.got[i])return;E.got[i]=1;lonItemFx(i);const n=E.got.reduce((s,v)=>s+v,0);msg(n<3?`Found the ${['kettle','tea tin','teacup'][i]} · tea set ${n}/3`:'The tea set is complete. Take it to Big Ben',2.4);if(n==3)popup('THE TEA SET','Bring it to the foot of Big Ben, in the Palace Yard');return}
- if(a=='brew'){if(E.done||E.boil>0||E.got.some(v=>!v))return;E.boil=70;E.kills=0;E.tt=0;popup('THE KETTLE IS ON','Hold the Palace Yard: 16 kills near the tower in 70 seconds');beep(220,.6,'sine',.1);return}}
+ if(a=='brew'){if(E.done||E.boil>0||E.got.some(v=>!v))return;E.boil=70;E.kills=0;E.tt=0;popup('THE KETTLE IS ON','Only zombies with glowing yellow eyes inside the golden circle count: 16 kills in 70 seconds');beep(220,.6,'sine',.1);return}}
 function lonItemFx(i){const it=LONEGG.items[i];if(it){it.g.visible=false;burst(V(it.x,it.y,it.z),18,0xfff0b0,3,.8,.08)}beep(660,.2,'triangle',.08);setTimeout(()=>beep(880,.25,'triangle',.07),110)}
 function lonKill(b){const E=LONEGG;if(E.boil>0&&Math.hypot(b.x-16,b.z+38)<18)E.kills++}
 function lonFinish(){const E=LONEGG;E.boil=0;E.done=1;zq.tea=1;burst(V(16,2,-33),50,0xffd890,7,1.4,.14);EST.lt.flash=1;[196,147,98,196].forEach((f,i)=>setTimeout(()=>{beep(f,1.2,'sine',.12);beep(f*2,.9,'triangle',.05)},i*520));popup('TIME FOR TEA','You unlocked The Brew. It is also in the Mystery Box now');lonGiveTea()}
@@ -219,14 +261,16 @@ MAPS.London.objs=function(M){const E=LONEGG;E.got=[0,0,0];E.boil=0;E.kills=0;E.d
  mk(1,-52.3,1.3,-11.3,g=>{eMk(g,EG.cyl,eM(0x9c1a1a,0,.4,.6),0,.1,0,.1,.2,.1);eMk(g,EG.cyl,eM(0xc9a23a,0,.3,.9),0,.21,0,.105,.03,.105);eMk(g,EG.cyl,eM(0xf0e8d0,0,.7,0),0,.1,0,.102,.1,.102)});
  mk(2,3.4,1.05,44.3,g=>{const p=eM(0xf2ece0,0,.4,.1);eMk(g,EG.cyl,p,0,.06,0,.08,.1,.08);eMk(g,EG.cyl,eM(0x2b4f9e,0,.4,.1),0,.12,0,.082,.012,.082);eMk(g,EG.cyl,eM(0xb5651d,0,.3,0),0,.115,0,.07,.01,.07);eMk(g,EG.cyl,p,.1,.07,0,.03,.07,.01,PI/2)});
  /* the tower door and a ring on the ground while the tea brews */
- {const ring=new THREE.Mesh(new THREE.RingGeometry(17,17.5,64),new THREE.MeshBasicMaterial({color:0xffc060,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.set(16,.09,-38);zG.add(ring);E.ring=ring;
+ {const ring=new THREE.Mesh(new THREE.RingGeometry(17.7,18.15,72),new THREE.MeshBasicMaterial({color:0xffc060,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.set(16,.09,-38);zG.add(ring);E.ring=ring;
   zi.push({x:16,z:-33,r:3.4,txt:()=>!zq.power||E.done||E.boil>0?'':E.got.some(v=>!v)?'The tower door is shut':'Put the kettle on',cost:()=>0,act:()=>{if(E.got.some(v=>!v)){msg('You need the whole tea set first',1.8);return}lonAct('brew')}})}
  /* the HUD line for the brew */
  let h=document.getElementById('egg');if(!h){h=document.createElement('div');h.id='egg';document.getElementById('hud').appendChild(h)}E.hud=h};
-const col2=(x,z,w,d,h)=>{zSolid(x,z,w,d,h)};
+var col2=(x,z,w,d,h)=>{zSolid(x,z,w,d,h)};
 function lonEggTick(dt,t){const E=LONEGG;for(const it of E.items){if(!it||!it.g.visible)continue;it.g.position.y=it.y+Math.sin(t*2+it.x)*.04;it.g.rotation.y+=dt*.8;it.h.material.opacity=(zq.power?.2:.07)+.08*Math.sin(t*3+it.z)}
  if(E.hud){const on=E.boil>0;E.hud.style.display=on?'block':'none';if(on)E.hud.textContent=`THE BREW  ·  ${Math.min(16,E.kills)} / 16 kills  ·  ${Math.ceil(E.boil)}s`}
  if(E.ring){const on=E.boil>0;E.ring.material.opacity=on?.28+.12*Math.sin(t*4):0}
+ /* the Big Ben step: a zombie inside the circle has glowing yellow eyes and a yellow aura, and only those count; step out of the circle and the glow goes out */
+ {const on=E.boil>0;if(on||E.gl){E.gl=0;for(const b of bots){if(!b.zom||!b.rig||!b.rig.setGlow)continue;const g=on&&b.al&&Math.hypot(b.x-16,b.z+38)<18;if(g)E.gl=1;b.rig.setGlow(g,t)}}}
  if(E.boil>0&&(!netOn||isHost)){E.boil-=dt;E.tt+=dt;if(E.tt>2.4){E.tt=0;const al=bots.filter(b=>b.zom&&b.al).length;if(al<22&&zq.open[7])zSpawn(MAPS.London,false)}
   if(E.kills>=16)lonFinish();else if(E.boil<=0){E.boil=0;popup('THE TEA WENT COLD','Try again: the tea set is still yours');}}
  if(zq.tea&&!zq.teaGot&&LONEGG.done)lonGiveTea()}
