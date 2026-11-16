@@ -571,6 +571,8 @@ function flKill(head){const now=t0;FL.combo=(now-FL.ct<2.6)?FL.combo+1:1;FL.ct=n
  if(head){flNoise(.06,5200,2400,.09,'highpass',.7);flTone(2600,1900,.2,.05,0,'sine');hitStop(.075,.12);try{LX.fx.pulse=Math.max(LX.fx.pulse,.55)}catch(e){}}else hitStop(.03,.25);
  flCombo(FL.combo);setTimeout(()=>{if(t0-FL.ct>2.4)flCombo(0)},2600)}
 function flHit(head){flTone(head?1500:260,head?1100:130,head?.1:.07,head?.05:.06,0,'sine');if(head)flTone(2800,2200,.14,.03,.02,'sine')}
+/* master levels for the undead: the sounds are unchanged, only quieter (voices, footfalls, ambience) */
+var ZVQ=.36,ZFQ=.5,ZAQ=.6;
 /* ---- zombie voices: filtered sawtooth through three formants, per-zombie pitch, panned and muffled by distance ---- */
 function zvSay(kind,b,dist){if(FL.vn>=5||!vol)return;try{const{c,out}=flBus(),t=c.currentTime,vp=b.vp||(b.vp=b.big?.55:.78+Math.random()*.55),F0=105*vp;
  const SP={groan:{d:1.1+Math.random()*.8,g:.55,a:1.1,e:.76,v:[[430,800,2400],[700,1100,2500],[350,700,2300]],r:.3,n:.25},
@@ -586,7 +588,7 @@ function zvSay(kind,b,dist){if(FL.vn>=5||!vol)return;try{const{c,out}=flBus(),t=
  o.connect(am);const mix=c.createGain();mix.gain.value=1;
  [8,10,12].forEach((q,i)=>{const bp=c.createBiquadFilter(),g=c.createGain();bp.type='bandpass';bp.Q.value=q;bp.frequency.setValueAtTime(SP.v[0][i],t);for(let k=1;k<SP.v.length;k++)bp.frequency.linearRampToValueAtTime(SP.v[k][i],t+SP.d*k/(SP.v.length-1));g.gain.value=[1,.55,.28][i]*1.6;am.connect(bp);bp.connect(g);g.connect(mix)});
  const nb=c.createBuffer(1,Math.floor(c.sampleRate*SP.d),c.sampleRate),na=nb.getChannelData(0);for(let i=0;i<na.length;i++)na[i]=Math.random()*2-1;const ns=c.createBufferSource(),nf=c.createBiquadFilter(),ng=c.createGain();ns.buffer=nb;nf.type='bandpass';nf.frequency.value=SP.v[0][1];nf.Q.value=1.2;ng.gain.value=SP.n*.6;ns.connect(nf);nf.connect(ng);ng.connect(mix);
- const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=Math.max(650,5200-dist*150);const env=c.createGain(),gv=SP.g*vol*.5/(1+dist*.11);env.gain.setValueAtTime(.0001,t);env.gain.linearRampToValueAtTime(gv,t+Math.min(.12,SP.d*.25));env.gain.setValueAtTime(gv,t+SP.d*.55);env.gain.exponentialRampToValueAtTime(.0001,t+SP.d);
+ const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=Math.max(650,5200-dist*150);const env=c.createGain(),gv=SP.g*vol*.5*ZVQ/(1+dist*.11);env.gain.setValueAtTime(.0001,t);env.gain.linearRampToValueAtTime(gv,t+Math.min(.12,SP.d*.25));env.gain.setValueAtTime(gv,t+SP.d*.55);env.gain.exponentialRampToValueAtTime(.0001,t+SP.d);
  let pn=null;if(c.createStereoPanner){pn=c.createStereoPanner();const rx=(b.x-P.x)*Math.cos(yaw)+(b.z-P.z)*-Math.sin(yaw);pn.pan.value=Math.max(-.9,Math.min(.9,rx/Math.max(2,dist)))}
  mix.connect(lp);lp.connect(env);if(pn){env.connect(pn);pn.connect(out)}else env.connect(out);o.start(t);vb.start(t);ns.start(t);o.stop(t+SP.d+.05);vb.stop(t+SP.d+.05)}catch(e){}}
 /* ---- the per-frame tick ---- */
@@ -605,13 +607,13 @@ function flTick(dt){if(!run||paused)return;
   b.vt-=dt;if(b.vt<=0){b.vt=Math.max(2.5,(8-Math.min(5,(zq?zq.r:1)*.25))*(.6+Math.random()*.8)*(d<10?.6:1));const k=d<7&&Math.random()<.55?'snarl':b.big?'howl':'groan';zvSay(k,b,d)}
   if(d<17&&!b.seen){b.seen=1;if(Math.random()<.65)zvSay(b.sprint||b.fast?'scream':'snarl',b,d)}else if(d>26)b.seen=0;
   /* heavy footfalls */
-  if(d<15&&steps<3){const st=Math.floor((b.ph||0)/Math.PI);if(b.fst!=null&&st!==b.fst){steps++;const g=Math.min(.16,.28/(1+d*.4))*(b.big?1.6:1);flTone(b.big?70:95,b.big?36:50,.1,g,0,'sine');flNoise(.09,900,260,g*.55,'lowpass',.7)}b.fst=st}
+  if(d<15&&steps<3){const st=Math.floor((b.ph||0)/Math.PI);if(b.fst!=null&&st!==b.fst){steps++;const g=Math.min(.16,.28/(1+d*.4))*(b.big?1.6:1)*ZFQ;flTone(b.big?70:95,b.big?36:50,.1,g,0,'sine');flNoise(.09,900,260,g*.55,'lowpass',.7)}b.fst=st}
   /* flickering eyes, sudden twitches of the head */
   const r=b.rig;if(r.eyeM&&!(r.glowing&&r.glowing())){if(!r.eyeB)r.eyeB=r.eyeM.color.getHex();r.eyeM.color.setHex(r.eyeB).multiplyScalar(.7+.45*Math.abs(Math.sin(t0*7.3+(b.i||0)*3.1)))}
   b.tw=(b.tw||0)*Math.exp(-dt*7);b.tt=(b.tt==null?1+Math.random()*3:b.tt)-dt;if(b.tt<=0){b.tt=1.6+Math.random()*3.5;b.tw=(Math.random()<.5?-1:1)*(.35+Math.random()*.35)}
   if(r.head)r.head.rotation.y+=b.tw,r.head.rotation.z+=b.tw*.4}
  /* the world breathes */
- FL.amb-=dt;if(FL.amb<=0){FL.amb=5+Math.random()*9;const k=Math.random();if(k<.4){const fake={x:P.x+(Math.random()-.5)*60,z:P.z+(Math.random()-.5)*60,vp:.7+Math.random()*.5};zvSay(Math.random()<.2?'howl':'groan',fake,35)}else if(k<.75){flNoise(1.6,300,900,.05,'bandpass',.6);flNoise(1.4,500,200,.03,'lowpass',.5,.4)}else{flTone(210+Math.random()*60,190,.7,.012,0,'triangle',1200);flNoise(.5,2200,900,.02,'bandpass',3,.05)}}
+ FL.amb-=dt;if(FL.amb<=0){FL.amb=5+Math.random()*9;const k=Math.random();if(k<.4){const fake={x:P.x+(Math.random()-.5)*60,z:P.z+(Math.random()-.5)*60,vp:.7+Math.random()*.5};zvSay(Math.random()<.2?'howl':'groan',fake,35)}else if(k<.75){flNoise(1.6,300,900,.05*ZAQ,'bandpass',.6);flNoise(1.4,500,200,.03*ZAQ,'lowpass',.5,.4)}else{flTone(210+Math.random()*60,190,.7,.012*ZAQ,0,'triangle',1200);flNoise(.5,2200,900,.02*ZAQ,'bandpass',3,.05)}}
  /* a heartbeat that gets faster the closer you are to dying */
  if(!P.dead&&P.hp<P.mhp*.4){FL.hb-=dt;if(FL.hb<=0){const k=P.hp/(P.mhp*.4);FL.hb=.5+k*.5;flTone(64,46,.15,.2*(1-k*.4),0,'sine');flTone(58,42,.17,.15*(1-k*.4),.16,'sine')}}else FL.hb=0}
 {const _t=LX.tick;LX.tick=function(dt){_t.call(this,dt);try{flTick(dt)}catch(e){console.warn('feel',e)}}}
@@ -736,19 +738,22 @@ function roundSnd(kind,br){if(kind=='end'){flTone(523,523,.5,.035,0,'sine');flTo
 /* ===================== BUYING A PERK: you drink it =====================
    After the purchase the weapon lowers, a hand brings the bottle up (the cap pops with a little hiss), tips it back and gulps it down while the liquid level falls and the screen glows in the perk's colour,
    then the empty bottle is thrown to the floor in front of you, where it clinks, bounces and shatters. About two seconds; you cannot fire during it. The perk itself is applied the moment you pay, as before. */
-const ZDR={on:0,t:0,D:null,bot:null,liq:null,lastG:-1,bottles:[],fired:0,arm:null};
+var ZDR={on:0,t:0,D:null,bot:null,liq:null,lastG:-1,bottles:[],fired:0,arm:null};
 function zdrBottle(col){const g=new THREE.Group(),M=(c,o)=>new THREE.MeshLambertMaterial(Object.assign({color:c},o||{})),gl=M(0xbfe6d8,{transparent:true,opacity:.42}),liq=M(col,{emissive:col,emissiveIntensity:.55}),lab=M(0xf2efe6),band=M(col,{emissive:col,emissiveIntensity:.25}),cap=M(0xdcdcdc),
  cy=(rt,rb,h,y,m,sg_)=>{const e=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,sg_||14),m);e.position.y=y;g.add(e);return e};
  cy(.03,.03,.11,0,gl);cy(.022,.03,.03,.07,gl);cy(.013,.022,.04,.1,gl);cy(.015,.015,.012,.126,cap,10);const l=cy(.0255,.0255,.098,0,liq);l.geometry.translate(0,.049,0);l.position.y=-.049;cy(.0315,.0315,.04,0,lab);cy(.0318,.0318,.008,.014,band);cy(.0318,.0318,.008,-.014,band);
  g.userData.liq=l;return g}
 function zdrStart(k){if(ZDR.on||P.dead)return;const p=PERKS[k],col=p?p.c:0xd8332a;ZDR.on=1;ZDR.t=0;ZDR.lastG=-1;ZDR.fired=0;ZDR.col=col;
  const D=new THREE.Group(),sk=new THREE.MeshLambertMaterial({color:typeof GLV!='undefined'?GLV:0x2a2c32}),gl2=new THREE.MeshLambertMaterial({color:0x2a2c32}),sl=new THREE.MeshLambertMaterial({color:typeof SLV!='undefined'?SLV:0x3a4a30});
- const hand=mkFpHand(1,sk,gl2);hand.position.set(0,-.02,.0);D.add(hand);const fa=new THREE.Mesh(new THREE.CylinderGeometry(.045,.05,.55,12),sl);fa.position.set(0,.3,0);D.add(fa);const cuf=new THREE.Mesh(new THREE.CylinderGeometry(.052,.052,.05,12),new THREE.MeshLambertMaterial({color:typeof CUFF!='undefined'?CUFF:0x555555}));cuf.position.set(0,.05,0);D.add(cuf);
- const bot=zdrBottle(col);bot.position.set(0,-.07,.05);D.add(bot);ZDR.bot=bot;ZDR.liq=bot.userData.liq;ZDR.D=D;ZDR.hand=hand;C.add(D);
- D.quaternion.setFromUnitVectors(V(0,1,0),V(.55,-.75,.6).normalize());D.position.set(.34,-.62,-.42);
+ const pv=new THREE.Group(),armG=new THREE.Group(),wr=new THREE.Group();D.add(pv);pv.add(armG);armG.add(wr);
+ const hand=mkFpHand(1,sk,gl2);hand.position.set(0,-.02,.0);wr.add(hand);const fa=new THREE.Mesh(new THREE.CylinderGeometry(.045,.05,.55,12),sl);fa.position.set(0,.3,0);armG.add(fa);const cuf=new THREE.Mesh(new THREE.CylinderGeometry(.052,.052,.05,12),new THREE.MeshLambertMaterial({color:typeof CUFF!='undefined'?CUFF:0x555555}));cuf.position.set(0,.05,0);armG.add(cuf);
+ /* the fingers of this hand curl around an axis along its local X (a hammer grip), so the bottle lies across the fist with its neck on the index-finger side (-X); the arm is turned so that -X points up on screen */
+ const bot=zdrBottle(col);bot.position.set(0,-.088,.036);bot.rotation.z=Math.PI/2;hand.add(bot);ZDR.bot=bot;ZDR.liq=bot.userData.liq;ZDR.D=D;ZDR.hand=hand;ZDR.pv=pv;ZDR.wr=wr;ZDR.ex=0;ZDR.aq=armG.quaternion;C.add(D);
+ {const Y=V(.55,-.75,.6).normalize(),U=V(0,1,0);U.addScaledVector(Y,-U.dot(Y)).normalize();const X=U.clone().negate(),Z=X.clone().cross(Y).normalize();armG.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(X,Y,Z))}
+ D.position.set(.34,-.62,-.42);
  nf=Math.max(nf,t0+2.5);try{MV.eq=0}catch(e){}
  flNoise(.1,4200,2200,.05,'highpass',.7,.35);flTone(1500,900,.05,.03,.38,'sine');flNoise(.22,900,3000,.04,'bandpass',1.2)}
-function zdrEnd(){if(ZDR.D){C.remove(ZDR.D);ZDR.D=null}ZDR.on=0}
+function zdrEnd(){if(ZDR.D){C.remove(ZDR.D);ZDR.D=null}ZDR.on=0;try{if(!P.dead&&!(typeof zq!='undefined'&&zq&&(zq.papT>0||zq.down))&&!(typeof SK!='undefined'&&SK.rc))gun.visible=true}catch(e){}}
 function zdrBottleWorld(col){const m=zdrBottle(col);m.userData.liq.visible=false;const d=aimDir(),rx=Math.cos(yaw),rz=-Math.sin(yaw);m.position.set(C.position.x+d.x*.7+rx*.22,C.position.y-.25,C.position.z+d.z*.7+rz*.22);S.add(m);ZDR.bottles.push({m,v:V(d.x*1.4+rx*.5,-1.2,d.z*1.4+rz*.5),t:0,b:0,sp:V(7,3,5)})}
 function zdrTick(dt){
  for(let i=ZDR.bottles.length-1;i>=0;i--){const b=ZDR.bottles[i];b.t+=dt;b.v.y-=18*dt;b.m.position.addScaledVector(b.v,dt);b.m.rotation.x+=b.sp.x*dt*(b.b>1?0:1);b.m.rotation.z+=b.sp.z*dt*(b.b>1?0:1);
@@ -763,8 +768,8 @@ function zdrTick(dt){
  else if(t<1.45){px=.06;py=-.02+Math.sin((t-.65)*13)*.004;pz=-.3;tilt=-1.15-Math.sin((t-.65)*13)*.04;roll=.25;ZDR.liq.scale.y=Math.max(.02,1-(t-.65)/.8);ZDR.liq.visible=ZDR.liq.scale.y>.03;
   const gi=Math.floor((t-.65)/.2);if(gi!==ZDR.lastG&&gi<4){ZDR.lastG=gi;flTone(190-gi*12,115,.16,.065,0,'sine');flNoise(.12,520,200,.035,'lowpass',.7);try{LX.fx.heal=Math.max(LX.fx.heal,.35);flashL=Math.max(flashL||0,.4)}catch(e){}}}
  else if(t<1.75){const u=E((t-1.45)/.3);px=L(.06,.2,u);py=L(-.02,-.22,u);pz=L(-.3,-.42,u);tilt=L(-1.15,-.1,u);roll=L(.25,0,u);ZDR.liq.visible=false;if(t>1.5&&!ZDR.ex){ZDR.ex=1;flNoise(.5,1500,500,.05,'bandpass',.5)}}
- else{const u=E((t-1.75)/.25);px=L(.2,.3,u);py=L(-.22,-.5,u);pz=-.42;tilt=-.1+u*.4;if(!ZDR.fired){ZDR.fired=1;ZDR.ex=0;D.remove(ZDR.bot);flNoise(.18,600,1800,.05,'bandpass',1.2);zdrBottleWorld(ZDR.col)}if(t>2.1){px=L(.3,.4,(t-2.1)/.25);py=L(-.5,-.75,(t-2.1)/.25)}}
- D.position.set(px,py,pz);ZDR.bot.rotation.set(tilt,0,roll);
+ else{const u=E((t-1.75)/.25);px=L(.2,.3,u);py=L(-.22,-.5,u);pz=-.42;tilt=-.1+u*.4;if(!ZDR.fired){ZDR.fired=1;ZDR.ex=0;if(ZDR.bot.parent)ZDR.bot.parent.remove(ZDR.bot);flNoise(.18,600,1800,.05,'bandpass',1.2);zdrBottleWorld(ZDR.col)}if(t>2.1){px=L(.3,.4,(t-2.1)/.25);py=L(-.5,-.75,(t-2.1)/.25)}}
+ D.position.set(px,py,pz);{const th=-tilt,k=.3,Rq=ZDR._rq||(ZDR._rq=new THREE.Quaternion()),ax=ZDR._ax||(ZDR._ax=V(1,0,0));ZDR.pv.rotation.set(th*k,0,roll*.3);Rq.setFromAxisAngle(ax,th*(1-k));ZDR.wr.quaternion.copy(ZDR.aq).conjugate().multiply(Rq).multiply(ZDR.aq)}
  if(t>=2.35)zdrEnd()}
 {const _t=LX.tick;LX.tick=function(dt){_t.call(this,dt);try{zdrTick(dt)}catch(e){console.warn('drink',e)}}}
 {const _zp=zPerk;zPerk=function(t){const had=zq&&zq.perks&&zq.perks[t],r=_zp.apply(this,arguments);try{if(zq&&zq.perks[t]&&!had)zdrStart(t)}catch(e){}return r}}
@@ -834,15 +839,137 @@ var CHEW=[
 ['wonder','Wonder Weapon Guarantee','m','evt',1,0,'The very next Mystery Box spin gives the map\'s top wonder weapon.',0xff5050,44]];
 var CGD={};for(const c of CHEW)CGD[c[0]]={id:c[0],n:c[1],tr:c[2],ty:c[3],cnt:c[4],run:c[5],d:c[6],c:c[7],lv:c[8]};
 var CGT={s:'STANDARD',r:'RARE',u:'ULTRA-RARE',c:'COSMETIC',m:'COMMUNITY'},CGY={rnd:'ROUNDS',time:'TIMED',act:'ACTIVATE',evt:'EVENT',ins:'INSTANT',cos:'COSMETIC'};
-var chPrem=id=>CGD[id].tr=='r'||CGD[id].tr=='u',chOpen=id=>chPrem(id)||(prof.lvl||1)>=CGD[id].lv;
-/* ---- persistence ---- */
-function cgLoad(){try{const j=JSON.parse(localStorage.getItem('sd-gum')||'null');if(j&&Array.isArray(j.sel)){CG.sel=j.sel.filter(i=>CGD[i]).slice(0,5);CG.stock=j.stock||{}}else{CG.stock={};for(const c of CHEW){if(c[2]=='r')CG.stock[c[0]]=2;if(c[2]=='u')CG.stock[c[0]]=1}CG.sel=['swift','dex','feed','sledge','blast'];cgSave()}}catch(e){CG.sel=['swift','dex','feed','sledge','blast'];CG.stock={}}}
-function cgSave(){try{localStorage.setItem('sd-gum',JSON.stringify({sel:CG.sel,stock:CG.stock}))}catch(e){}}
-cgLoad();
 /* ---- the deck ---- */
-function chDeck(){const s=CG.sel.filter(i=>CGD[i]&&(!chPrem(i)||(CG.stock[i]||0)>0||true));const out=s.slice();for(const i of CHEW.map(c=>c[0]).filter(i=>!chPrem(i)&&chOpen(i)&&!out.includes(i))){if(out.length>=5)break;out.push(i)}return out.slice(0,5)}
 function chShuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
 var chCost=()=>[500,1500,2500,4900][Math.min(CG.draws,3)];
+/* ======================= CHEWABLES v2: the collection =======================
+   Gums are earned by playing and every one is single use. Every 10 rounds of a Zombies run drops 1 to 3 random gums into the collection; a first-time
+   player gets a starter pack of standard gums. The pack holds five; the gumball machines roll one of them at random and use it up. */
+var CHI={
+swift:`<path d="M4 11h15a4 4 0 1 0-4-4"/><path d="M4 17h21a4 4 0 1 1-4 4"/><path d="M4 23h10"/>`,
+dex:`<rect x="11" y="5" width="10" height="14" rx="1.5"/><path d="M13 9h6M13 13h6"/><path d="M5 22a11 8 0 0 0 22 0"/><path d="M27 22l-1-4m1 4l-4-1"/>`,
+bleed:`<path d="M16 27C6 20 4 12 9 8c3-2 6 0 7 3 1-3 4-5 7-3 5 4 3 12-7 19z"/><path d="M16 12v5l3 2"/>`,
+second:`<path d="M16 5a11 11 0 1 1-9 5"/><path d="M5 5l2 6 6-2"/><circle cx="16" cy="16" r="2.6" fill="currentColor"/>`,
+ghost:`<path d="M7 27V14a9 9 0 0 1 18 0v13l-3-3-3 3-3-3-3 3-3-3z"/><circle cx="13" cy="14" r="1.6" fill="currentColor"/><circle cx="19" cy="14" r="1.6" fill="currentColor"/>`,
+feed:`<path d="M3 21h26"/><rect x="5" y="9" width="4" height="9" rx="2"/><rect x="12" y="9" width="4" height="9" rx="2"/><rect x="19" y="9" width="4" height="9" rx="2"/><path d="M25 12l3 3-3 3"/>`,
+escape:`<ellipse cx="21" cy="16" rx="5" ry="11"/><path d="M2 16h14M11 11l5 5-5 5"/>`,
+blast:`<path d="M16 4l10 4v8c0 6-4 10-10 12C10 26 6 22 6 16V8z"/><path d="M16 10l2 4 4 1-4 2 1 4-3-3-3 3 1-4-4-2 4-1z"/>`,
+sledge:`<rect x="6" y="5" width="15" height="8" rx="1.5" transform="rotate(30 13 9)"/><path d="M15 14L26 27" stroke-width="3.2"/>`,
+mobile:`<circle cx="13" cy="6" r="2.4"/><path d="M13 9l-2 8-4 3M11 17l5 3 1 7M13 10l5 2 4-2M9 12l4-1"/><path d="M23 14h6M24 18h5"/>`,
+graviton:`<path d="M16 28V6M9 13l7-7 7 7"/><path d="M5 27h7M20 27h7"/><circle cx="16" cy="19" r="2.6"/>`,
+alchemy:`<path d="M12 4h8M13 4v8L6 25a2 2 0 0 0 2 3h16a2 2 0 0 0 2-3l-7-13V4"/><path d="M9 22h14"/><circle cx="16" cy="25" r="1.3"/>`,
+retain:`<path d="M13 3h6v5l2 3v15a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2V11l2-3z"/><rect x="13" y="17" width="6" height="6" rx="1"/><path d="M14 17v-2a2 2 0 0 1 4 0v2"/>`,
+thermal:`<path d="M16 5c1 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-4 3-7 1 1 2 2 3 4"/><circle cx="16" cy="17" r="12" stroke-dasharray="3 3"/>`,
+nukedrop:`<path d="M7 27h18M11 27v-6a5.5 5.5 0 1 1 10 0v6"/><path d="M16 3v4M9 7l2 3M23 7l-2 3"/>`,
+overclock:`<path d="M5 23a11 11 0 1 1 22 0"/><path d="M16 23l5-9"/><path d="M8 14l2 1M24 14l-2 1M16 8v2"/><path d="M12 28h8"/>`,
+discount:`<path d="M4 4h12l12 12-12 12L4 16z"/><circle cx="10" cy="10" r="1.8"/><path d="M12 22l8-8"/><circle cx="13" cy="14" r="1.1"/><circle cx="19" cy="21" r="1.1"/>`,
+repair:`<path d="M22 4a6 6 0 0 0-5 8L5 24l3 3 12-12a6 6 0 0 0 8-5l-4 3-3-1-1-3z"/>`,
+reviver:`<circle cx="16" cy="16" r="12"/><path d="M13 8h6v5h5v6h-5v5h-6v-5H8v-6h5z"/>`,
+shock:`<path d="M18 3L8 18h7l-2 11 11-17h-8z"/>`,
+reroll:`<rect x="5" y="5" width="22" height="22" rx="4"/><circle cx="11" cy="11" r="1.7" fill="currentColor"/><circle cx="21" cy="11" r="1.7" fill="currentColor"/><circle cx="16" cy="16" r="1.7" fill="currentColor"/><circle cx="11" cy="21" r="1.7" fill="currentColor"/><circle cx="21" cy="21" r="1.7" fill="currentColor"/>`,
+lock:`<rect x="6" y="14" width="20" height="14" rx="2"/><path d="M10 14V10a6 6 0 0 1 12 0v4"/><circle cx="16" cy="21" r="2"/>`,
+overcharge:`<path d="M3 17h15l3-3h6l2 3v4h-6l-2 5h-5l1-5H3z"/><path d="M15 3l-3 5h4l-2 5"/>`,
+arsenal:`<path d="M16 4a12 12 0 0 1 10 6"/><path d="M26 4v6h-6"/><path d="M28 19a12 12 0 0 1-12 9"/><path d="M12 28h4v-4"/><path d="M5 21A12 12 0 0 1 7 9"/><path d="M3 13l4-4 4 4"/><rect x="14" y="12" width="4" height="8" rx="2"/>`,
+heavy:`<circle cx="16" cy="13" r="8"/><circle cx="16" cy="13" r="1.6" fill="currentColor"/><circle cx="16" cy="8.4" r="1.2"/><circle cx="20.2" cy="11" r="1.2"/><circle cx="20.2" cy="15.6" r="1.2"/><circle cx="16" cy="17.8" r="1.2"/><circle cx="11.8" cy="15.6" r="1.2"/><circle cx="11.8" cy="11" r="1.2"/><path d="M12 24h8l2 5H10z"/>`,
+gift:`<rect x="5" y="13" width="22" height="14" rx="1.5"/><rect x="3" y="9" width="26" height="5" rx="1"/><path d="M16 9v18"/><path d="M16 9c-4-6-9-3-6 0M16 9c4-6 9-3 6 0"/>`,
+bonus:`<path d="M13 3h6v5l2 3v15a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2V11l2-3z"/><path d="M16 14l1.4 2.8 3 .4-2.2 2.1.5 3-2.7-1.4-2.7 1.4.5-3-2.2-2.1 3-.4z"/>`,
+capx:`<rect x="4" y="8" width="10" height="16" rx="2"/><rect x="18" y="8" width="10" height="16" rx="2" stroke-dasharray="3 2"/><path d="M23 13v6M20 16h6"/>`,
+wallup:`<rect x="4" y="16" width="24" height="12"/><path d="M4 22h24M12 16v6M20 22v6"/><path d="M16 12V3M12 7l4-4 4 4"/>`,
+crowd:`<circle cx="8" cy="9" r="2.5"/><circle cx="16" cy="7" r="2.5"/><circle cx="24" cy="9" r="2.5"/><path d="M4 21v-6a4 4 0 0 1 8 0v6M12 21v-8a4 4 0 0 1 8 0v8M20 21v-6a4 4 0 0 1 8 0v6"/><path d="M5 27h22"/>`,
+resupply:`<path d="M5 12a11 10 0 0 1 22 0z"/><path d="M5 12l9 10M27 12l-9 10M16 12v10"/><rect x="11" y="22" width="10" height="7" rx="1"/>`,
+stasis:`<path d="M2 16s5-9 14-9 14 9 14 9-5 9-14 9S2 16 2 16z"/><path d="M16 12v8M12.5 14l7 4M19.5 14l-7 4"/>`,
+dropext:`<path d="M8 4h16M8 28h16M10 4c0 8 12 8 12 0M10 28c0-8 12-8 12 0"/><circle cx="16" cy="25" r="1.2" fill="currentColor"/>`,
+slowaura:`<path d="M16 16a2 2 0 1 1 3 1.7 5 5 0 1 1-6.6-5.2 9 9 0 1 1 6.2 14.4"/><path d="M4 28h6"/>`,
+freeze:`<path d="M16 3v26M5 9.5l22 13M27 9.5l-22 13"/><path d="M12 5l4 3 4-3M12 27l4-3 4 3"/>`,
+maxup:`<path d="M16 3l3.6 7.4 8.1 1.1-5.9 5.7 1.4 8.1L16 21.4 8.8 25.3l1.4-8.1L4.3 11.5l8.1-1.1z"/>`,
+refill:`<rect x="11" y="8" width="10" height="17" rx="2"/><path d="M13 12h6"/><path d="M6 8a14 14 0 0 0 0 12M26 8a14 14 0 0 1 0 12"/>`,
+precision:`<circle cx="16" cy="16" r="9"/><circle cx="16" cy="16" r="2.2" fill="currentColor"/><path d="M16 3v6M16 23v6M3 16h6M23 16h6"/>`,
+aura:`<ellipse cx="16" cy="6" rx="6" ry="2.5"/><path d="M16 10v15M16 14C10 10 5 12 3 17c3-1 6 0 8 2M16 14c6-4 11-2 13 3-3-1-6 0-8 2"/>`,
+shared:`<circle cx="10" cy="16" r="6"/><circle cx="22" cy="16" r="6"/><path d="M13 8l3-3 3 3M13 24l3 3 3-3"/>`,
+skip:`<path d="M4 6l11 10L4 26zM16 6l11 10-11 10z"/>`,
+selfrest:`<path d="M16 27C6 20 4 12 9 8c3-2 6 0 7 3 1-3 4-5 7-3 5 4 3 12-7 19z"/><path d="M16 12v8M12 16h8"/>`,
+cascade:`<path d="M8 3l1.2 3.3 3.3 1.2-3.3 1.2L8 12 6.8 8.7 3.5 7.5l3.3-1.2zM21 10l1.2 3.3 3.3 1.2-3.3 1.2L21 19l-1.2-3.3-3.3-1.2 3.3-1.2zM11 20l1.2 3.3 3.3 1.2-3.3 1.2L11 29l-1.2-3.3-3.3-1.2 3.3-1.2z"/>`,
+comedy:`<path d="M5 6h22v10c0 7-5 11-11 11S5 23 5 16z"/><path d="M10 12h3M19 12h3"/><path d="M10 18c2 5 10 5 12 0z"/>`,
+squeak:`<path d="M8 23c-3-2-3-7 1-8 0-5 4-8 8-8 3 0 5 2 5 5l5 2-5 2c0 6-4 9-10 9z"/><circle cx="19" cy="11" r="1.1" fill="currentColor"/>`,
+thermalh:`<circle cx="16" cy="9" r="4"/><path d="M8 28V18a8 8 0 0 1 16 0v10"/><path d="M3 8l3 3M29 8l-3 3M3 21h3M26 21h3"/>`,
+vintage:`<circle cx="16" cy="16" r="11"/><circle cx="16" cy="16" r="2"/><circle cx="16" cy="9" r="2"/><circle cx="22" cy="19" r="2"/><circle cx="10" cy="19" r="2"/>`,
+slippery:`<path d="M5 8c0 13 9 19 22 17-7-2-9-7-10-13-.5-2-1.5-4-4-5z"/>`,
+bottomless:`<rect x="9" y="3" width="14" height="26" rx="2"/><path d="M12 16c0-3 4-3 4 0s4 3 4 0-4-3-4 0-4 3-4 0z"/>`,
+infusion:`<path d="M12 4c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3 2-5"/><path d="M25 12l-5 8h5l-3 9 8-11h-5z"/>`,
+invuln:`<path d="M16 3l11 4v9c0 6-5 10-11 13C10 26 5 22 5 16V7z"/><path d="M10 16l4 4 8-9"/>`,
+wealth:`<path d="M11 4h10l-2 5c5 3 7 8 6 13-1 4-5 5-9 5s-8-1-9-5c-1-5 1-10 6-13z"/><path d="M16 14v11M13 17c0-2 6-2 6 0s-6 2-6 4 6 2 6 0"/>`,
+slotunc:`<rect x="3" y="6" width="5" height="8" rx="1"/><rect x="10" y="6" width="5" height="8" rx="1"/><rect x="17" y="6" width="5" height="8" rx="1"/><rect x="24" y="6" width="5" height="8" rx="1"/><rect x="3" y="18" width="5" height="8" rx="1"/><rect x="10" y="18" width="5" height="8" rx="1"/><rect x="17" y="18" width="5" height="8" rx="1"/><rect x="24" y="18" width="5" height="8" rx="1" stroke-dasharray="2 2"/>`,
+pace:`<path d="M3 8l9 8-9 8M13 8l9 8-9 8M23 8l7 8-7 8"/>`,
+wonder:`<path d="M3 18h13l3-4h7l3 3v4h-6l-2 6h-5l1-6H3z"/><path d="M8 4l1.2 2.4 2.6.4-1.9 1.8.5 2.6L8 10l-2.4 1.2.5-2.6L4.2 6.8l2.6-.4z"/>`};
+function chIcon(id){return '<svg class="cw-ic" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(CHI[id]||'<circle cx="16" cy="16" r="9"/>')+'</svg>'}
+var chHex=c=>'#'+c.toString(16).padStart(6,'0');
+var chPrem=id=>false;
+CG.own=CG.stock;CG.rt=null;
+/* ---- persistence: version 2 stores the collection ("own": how many of each gum is left) and the pack ---- */
+function cgLoad(){let j=null;try{j=JSON.parse(localStorage.getItem('sd-gum')||'null')}catch(e){}
+ const own={};let sel=[],fresh=false;
+ if(j&&j.v>=2){for(const k in(j.own||{}))if(CGD[k]&&j.own[k]>0)own[k]=Math.min(99,j.own[k]|0);sel=(j.sel||[]).filter(i=>CGD[i])}
+ else if(j){/* a version 1 save: keep what was in stock, and give each standard, cosmetic or community gum the player had reached by level a single copy, once */
+  for(const k in(j.stock||{}))if(CGD[k]&&j.stock[k]>0)own[k]=j.stock[k]|0;for(const c of CHEW)if((c[2]=='s'||c[2]=='c'||c[2]=='m')&&c[8]>0&&(prof.lvl||1)>=c[8])own[c[0]]=(own[c[0]]||0)+1;sel=(j.sel||[]).filter(i=>CGD[i])}
+ else fresh=true;
+ if(fresh){/* the starter pack: six random standard gums, two of each */const s=chShuffle(CHEW.filter(c=>c[2]=='s').map(c=>c[0]));for(const id of s.slice(0,6))own[id]=2}
+ sel=sel.filter((i,n)=>own[i]>0&&sel.indexOf(i)==n).slice(0,5);
+ if(!sel.length){const order=['s','m','c','r','u'];for(const t of order)for(const c of CHEW)if(c[2]==t&&own[c[0]]>0&&sel.length<5&&!sel.includes(c[0]))sel.push(c[0])}
+ CG.own=CG.stock=own;CG.sel=sel;if(fresh||(j&&!(j.v>=2)))cgSave()}
+function cgSave(){try{localStorage.setItem('sd-gum',JSON.stringify({v:2,sel:CG.sel,own:CG.own}))}catch(e){}}
+function chDeck(){return CG.sel.filter(i=>CGD[i]&&(CG.own[i]||0)>0).slice(0,5)}
+/* ---- rewards: every 10 rounds, 1 to 3 random gums ---- */
+function gmRoll(n){const wt={s:5,c:3,m:3,r:2,u:1},tot=CHEW.reduce((s,c)=>s+wt[c[2]],0),out=[];for(let i=0;i<n;i++){let r=Math.random()*tot;for(const c of CHEW){r-=wt[c[2]];if(r<=0){out.push(c[0]);break}}}return out}
+function chReward(n){const ids=gmRoll(1+(Math.random()*3|0));for(const id of ids){CG.own[id]=Math.min(99,(CG.own[id]||0)+1);if(CG.sel.length<5&&!CG.sel.includes(id))CG.sel.push(id)}cgSave();chRewardUI(ids,n)}
+function chRewardUI(ids,n){try{let el=document.getElementById('gmrw');if(el)el.remove();el=document.createElement('div');el.id='gmrw';
+ el.innerHTML='<div class="rw-h"><small>ROUND '+n+' REWARD</small><b>CHEWABLES UNLOCKED</b></div><div class="rw-c">'+ids.map((id,i)=>{const d=CGD[id];return `<div class="rw-i t-${d.tr}" style="--c:${chHex(d.c)};--d:${(.25+i*.3).toFixed(2)}s"><span class="cw-ball">${chIcon(id)}</span><b>${d.n}</b><small>${CGT[d.tr]}</small></div>`}).join('')+'</div>';document.body.appendChild(el);
+ ids.forEach((id,i)=>setTimeout(()=>{try{chSnd(CGD[id].tr=='u'?'ultra':CGD[id].tr=='r'?'rare':'pop');if(typeof burst=='function'&&typeof V=='function')burst(V(P.x,1.4,P.z),14,CGD[id].c,3,.7,.06)}catch(e){}},350+i*300));
+ setTimeout(()=>{el.classList.add('out');setTimeout(()=>el.remove(),700)},5200)}catch(e){}}
+function chRw(){const z=typeof zq!='undefined'&&zq;if(!run||mode!='Zombies'||!z)return;const t=Math.floor((z.r||0)/10);if(CG.rt==null){CG.rt=t;return}if(t>CG.rt){CG.rt=t;chReward(t*10)}}
+/* ---- the machines: placed by rule, validated against the real colliders ---- */
+function chPlace(){for(const m of CG.mach){try{m.g.parent&&m.g.parent.remove(m.g);if(m.sol)zUnsolid(m.sol)}catch(e){}}CG.mach=[];const M=MAPS[sel.map];if(!M||!M.zm||mode!='Zombies')return;
+ const ps=M.ps||[0,0],zs=M.zs||[],taken=zi.map(i=>[i.x,i.z]);taken.push([ps[0],ps[1]]);
+ const clear=(x,z,r)=>{if(Math.abs(x)>M.H-3||Math.abs(z)>M.H-3)return false;for(const b of bx){if((b.h||0)<.3)continue;if(x>b.x0-r&&x<b.x1+r&&z>b.z0-r&&z<b.z1+r)return false}const f=zFreeSpot(x,z);return Math.abs(f[0]-x)<.01&&Math.abs(f[1]-z)<.01},
+  far=(x,z,d)=>taken.every(t=>Math.hypot(t[0]-x,t[1]-z)>d);
+ /* one machine in the start area, one in a middle zone and one in a far zone: spots are searched on rings around that zone's own spawn points */
+ const zones=[...new Set(zs.map(s=>s[2]))].sort((a,b)=>a-b),cen=zn=>{const p=zs.filter(s=>s[2]==zn);return[p.reduce((a,s)=>a+s[0],0)/p.length,p.reduce((a,s)=>a+s[1],0)/p.length]},
+  dist=zn=>{const c=cen(zn);return Math.hypot(c[0]-ps[0],c[1]-ps[1])},byD=zones.slice().sort((a,b)=>dist(a)-dist(b)),want=[byD[0],byD[Math.floor(byD.length*.45)],byD[byD.length-2>0?byD.length-2:byD.length-1]].filter((z,i,a)=>z!=null&&a.indexOf(z)==i);
+ const spot=zn=>{const pts=zs.filter(s=>s[2]==zn);for(let r=2.4;r<=9;r+=1.2)for(const s of pts)for(let k=0;k<14;k++){const a=k/14*6.283+r,x=s[0]+Math.cos(a)*r,z=s[1]+Math.sin(a)*r;if(zn==byD[0]&&Math.hypot(x-ps[0],z-ps[1])<5)continue;if(clear(x,z,1.15)&&far(x,z,5.5))return[x,z]}return null};
+ const place=(fx,fz)=>{const g=chMachine();g.position.set(fx,0,fz);g.rotation.y=Math.atan2(ps[0]-fx,ps[1]-fz);(typeof zG!='undefined'&&zG?zG:S).add(g);let sol=null;try{sol=zSolid(fx,fz,.8,.8,1.9);zGrid()}catch(e){}taken.push([fx,fz]);
+  const mc={g,x:fx,z:fz,sol,busy:0,t:0};CG.mach.push(mc);zi.push({x:fx,z:fz,r:2.6,txt:()=>mc.busy?'':'Chewables · roll a gumball ('+chDeck().length+' in your pack)',cost:()=>mc.busy?0:chCost(),act:()=>chDraw(mc)})};
+ for(const zn of want){const s=spot(zn);if(s)place(s[0],s[1])}
+ if(!CG.mach.length)for(let r=6;r<=20&&!CG.mach.length;r+=2)for(let k=0;k<16&&!CG.mach.length;k++){const a=k/16*6.283,x=ps[0]+Math.cos(a)*r,z=ps[1]+Math.sin(a)*r;if(clear(x,z,1.15)&&far(x,z,4))place(x,z)}}
+/* ---- the sign on the front of each machine ---- */
+function chSignMat(){if(chSignMat.m)return chSignMat.m;const c=document.createElement('canvas');c.width=256;c.height=48;const g=c.getContext('2d');g.fillStyle='#fff0b0';g.fillRect(0,0,256,48);g.fillStyle='#c02830';for(let i=-2;i<14;i++){g.beginPath();g.moveTo(i*22,0);g.lineTo(i*22+11,0);g.lineTo(i*22-5,48);g.lineTo(i*22-16,48);g.fill()}g.fillStyle='#1c1e22';g.fillRect(30,5,196,38);g.fillStyle='#ffd24a';g.font='700 32px Teko,Impact,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('CHEWABLES',128,25);
+ return chSignMat.m=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c)})}
+/* ======================= the Chewables page (Zombies menu) ======================= */
+var CHF='all',CHSEL=null,CHMSG='';
+function chPanel(){const el=document.getElementById('p-chew');if(!el)return;const own=CG.own,tot=Object.values(own).reduce((a,b)=>a+b,0),kinds=Object.keys(own).filter(k=>own[k]>0).length,sel=CG.sel.filter(i=>own[i]>0),
+  f=CHF,list=CHEW.filter(c=>f=='all'||(f=='own'?own[c[0]]>0:c[2]==f));
+ if(!CHSEL||!CGD[CHSEL])CHSEL=sel[0]||(CHEW.find(c=>own[c[0]]>0)||CHEW[0])[0];const cd=CGD[CHSEL],have=own[CHSEL]||0,eq=sel.includes(CHSEL),had=el.contains(document.activeElement),gs=el.querySelector('.cw-grid'),sc=gs?gs.scrollTop:0;
+ const ball=(id,k)=>`<span class="cw-ball ${k||''}">${chIcon(id)}</span>`,fl=[['all','All'],['own','Owned'],['s','Standard'],['m','Community'],['c','Cosmetic'],['r','Rare'],['u','Ultra-rare']];
+ let h=`<div class="cw"><div class="cw-hd"><div><small>Zombies · loadout</small><h2>Chewables</h2></div><div class="cw-st"><div><b>${kinds}<i>/${CHEW.length}</i></b><small>Collected</small></div><div><b>${tot}</b><small>Gums left</small></div><div><b>10</b><small>Rounds per drop</small></div></div></div>
+ <div class="cw-pk"><h3>Your pack <small>${sel.length} of 5 · a gumball machine rolls one of these at random, and the gum is used up</small></h3><div class="cw-slots">`;
+ for(let i=0;i<5;i++){const id=sel[i],d=id&&CGD[id];h+=d?`<button class="cw-s on t-${d.tr}" data-u="${id}" style="--c:${chHex(d.c)}" title="Take out of the pack">${ball(id)}<b>${d.n}</b><small>×${own[id]} · ${CGT[d.tr]}</small><em>${i+1}</em></button>`:`<div class="cw-s"><span class="cw-ball empty">+</span><b>Empty slot</b><small>Equip from the collection</small><em>${i+1}</em></div>`}
+ h+=`</div></div><div class="cw-main"><div class="cw-col"><div class="cw-fl">${fl.map(([k,n])=>`<button data-f="${k}" class="${f==k?'on':''}">${n}</button>`).join('')}</div><div class="cw-grid">`;
+ for(const c of list){const id=c[0],d=CGD[id],n=own[id]||0;h+=`<button class="cw-t t-${d.tr}${n?'':' lock'}${sel.includes(id)?' eq':''}${id==CHSEL?' sel':''}" data-t="${id}" style="--c:${chHex(d.c)}">${ball(id)}<b>${d.n}</b><small>${n?CGT[d.tr]:'Not found yet'}</small>${n?`<em>×${n}</em>`:''}${sel.includes(id)?'<u>PACK</u>':''}</button>`}
+ if(!list.length)h+='<p class="cw-none">Nothing here yet. Chewables drop at the end of every tenth round.</p>';
+ h+=`</div></div><aside class="cw-dt t-${cd.tr}" style="--c:${chHex(cd.c)}"><div class="cw-big">${ball(CHSEL,'big')}</div><small class="cw-tr">${CGT[cd.tr]} · ${CGY[cd.ty]}</small><h3>${cd.n}</h3><p>${cd.d}</p>
+ <div class="cw-hv">${have?`<b>×${have}</b><span>left in your collection</span>`:`<b>0</b><span>not found yet · earn it by surviving rounds</span>`}</div>
+ <button class="cw-eq${eq?' on':''}" data-e="${CHSEL}" ${have?'':'disabled'}>${have?(eq?'Take out of pack':'Add to pack'):'Not in your collection'}</button><div class="cw-msg">${CHMSG}</div>
+ <div class="cw-info"><b>How you get them</b><span>Survive 10 rounds in a Zombies run and 1 to 3 random Chewables drop into your collection. Every gumball you roll uses one up.</span></div></aside></div></div>`;
+ el.innerHTML=h;const g2=el.querySelector('.cw-grid');if(g2)g2.scrollTop=sc;if(had){const t=el.querySelector('.cw-t.sel');if(t)t.focus({preventScroll:true})}}
+function chEquip(id){const own=CG.own;CHMSG='';if(!(own[id]>0)){CHMSG='You have not found this one yet.'}else if(CG.sel.includes(id))CG.sel=CG.sel.filter(i=>i!==id);else if(CG.sel.length>=5)CHMSG='Your pack is full. Take one out first.';else{CG.sel.push(id)}CG.sel=CG.sel.filter(i=>own[i]>0);cgSave();chPanel()}
+{const el=document.getElementById('p-chew'),nb=document.querySelector('#nav button[data-p=chew]');
+ if(el){el.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.f){CHF=b.dataset.f;chPanel()}else if(b.dataset.t){CHSEL=b.dataset.t;CHMSG='';chPanel()}else if(b.dataset.u){CHSEL=b.dataset.u;chEquip(b.dataset.u)}else if(b.dataset.e&&!b.disabled)chEquip(b.dataset.e)});
+  /* keyboard and controller: arrows move over the grid, Enter adds or removes the gum under the cursor */
+  el.addEventListener('keydown',e=>{const t=e.target.closest&&e.target.closest('.cw-t');if(!t)return;const ts=[...el.querySelectorAll('.cw-t')],i=ts.indexOf(t);let n=null;
+   if(e.key=='ArrowRight')n=ts[i+1];else if(e.key=='ArrowLeft')n=ts[i-1];else if(e.key=='ArrowDown'||e.key=='ArrowUp'){const r=t.getBoundingClientRect(),dir=e.key=='ArrowDown'?1:-1;let best=1e9;for(const o of ts){const q=o.getBoundingClientRect(),dy=(q.top-r.top)*dir;if(dy<8)continue;const sc=dy*3+Math.abs(q.left-r.left);if(sc<best){best=sc;n=o}}}
+   else if(e.key=='Enter'){e.preventDefault();CHSEL=t.dataset.t;chEquip(CHSEL);return}
+   if(n){e.preventDefault();CHSEL=n.dataset.t;CHMSG='';chPanel();const f=el.querySelector('.cw-t.sel');if(f){f.focus();f.scrollIntoView({block:'nearest'})}}})}
+ if(nb)nb.addEventListener('click',()=>{cgLoad();CHSEL=null;CHMSG='';setTimeout(chPanel,0)})}
+
+cgLoad();
 /* ---- sounds: soft sines only; the chime climbs with the rarity ---- */
 function chSnd(k){if(k=='coin'){flTone(1800,1200,.08,.05,0,'sine');flTone(2400,1700,.06,.03,.03,'sine');flNoise(.05,3000,1500,.04,'highpass',.7)}
  else if(k=='crank'){for(let i=0;i<6;i++){flNoise(.03,2200+i*80,1400,.045,'bandpass',2,i*.07);flTone(220-i*6,180,.05,.03,i*.07,'sine')}}
@@ -858,32 +985,26 @@ function chMachine(){const T=THREE,g=new T.Group(),G=HV.G(),L=c=>new T.MeshLambe
  cy=(rt,rb,h,x,y,z,m,sg_)=>{const e=new T.Mesh(new T.CylinderGeometry(rt,rb,h,sg_||18),m);e.position.set(x,y,z);g.add(e);return e},
  sp=(r,x,y,z,m,sy)=>{const e=new T.Mesh(new T.SphereGeometry(1,16,12),m);e.scale.set(r,r*(sy||1),r);e.position.set(x,y,z);g.add(e);return e};
  cy(.38,.42,.08,0,.04,0,dk);cy(.3,.36,.55,0,.35,0,red);cy(.31,.31,.05,0,.2,0,metal);cy(.31,.31,.05,0,.55,0,metal);cy(.14,.2,.18,0,.68,0,metal);cy(.2,.14,.06,0,.78,0,metal);
- const globe=new T.Group();globe.position.y=1.08;g.add(globe);const gm=new T.Mesh(new T.SphereGeometry(.34,24,18),glass);globe.add(gm);
+ const globe=new T.Group();globe.position.y=1.12;g.add(globe);const gm=new T.Mesh(new T.SphereGeometry(.42,28,20),glass);globe.add(gm);const rim=new T.Mesh(new T.TorusGeometry(.4,.03,8,32),metal);rim.rotation.x=Math.PI/2;rim.position.y=-.28;globe.add(rim);
  const cols=[0xff4a5a,0x4ac8ff,0xffd84a,0x6aff7a,0xff8ad8,0xff9a3a],parts={};for(let i=0;i<cols.length;i++)parts[i]=[];const R=MK.rnd(5);
- for(let i=0;i<46;i++){let x,y,z;do{x=(R()*2-1)*.3;y=(R()*2-1)*.3;z=(R()*2-1)*.3}while(x*x+y*y+z*z>.075||y>.2-Math.abs(x)*.05&&y>.16);if(y>.18)y=.18-R()*.05;parts[i%6].push({g:G.sp,sx:.062,sy:.062,sz:.062,x,y:y-.07,z,rx:0,ry:0,rz:0})}
+ for(let i=0;i<130;i++){let x,y,z;do{x=(R()*2-1)*.36;y=(R()*2-1)*.36;z=(R()*2-1)*.36}while(x*x+y*y+z*z>.1296||y>.2-Math.abs(x)*.05&&y>.15);parts[i%6].push({g:G.sp,sx:.056,sy:.056,sz:.056,x,y:y-.05,z,rx:0,ry:0,rz:0})}
  for(const i in parts){const m=new T.Mesh(HV.merge(parts[i]),new T.MeshLambertMaterial({color:cols[i],emissive:cols[i],emissiveIntensity:.18}));globe.add(m)}
  g.userData.gum=globe;
- cy(.31,.31,.06,0,1.43,0,metal);cy(.34,.28,.1,0,1.5,0,red);cy(.04,.04,.12,0,1.58,0,metal);sp(.06,0,1.64,0,cap);
+ cy(.31,.31,.06,0,1.57,0,metal);cy(.36,.28,.12,0,1.65,0,red);cy(.04,.04,.12,0,1.74,0,metal);sp(.07,0,1.81,0,cap);
  const plate=new T.Mesh(G.bx,L(0xf0ecdc));plate.scale.set(.34,.2,.03);plate.position.set(0,.5,.33);g.add(plate);const slot=new T.Mesh(G.bx,dk);slot.scale.set(.02,.1,.02);slot.position.set(-.06,.54,.35);g.add(slot);
  const knob=new T.Group();knob.position.set(.07,.5,.355);g.add(knob);const kc=new T.Mesh(new T.CylinderGeometry(.075,.075,.04,16),metal);kc.rotation.x=Math.PI/2;knob.add(kc);const kb=new T.Mesh(G.bx,metal);kb.scale.set(.15,.035,.03);kb.position.z=.03;knob.add(kb);g.userData.knob=knob;
  const chute=new T.Mesh(G.bx,dk);chute.scale.set(.22,.14,.05);chute.position.set(0,.24,.34);g.add(chute);const flap=new T.Mesh(G.bx,metal);flap.scale.set(.2,.12,.015);flap.position.set(0,.24,.37);g.add(flap);g.userData.flap=flap;
- const lab=new T.Mesh(G.bx,L(0xfff0b0));lab.scale.set(.52,.1,.012);lab.position.set(0,.33,.315);lab.rotation.x=-.12;g.add(lab);
+ const lab=new T.Mesh(G.bx,chSignMat());lab.scale.set(.52,.1,.012);lab.position.set(0,.33,.315);lab.rotation.x=-.12;g.add(lab);
  for(const s of[-1,1])cy(.04,.05,.1,s*.3,0,.2,dk);
- const bulb=new T.Sprite(new T.SpriteMaterial({map:HV.auraTex(),color:0xffd070,transparent:true,opacity:.5,depthWrite:false,blending:T.AdditiveBlending,fog:false}));bulb.scale.set(1.6,1.6,1);bulb.position.set(0,1.1,0);g.add(bulb);g.userData.bulb=bulb;
+ const bulb=new T.Sprite(new T.SpriteMaterial({map:HV.auraTex(),color:0xffd070,transparent:true,opacity:.5,depthWrite:false,blending:T.AdditiveBlending,fog:false}));bulb.scale.set(2.3,2.3,1);bulb.position.set(0,1.2,0);g.add(bulb);g.userData.bulb=bulb;
+ const ring=new T.Mesh(new T.RingGeometry(.6,.82,40),new T.MeshBasicMaterial({color:0xffd070,transparent:true,opacity:.35,depthWrite:false,side:T.DoubleSide,blending:T.AdditiveBlending}));ring.rotation.x=-Math.PI/2;ring.position.y=.03;g.add(ring);g.userData.ring=ring;
  g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g}
-function chPlace(){for(const m of CG.mach){try{m.g.parent&&m.g.parent.remove(m.g);if(m.sol)zUnsolid(m.sol)}catch(e){}}CG.mach=[];const M=MAPS[sel.map];if(!M||!M.zm||mode!='Zombies')return;
- const ps=M.ps||[0,0],rnd=MK.rnd(7+sel.map.length*13),taken=zi.map(i=>[i.x,i.z]);taken.push([ps[0],ps[1]]);let tries=0;
- while(CG.mach.length<3&&tries++<260){const a=rnd()*6.283,d=9+rnd()*Math.min(32,M.H*.8),x=ps[0]+Math.cos(a)*d,z=ps[1]+Math.sin(a)*d;if(Math.abs(x)>M.H-5||Math.abs(z)>M.H-5)continue;
-  const[fx,fz]=zFreeSpot(x,z);if(taken.some(t=>Math.hypot(t[0]-fx,t[1]-fz)<8))continue;taken.push([fx,fz]);
-  const g=chMachine();g.position.set(fx,0,fz);g.rotation.y=Math.atan2(ps[0]-fx,ps[1]-fz);(typeof zG!='undefined'&&zG?zG:S).add(g);let sol=null;try{sol=zSolid(fx,fz,.8,.8,1.7);zGrid()}catch(e){}
-  const mc={g,x:fx,z:fz,sol,busy:0,t:0};CG.mach.push(mc);
-  zi.push({x:fx,z:fz,r:2.6,txt:()=>mc.busy?'':'Chewables · draw a gum ('+(CG.pool.length||5)+' left in the deck)',cost:()=>mc.busy?0:chCost(),act:()=>chDraw(mc)})}}
 /* ---- drawing a gum ---- */
 function chDraw(mc){if(mc.busy||P.dead||mode!='Zombies')return;const c=chCost();if(zq.pts<c)return zf('Not enough points');
- if(!CG.pool.length)CG.pool=chShuffle(chDeck());const id=CG.pool.pop();zq.pts-=c;CG.draws++;mc.busy=1;mc.t=0;mc.id=id;mc.ph=0;chSnd('coin');mc.knobFx=1;
+ CG.pool=CG.pool.filter(i=>(CG.own[i]||0)>0);if(!CG.pool.length)CG.pool=chShuffle(chDeck());if(!CG.pool.length){msg('Your pack is empty · pick Chewables in the Zombies menu',2.8);chSnd('dud');return}const id=CG.pool.pop();CG.own[id]--;if(CG.own[id]<=0)delete CG.own[id];cgSave();zq.pts-=c;CG.draws++;mc.busy=1;mc.t=0;mc.id=id;mc.ph=0;chSnd('coin');mc.knobFx=1;
  setTimeout(()=>chSnd('crank'),260);setTimeout(()=>chSnd('roll'),1050);setTimeout(()=>{chSnd('drop');mc.ph=2},1550);
  mc.id=id}
-function chMachTick(dt){for(const mc of CG.mach){const u=mc.g.userData;if(u.gum)u.gum.rotation.y+=dt*(mc.busy?5:.35);if(u.bulb)u.bulb.material.opacity=.4+.12*Math.sin(t0*3+mc.x);
+function chMachTick(dt){for(const mc of CG.mach){const u=mc.g.userData;if(u.gum)u.gum.rotation.y+=dt*(mc.busy?5:.35);if(u.bulb)u.bulb.material.opacity=.4+.12*Math.sin(t0*3+mc.x);if(u.ring)u.ring.material.opacity=.22+.16*Math.sin(t0*2.2+mc.x);
   if(!mc.busy)continue;mc.t+=dt;const t=mc.t;
   if(t<1.1){u.knob.rotation.z=-Math.PI*2*(Math.min(1,(t-.25)/.8))*(t>.25?1:0);u.gum.rotation.y+=dt*10;if(Math.random()<dt*14)burst(V(mc.x,1.1,mc.z),1,CGD[mc.id].c,1.4,.5,.05)}
   else if(t<1.6){u.flap.rotation.x=-.9*Math.min(1,(t-1.1)/.2)}
@@ -932,7 +1053,7 @@ function chUse(){const A=CG.A;if(!A||P.dead||!run||paused||mode!='Zombies'||!gmL
   case'skip':{for(const b of zs_())zDamage(b,9e9,0,zMe(),'',false);z.toSpawn=0;z.pts+=2000;try{if(z.hound)z.hound.done=1}catch(e){}msg('PHASE SKIP · +2,000',2);burst(V(P.x,1,P.z),50,0xd070ff,10,1,.14);return ok()}
  }}
 /* ---- every frame ---- */
-function chTick(dt){chMachTick(dt);chHud();chFx();if(!run||paused||mode!='Zombies'||!zq||P.dead&&!(zq.down))return;const z=zq,A=CG.A,live=gmLive(A),w=cw();CG.tk+=dt;
+function chTick(dt){chMachTick(dt);chRw();chHud();chFx();if(!run||paused||mode!='Zombies'||!zq||P.dead&&!(zq.down))return;const z=zq,A=CG.A,live=gmLive(A),w=cw();CG.tk+=dt;
  if(A){if(A.d.ty=='time'&&A.t>0){A.t-=dt;if(A.t<=0){chEnd(A);msg(A.d.n+' ended',1.4)}}if(A.run>0){A.run-=dt;if(A.run<=0){chEnd(A);if(!gmLive(A))CG.A=null}}}
  if(CG.th>0){CG.th-=dt;if(CG.th<=0)CG.th=0}
  /* gamepad: D-pad left */
@@ -989,7 +1110,6 @@ function chSqueak(){flTone(1700,2400,.09,.07,0,'sine');flTone(2400,1500,.1,.05,.
 {const _rs=zRespawn;zRespawn=function(){const z=zq,snap=z?{...z.perks}:null,keep=z&&(gmOn('retain')||gmOn('selfrest')||gmOn('second')&&false),r=_rs.apply(this,arguments);if(z&&keep&&snap){z.perks=snap;P.mhp=snap.vit?100:50;P.hp=P.mhp}return r}}
 {const _mv=zMove;zMove=function(dt){const sv=[];const slow=gmOn('slowaura');for(const b of zs_()){if(slow||b.crawlT>0){sv.push([b,b.sp]);b.sp=Math.min(b.sp||1,b.crawlT>0?.9:1.15)}}try{return _mv.apply(this,arguments)}finally{for(const[b,s]of sv)b.sp=s}}}
 {const _nr=zNewRound;zNewRound=function(){const r=_nr.apply(this,arguments);try{CG.draws=0;CG.auraUsed=0;const A=CG.A;if(A){if(A.d.ty=='rnd'||A.id=='second'||A.id=='retain'){A.left--;if(A.left<=0){chEnd(A);msg(A.d.n+' ended',1.4)}}}}catch(e){}return r}}
-{const _er=zEndRound;zEndRound=function(){const r=_er.apply(this,arguments);try{const n=zq.r;if(n%5==0){const rs=CHEW.filter(c=>c[2]=='r').map(c=>c[0]),id=rs[Math.random()*rs.length|0];CG.stock[id]=(CG.stock[id]||0)+1;cgSave();setTimeout(()=>msg('Chewable found: '+CGD[id].n,2.4),1800)}if(n%10==0&&Math.random()<.45){const us=CHEW.filter(c=>c[2]=='u').map(c=>c[0]),id=us[Math.random()*us.length|0];CG.stock[id]=(CG.stock[id]||0)+1;cgSave();setTimeout(()=>msg('Ultra-Rare Chewable found: '+CGD[id].n,2.6),4200)}}catch(e){}return r}}
 {const _rg=ragStart;ragStart=function(b){const r=_rg.apply(this,arguments);try{if(b&&b.zom&&!b.hound&&gmOn('graviton')){b.grv={t:0,vy:3+Math.random()*3,sp:2+Math.random()*3}}}catch(e){}return r}}
 {const _ba=zBoxAct;zBoxAct=function(o,i){CG.inBox=1;try{return _ba.apply(this,arguments)}finally{CG.inBox=0}}}
 {const _bw=zBuyWall;zBuyWall=function(k,pos){CG.inWall=1;try{return _bw.apply(this,arguments)}finally{CG.inWall=0}}}
@@ -997,12 +1117,12 @@ function chSqueak(){flTone(1700,2400,.09,.07,0,'sine');flTone(2400,1500,.1,.05,.
 {const _mm=zBoxMoveStart;zBoxMoveStart=function(o,i){if(gmOn('lock')){CG.A.ch--;msg('LOOT LOCK: the box stays',2);try{EST.bx.uses=0}catch(e){}zBoxEnd(o,i);zBoxStart(o,i,o.by);return}return _mm.apply(this,arguments)}}
 {const _ha=eqHandAnim;eqHandAnim=function(n,d,f){return _ha.call(this,n,gmOn('dex')?d*.6:d,f)}}
 {const _jh=juiceHit;juiceHit=function(b,d,head){const r=_jh.apply(this,arguments);try{if(CG.cos.squeak&&b&&b.zom)chSqueak()}catch(e){}return r}}
-{const _zs=zStart;zStart=function(){const r=_zs.apply(this,arguments);try{cgLoad();CG.A=null;CG.cos={};CG.draws=0;CG.pool=[];CG.trail.length=0;CG.slip.length=0;CG.fz=[];CG.fzOn=0;CG.th=0;CG.ocB=CG.hvB=null;CG.ptsL=null;CG.auraUsed=0;chPlace()}catch(e){console.warn('chewables',e)}return r}}
+{const _zs=zStart;zStart=function(){const r=_zs.apply(this,arguments);try{cgLoad();CG.A=null;CG.cos={};CG.draws=0;CG.pool=[];CG.trail.length=0;CG.slip.length=0;CG.fz=[];CG.fzOn=0;CG.th=0;CG.ocB=CG.hvB=null;CG.ptsL=null;CG.auraUsed=0;CG.rt=null;chPlace()}catch(e){console.warn('chewables',e)}return r}}
 /* ---- the always-visible gum card, the effect overlay, the interaction for Universal Refill ---- */
 function chHud(){if(!CG.hud){const h=document.getElementById('hud');if(!h)return;const e=document.createElement('div');e.id='gumhud';h.appendChild(e);CG.hud=e}
  const A=CG.A,live=run&&mode=='Zombies'&&A&&gmLive(A);let html='';
  if(live){const d=A.d;let st='';if(d.ty=='rnd')st=A.left+' round'+(A.left>1?'s':'');else if(d.ty=='time')st=Math.floor(A.t/60)+':'+String(Math.floor(A.t%60)).padStart(2,'0');else if(d.ty=='act')st=A.run>0?Math.ceil(A.run)+'s active · '+A.ch+' left':A.ch+' charge'+(A.ch>1?'s':'')+' · press '+ctlKey('gum');else st=(A.id=='second'||A.id=='retain')?A.left+' rounds':A.ch+' left';
-  html=`<i style="--c:#${d.c.toString(16).padStart(6,'0')}"></i><b>${d.n}</b><span>${st}</span>`}
+  html=`<i style="--c:#${d.c.toString(16).padStart(6,'0')}">${chIcon(A.id)}</i><b>${d.n}</b><span>${st}</span>`}
  const key=html+(run&&mode=='Zombies'?Object.keys(CG.cos).join(','):'');if(key!==CG.hk){CG.hk=key;CG.hud.innerHTML=html;CG.hud.className=html?'on':''}}
 function chFx(){if(!CG.fxEl){const e=document.createElement('div');e.id='gmfx';document.body.appendChild(e);CG.fxEl=e}const on=run&&mode=='Zombies';let c='';if(on){if(gmRun('ghost'))c+=' g-ghost';if(gmRun('freeze')||CG.fzOn)c+=' g-freeze';if(gmRun('stasis'))c+=' g-stasis';if(CG.cos.vintage)c+=' g-vint';if(CG.th>0)c+=' g-th';if(CG.disc>0||gmRun('discount'))c+=' g-disc'}if(CG.fxEl.className!==c)CG.fxEl.className=c}
 addEventListener('keydown',e=>{if(!e.repeat&&run&&!paused&&!over&&mode=='Zombies'&&(typeof RB=='function'?RB(e.code):e.code)=='KeyJ')chUse()});
@@ -1010,12 +1130,3 @@ addEventListener('keydown',e=>{if(!e.repeat&&run&&!paused&&!over&&mode=='Zombies
 /* Universal Refill: a refill point that follows you around while the gum is active */
 {const _t=LX.tick;LX.tick=function(dt){_t.call(this,dt);try{if(mode=='Zombies'&&zq&&gmOn('refill')){if(!CG.refillE){CG.refillE={x:0,z:0,r:2.6,txt:()=>'Refill ammo from anywhere',cost:()=>cw()&&cw().res<cw().m*cw().rs?600:0,act:()=>{const w=cw();if(zq.pts<600)return zf('Not enough points');zq.pts-=600;w.res=w.m*w.rs;w.mag=w.m;burst(V(P.x,1.2,P.z),20,0x60ff90,5,.6,.08);flTone(600,1200,.2,.06,0,'sine')}};zi.push(CG.refillE)}const f=aimDir();CG.refillE.x=P.x-f.x*2;CG.refillE.z=P.z-f.z*2}else if(CG.refillE){const j=zi.indexOf(CG.refillE);if(j>=0)zi.splice(j,1);CG.refillE=null}}catch(e){}}}
 /* ---- the gum picker: the CHEWABLES button on the home screen ---- */
-function chMenu(){let el=document.getElementById('gumsel');if(!el){el=document.createElement('div');el.id='gumsel';document.body.appendChild(el)}
- const draw=()=>{const sel=CG.sel,hex=c=>'#'+c.toString(16).padStart(6,'0');let h='<div class="gs-w"><div class="gs-h"><b>CHEWABLES</b><span>Pick exactly five. The gumball machines in Zombies deal only these, shuffled, all five before a reshuffle.</span><button id="gs-x">DONE</button></div><div class="gs-slots">';
-  for(let i=0;i<5;i++){const id=sel[i],d=id&&CGD[id];h+=d?`<div class="gs-s on" data-r="${id}" style="--c:${hex(d.c)}"><i></i><b>${d.n}</b><small>${CGT[d.tr]} · ${CGY[d.ty]}</small></div>`:'<div class="gs-s"><b>Empty</b><small>pick below</small></div>'}
-  h+='</div><div class="gs-g">';for(const tr of['s','c','m','r','u']){h+=`<h4>${CGT[tr]}${tr=='r'||tr=='u'?' · used up from stock when drawn':''}</h4><div class="gs-row">`;for(const c of CHEW.filter(c=>c[2]==tr)){const id=c[0],d=CGD[id],lk=!chOpen(id),st=chPrem(id)?(CG.stock[id]||0):null,on=sel.includes(id);h+=`<div class="gs-c${on?' sel':''}${lk||st===0?' lk':''}" data-a="${id}" style="--c:${hex(d.c)}"><i></i><b>${d.n}</b><small>${CGY[d.ty]}${st!=null?' · stock '+st:''}${lk?' · level '+d.lv:''}</small><p>${d.d}</p></div>`}h+='</div>'}
-  h+='</div></div>';el.innerHTML=h;el.style.display='block';
-  el.querySelector('#gs-x').onclick=()=>{CG.sel=CG.sel.filter(i=>CGD[i]);cgSave();el.style.display='none'};
-  for(const n of el.querySelectorAll('[data-r]'))n.onclick=()=>{CG.sel=CG.sel.filter(i=>i!==n.dataset.r);cgSave();draw()};
-  for(const n of el.querySelectorAll('[data-a]'))n.onclick=()=>{const id=n.dataset.a;if(!chOpen(id)||(chPrem(id)&&!(CG.stock[id]>0)&&!CG.sel.includes(id)))return;if(CG.sel.includes(id))CG.sel=CG.sel.filter(i=>i!==id);else if(CG.sel.length<5)CG.sel.push(id);else return;cgSave();draw()}};draw()}
-{const mk=()=>{const hm=document.getElementById('home');if(!hm||document.getElementById('gumbtn'))return;const b=document.createElement('button');b.id='gumbtn';b.innerHTML='<b>Chewables</b><i>Pick the five gums your Zombies runs draw from</i>';b.onclick=()=>{cgLoad();chMenu()};hm.appendChild(b)};mk();setTimeout(mk,500)}

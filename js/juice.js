@@ -38,17 +38,17 @@ JX.explode=function(p,g){if(!hi)return;const R_=Math.max(3,g&&g.R||6),near=C.pos
  scorch(p,R_*.55)};
 /* ---------- RayGun ooze: ONE shared effect for the player, bots, other players and zombie co-op (rgImpact). A small, bright, glossy crimson-pink burst, not blood:
    luminous (it blooms), a hot pale core, round gel blobs that arc out and land as glowing puddles that bubble and shrink away, with a few drifting glowing spores. ---------- */
-{const gm=[2.3,1.8,1.35].map(k=>{const m=new THREE.MeshBasicMaterial({color:0xff2f66});m.color.multiplyScalar(k);return m}),
- hot=(()=>{const m=new THREE.MeshBasicMaterial({color:0xffb0c8});m.color.multiplyScalar(2.2);return m})(),
- pt=cv(128,128,(g,w,h)=>{const r=g.createRadialGradient(64,64,3,64,64,62);r.addColorStop(0,'rgba(255,190,205,.95)');r.addColorStop(.3,'rgba(255,60,110,.9)');r.addColorStop(.75,'rgba(215,20,80,.6)');r.addColorStop(.93,'rgba(255,110,150,.5)');r.addColorStop(1,'rgba(160,0,60,0)');g.fillStyle=r;g.fillRect(0,0,w,h)}),
- pm=()=>{const m=new THREE.MeshBasicMaterial({map:pt,transparent:true,depthWrite:false,opacity:.9});m.color.setRGB(1.5,1.1,1.2);return m},
+{const gm=[2.3,1.8,1.35].map(k=>{const m=new THREE.MeshBasicMaterial({color:0xff2410});m.color.multiplyScalar(k);return m}),
+ hot=(()=>{const m=new THREE.MeshBasicMaterial({color:0xffc8a8});m.color.multiplyScalar(2.2);return m})(),
+ pt=cv(128,128,(g,w,h)=>{const r=g.createRadialGradient(64,64,3,64,64,62);r.addColorStop(0,'rgba(255,205,170,.95)');r.addColorStop(.3,'rgba(255,48,22,.9)');r.addColorStop(.75,'rgba(200,14,6,.6)');r.addColorStop(.93,'rgba(255,90,50,.5)');r.addColorStop(1,'rgba(150,0,0,0)');g.fillStyle=r;g.fillRect(0,0,w,h)}),
+ pm=()=>{const m=new THREE.MeshBasicMaterial({map:pt,transparent:true,depthWrite:false,opacity:.9});m.color.setRGB(1.6,1,1);return m},
  pg_=new THREE.CircleGeometry(1,18);JX.goops=[];JX.puds=[];
  JX.goop=function(p,g){if(!hi)return;const R_=Math.max(2,(g&&g.R)||3.2),near=C.position.distanceTo(p),prox=Math.max(0,1-near/(R_*3.4));
   F.boom=Math.min(1,Math.max(F.boom,.12+prox*.5));F.ca=Math.min(1,F.ca+prox*.35);if(near<R_*1.2)F.flash=Math.max(F.flash,.18*prox);
-  JX.flash(p,0xff3a6a,12,.4,R_*3.6);
-  addSp({p:p.clone(),s0:R_*.28,s1:R_*.95,life:.34,c:[3.2,.5,1.1],op:1,tex:flareTex});addSp({p:p.clone(),s0:R_*.14,s1:R_*.55,life:.2,c:[4,2.4,2.8],op:1});
-  addSp({p:p.clone().add(V(0,R_*.12,0)),s0:R_*.5,s1:R_*1.2,life:.5,c:[1.5,.2,.55],op:.5,tex:flareTex});
-  ring(V(p.x,Math.max(.08,p.y),p.z),.4,R_*1.05,.38,0xff6a98,.85);ring(V(p.x,Math.max(.1,p.y),p.z),.2,R_*.6,.26,0xffd0de,.6);
+  JX.flash(p,0xff2a14,12,.4,R_*3.6);
+  addSp({p:p.clone(),s0:R_*.28,s1:R_*.95,life:.34,c:[3.2,.2,.1],op:1,tex:flareTex});addSp({p:p.clone(),s0:R_*.14,s1:R_*.55,life:.2,c:[4,2.5,2.1],op:1});
+  addSp({p:p.clone().add(V(0,R_*.12,0)),s0:R_*.5,s1:R_*1.2,life:.5,c:[1.5,.1,.05],op:.5,tex:flareTex});
+  ring(V(p.x,Math.max(.08,p.y),p.z),.4,R_*1.05,.38,0xff5a3a,.85);ring(V(p.x,Math.max(.1,p.y),p.z),.2,R_*.6,.26,0xffd0de,.6);
   const n=Math.min(JX.goops.length>44?6:20,26);for(let i=0;i<n;i++){const a=rnd(0,6.283),sp=rnd(2,6.5),m=new THREE.Mesh(sg,i%5==0?hot:gm[i%3]),s=rnd(.045,.12);m.scale.set(s,s*rnd(.8,1.25),s);m.position.copy(p);S.add(m);JX.goops.push({m,v:V(Math.cos(a)*sp,rnd(2.2,6.8),Math.sin(a)*sp),s,t:0})}
   for(let i=0;i<7;i++){const a=rnd(0,6.283),d=rnd(.1,R_*.4);addSp({p:V(p.x+Math.cos(a)*d,p.y+rnd(0,.5),p.z+Math.sin(a)*d),s0:.1,s1:.34,life:rnd(.9,1.6),c:[2.6,.45,1],op:.8,tex:glowTex,v:V(rnd(-.4,.4),rnd(.5,1.4),rnd(-.4,.4)),dr:.95})}
   JX.pud(p.x,Math.max(.05,Math.min(p.y,.3)),p.z,R_*.55)};
@@ -64,9 +64,9 @@ JX.explode=function(p,g){if(!hi)return;const R_=Math.max(3,g&&g.R||6),near=C.pos
  /* everyone's RayGun impact: the same visual, plus a squelch that fades with distance (the player's own shot gets its sound from boom) */
  window.rgImpact=function(p){try{JX.goop(p,W.RG.ex);const d=C.position.distanceTo(p),v=Math.max(0,1-d/45);if(v>.05)rgPop(v)}catch(e){}}}
 /* ---------- shooting ---------- */
-JX.muzzle=function(p,k){const d=C.position.distanceTo(p);if(d>70)return;const sg_=k=='SG',rg=k=='RG',col=rg?[3.2,.45,.85]:[3,1.9,.8];
+JX.muzzle=function(p,k){if(k=='TEA')return;const d=C.position.distanceTo(p);if(d>70)return;const sg_=k=='SG',rg=k=='RG',col=rg?[3.2,.22,.12]:[3,1.9,.8];
  addSp({p:p.clone(),s0:sg_?.7:.42,s1:sg_?1.2:.7,life:.055,c:col,op:1,tex:flareTex,rot:rnd(0,6.28)});
- if(d<45&&d>2.5)JX.flash(p,rg?0xff3a6a:0xffc070,sg_?5:3.2,.075,rg?16:13);
+ if(d<45&&d>2.5)JX.flash(p,rg?0xff2a14:0xffc070,sg_?5:3.2,.075,rg?16:13);
  if(d<30&&!rg)addSp({p:p.clone(),s0:.12,s1:.55,life:rnd(.5,.8),c:[.75,.75,.78],op:.22,add:false,tex:puffTex,v:V(rnd(-.2,.2),rnd(.2,.5),rnd(-.2,.2)),dr:.9,vr:rnd(-.5,.5)})};
 JX.tracer=function(o,d,len,col,life,raw){if(!hi||len<1)return;const a=raw?o.clone():o.clone().add(d.clone().multiplyScalar(.6)).add(V(0,-.12,0)),b=o.clone().add(d.clone().multiplyScalar(len)),dv=b.clone().sub(a),L=dv.length();if(L<.3)return;
  const m=new THREE.Mesh(cyHi,new THREE.MeshBasicMaterial({color:col,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:.9}));m.material.color.multiplyScalar(2.4);
@@ -160,6 +160,6 @@ function rgPop(v){try{ac=ac||new AudioContext();const t=ac.currentTime,vv=vol*v,
  O('sine',640,80,.22,.14);O('triangle',2800,700,.26,.05,5200);O('sine',120,45,.28,.12);noise(.22,2000,.2*v);setTimeout(()=>{try{noise(.18,5200,.07*v)}catch(e){}},40)}catch(e){}}
 {const _rb=rgBeam;rgBeam=function(o,d,len,raw){_rb.apply(this,arguments);try{
   const H=JX.h,s=raw?o.clone():o.clone().add(d.clone().multiplyScalar(.7)).add(V(0,-.12,0));
-  if(H&&H.addSp){H.addSp({p:s.clone(),s0:.3,s1:.8,life:.12,c:[3.2,.5,1],op:1,tex:H.flareTex});const n=Math.min(9,Math.floor(len/4));for(let i=1;i<=n;i++){const p=s.clone().lerp(o.clone().add(d.clone().multiplyScalar(len)),i/(n+1));H.addSp({p,s0:.1,s1:.42+Math.random()*.2,life:.16+i*.018,c:[3,.5,.9],op:.8,tex:H.flareTex})}
-   for(let i=0;i<7;i++){H.addSp({p:s.clone().add(V((Math.random()-.5)*.1,(Math.random()-.5)*.1,(Math.random()-.5)*.1)),s0:.05,s1:.14,life:.3+Math.random()*.2,c:[3,.9,1.5],op:.9,v:V((Math.random()-.5)*2.4+d.x*2,(Math.random()-.5)*2.4+d.y*2,(Math.random()-.5)*2.4+d.z*2),dr:.88})}}
+  if(H&&H.addSp){H.addSp({p:s.clone(),s0:.3,s1:.8,life:.12,c:[3.2,.2,.1],op:1,tex:H.flareTex});const n=Math.min(9,Math.floor(len/4));for(let i=1;i<=n;i++){const p=s.clone().lerp(o.clone().add(d.clone().multiplyScalar(len)),i/(n+1));H.addSp({p,s0:.1,s1:.42+Math.random()*.2,life:.16+i*.018,c:[3,.2,.1],op:.8,tex:H.flareTex})}
+   for(let i=0;i<7;i++){H.addSp({p:s.clone().add(V((Math.random()-.5)*.1,(Math.random()-.5)*.1,(Math.random()-.5)*.1)),s0:.05,s1:.14,life:.3+Math.random()*.2,c:[3,.55,.35],op:.9,v:V((Math.random()-.5)*2.4+d.x*2,(Math.random()-.5)*2.4+d.y*2,(Math.random()-.5)*2.4+d.z*2),dr:.88})}}
   if(!raw){kick+=.012;shake=Math.max(shake,.35);LX.fx.shot=Math.max(LX.fx.shot,.8);LX.fx.ca=Math.max(LX.fx.ca,.5);LX.fx.pulse=Math.max(LX.fx.pulse,.35);gun.position.z+=.05;gun.rotation.x-=.05}}catch(e){}}}

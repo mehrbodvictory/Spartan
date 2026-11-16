@@ -12,7 +12,7 @@ var PERKS={vit:{n:'Vitality Cola',c:0xd8332a,cost:2500,t:'+50 max health'},spd:{
 /* perk hooks used by the weapon code (all neutral outside Zombies) */
 var zrl=()=>zq&&mode=='Zombies'&&zq.perks.spd?0.5:1,zfr=()=>zq&&mode=='Zombies'&&zq.perks.dbl?0.75:1,zsm=()=>zq&&mode=='Zombies'&&zq.perks.stam?1.2:1,
  /* per-weapon Zombies damage boost on top of the round scaling: most guns were too weak against the horde, so each gets a modest lift (never more than about a third, shotguns and the Trebuchet-class weapons a bit more) */
- ZB={AR:1.25,SMG:1.35,MP:1.35,MG:1.25,BR:1.3,SG:2,VMP:1.3,DS:1.35,CY:1.2,CT:1.2,MVR:1.2,TRB:2.5,TUR:1.15,TEA:1.1},zmul=w=>mode=='Zombies'&&zq?ZW*(w.pm||1)*(ZB[w.k]||1)*(zq.perks.dbl&&!w.ex&&w.k!='RG'?2:1):1;
+ ZB={AR:1.25,SMG:1.35,MP:1.35,MG:1.25,BR:1.3,SG:2,VMP:1.3,DS:1.35,CY:1.2,CT:1.2,MVR:1.2,TRB:2.5,TUR:1.15,TEA:6.9},zmul=w=>mode=='Zombies'&&zq?ZW*(w.pm||1)*(ZB[w.k]||1)*(zq.perks.dbl&&!w.ex&&w.k!='RG'?2:1):1;
 var zHp=r=>{const bs=n=>100+30*(n-1)+5*n*(n-1);return Math.round(r<=10?bs(r):bs(10)*Math.pow(1.07,r-10))},zDm=r=>Math.min(55,18+r*1.3),zAc=r=>Math.max(.7,1.1-r*.015),zTot=r=>Math.min(56,Math.round(5+r*2.4)),ZW=2.2,ZE=3,RGB=3000,FACE={s:0,n:Math.PI,e:Math.PI/2,w:-Math.PI/2};
 var zMe=()=>netOn?myId:'solo',zCli=()=>netOn&&!isHost;
 
@@ -95,7 +95,7 @@ function zBuyFx(x,y,z,col,txt){const p=V(x,y,z);burst(p,26,col||0xffd24a,6,.7,.1
 function zGunObj(k){const w={k,...eff(k,[])};w.mag=w.m;w.rs=k=='RG'?3:(w.rs==null?4:w.rs);w.res=w.m*w.rs;return w}
 function zGive(k){if(ZMELEE[k])return zGiveMel(k);const w=zGunObj(k),i=wp.findIndex(x=>x.k==k);MV.eq=0;if(i>=0){wp[i]=w;cur=i}else if(wp.length<zq.cap){wp.push(w);cur=wp.length-1}else wp[cur]=w;rel=0;setGun();msg(W[k].n,1.5)}
 function zGiveMel(k){const n=ZMELEE[k];zq.mel={k:n,pap:0};zq.dash.cd=0;zq.dash.t=0;zPaintHands();popup(n.toUpperCase(),k=='NF'?'Hold V to draw them. Aim = DASH':'Hold V to draw it');beep(300,.3,'sawtooth',.1);setTimeout(()=>beep(900,.3,'triangle',.1),150);burst(V(P.x,1.2,P.z),30,k=='NF'?0x55ccff:0xffffff,7,.6,.12);shake=Math.max(shake,.4)}
-function zPick(by){const own=by==zMe()?wp.map(w=>w.k):[],rareG=Math.random()<.03&&!own.includes('RG'),rareN=Math.random()<.03&&(!zq||zq.mel.k!='Nitrogen Fists')&&!(MAPS[sel.map]&&MAPS[sel.map].nf===0);if(rareG)return 'RG';if(rareN)return 'NF';if(zq&&zq.tea&&!own.includes('TEA')&&Math.random()<.045)return 'TEA';const pool=zPoolKeys().filter(k=>!own.includes(k));return pool.length?pool[Math.random()*pool.length|0]:'SMG'}
+function zPick(by){const own=by==zMe()?wp.map(w=>w.k):[],rareG=Math.random()<.03&&!own.includes('RG'),rareN=Math.random()<.03&&(!zq||zq.mel.k!='Nitrogen Fists')&&!(MAPS[sel.map]&&MAPS[sel.map].nf===0);if(rareG)return 'RG';if(rareN)return 'NF';if(zq&&zq.tea&&!own.includes('TEA')&&Math.random()<.045)return 'TEA';const pool=zPoolKeys().filter(k=>!own.includes(k)&&(k!='TEA'||sel.map!='London'||(zq&&zq.tea)));return pool.length?pool[Math.random()*pool.length|0]:'SMG'}
 function zPap(w){const B=W[w.k],t=(w.pap||0)+1;w.pap=t;w.pm=t==1?2.2:3.6;if(w.k=='RG')w.pm=t==1?3:6;w.m=Math.round(B.m*(t==1?1.5:2));w.r=B.r*(t==1?.9:.8);w.pn=B.n+(t==1?' PaP':' PaP II');w.mag=w.m;w.res=w.m*w.rs;rel=0;setGun()}
 var _zsg=setGun;setGun=function(){_zsg.apply(this,arguments);gf.material.color.setHex(mode=='Zombies'&&cw()&&cw().pap?0xc080ff:0xffdd66)};
 
@@ -217,7 +217,7 @@ function zBoxAct(o,i){if(o.st==0){const bc=zBoxCost();if(zq.pts<bc)return zf('No
  else if(o.st==2&&o.by==zMe()){zGive(o.item);if(zCli())netSend({t:'zqe',i});zBoxEnd(o,i)}}
 function zBoxStart(o,i,by){o.st=1;o.t=0;o.cy=0;o.by=by;if(typeof EST!='undefined'&&EST.bx&&(!netOn||isHost))EST.bx.uses++;beep(300,.2,'triangle',.08);if(typeof estBoxState=='function')estBoxState(o,1);if(netOn&&isHost)netSend({t:'zbs',i,st:1,by})}
 function zBoxEnd(o,i){o.st=0;o.beam.visible=o.lab.visible=false;if(o.fsHide){o.fsHide=0;zFireSaleHide(o)}if(typeof estBoxState=='function')estBoxState(o,0);if(netOn&&isHost)netSend({t:'zbs',i,st:0})}
-function zBoxTick(o,i,dt,auth){if(o.st==1){o.t+=dt;o.cy-=dt;o.beam.visible=o.lab.visible=true;if(o.cy<=0){o.cy=.12;const pool=[...zPoolKeys(),'RG',...(MAPS[sel.map]&&MAPS[sel.map].nf===0?[]:['NF']),...(zq.tea?['TEA']:[])],k=pool[Math.random()*pool.length|0];zSet(o.lab,zItemName(k),'#ffd24a');if(typeof estBoxShow=='function')estBoxShow(o,k);beep(500+Math.random()*300,.05,'square',.03)}
+function zBoxTick(o,i,dt,auth){if(o.st==1){o.t+=dt;o.cy-=dt;o.beam.visible=o.lab.visible=true;if(o.cy<=0){o.cy=.12;const pool=[...zPoolKeys().filter(k=>k!='TEA'||sel.map!='London'||zq.tea),'RG',...(MAPS[sel.map]&&MAPS[sel.map].nf===0?[]:['NF']),...(zq.tea?['TEA']:[])],k=pool[Math.random()*pool.length|0];zSet(o.lab,zItemName(k),'#ffd24a');if(typeof estBoxShow=='function')estBoxShow(o,k);beep(500+Math.random()*300,.05,'square',.03)}
   if(auth&&o.t>3.2&&typeof EST!='undefined'&&EST.bx&&!EST.bx.fs&&EST.bx.uses>=EST.bx.thr&&zboxes.length>1){zBoxMoveStart(o,i);return}
   if(auth&&o.t>3.2){o.item=zPick(o.by);o.st=2;o.t=0;zSet(o.lab,zItemName(o.item),o.item=='RG'||o.item=='NF'?'#ff4a4a':'#7bf08a');if(typeof estBoxShow=='function')estBoxShow(o,o.item,1);beep(900,.2,'triangle',.09);if(netOn&&isHost)netSend({t:'zbs',i,st:2,item:o.item,by:o.by})}}
  else if(o.st==2&&auth){o.t+=dt;if(o.t>9)zBoxEnd(o,i)}
@@ -339,7 +339,7 @@ function zRoundFx(){const z=zq;zRoundDone(z.r);rel=0;if(netOn&&P.dead)zRespawn()
  msg(z.brutes?'Round '+z.r+' · Brutes incoming':'Round '+z.r,3);roundSnd('new',z.brutes);if(typeof estRound=='function')estRound(z.r,z.brutes)}
 function zNewRound(){const z=zq;z.r++;z.puRound=0;z.st='run';z.toSpawn=zTot(z.r);z.brutes=z.r%5==0?Math.floor(z.r/5):0;z.spT=.6;zRoundFx();if(netOn)netSend({t:'zs',r:z.r,st:z.st,tm:0,br:z.brutes})}
 function zEndRound(){const z=zq;z.st='prep';z.tm=8;msg('Round '+z.r+' survived',2.5);roundSnd('end');if(netOn)netSend({t:'zs',r:z.r,st:z.st,tm:z.tm})}
-function zRoundSync(d){const z=zq;if(d.r>z.r){z.r=d.r;z.brutes=d.br||0;zRoundFx()}else if(d.st=='prep'&&z.st!='prep'){msg('Round '+z.r+' survived',2.5);roundSnd('end')}z.st=d.st;z.tm=d.tm}
+function zRoundSync(d){const z=zq;if(d.r>z.r){z.r=d.r;z.brutes=d.br||0;zRoundFx()}else if(d.st=='prep'&&z.st!='prep'){msg('Round '+z.r+' survived',2.5);roundSnd('end')}z.st=d.st;z.tm=d.tm;if(d.rm!=null)z.rm=Math.min(999,Math.max(0,d.rm|0))}
 /* per-frame work shared by the host and by guests */
 function zCommon(dt){const z=zq;if(!P.dead&&t0-lastHit>6&&P.hp<P.mhp)P.hp=Math.min(P.mhp,P.hp+12*dt);
  if(z.down){z.dnT-=dt;if(z.dnT<=0){z.down=0;z.out=1;msg('You bled out. You return next round',3)}}
@@ -353,14 +353,19 @@ function zomTick(dt){const z=zq;if(!z||mode!='Zombies')return;const M=MAPS[sel.m
  z.fl-=dt;if(z.fl<=0&&zgr){z.fl=.35;zfls={};for(const pl of zPlayers())zfls[pl.id]=zFlow(pl)}
  zMove(dt);zCommon(dt);zboxes.forEach((o,i)=>zBoxTick(o,i,dt,1));
  if(netOn){zbT+=dt;if(zbT>.1){zbT=0;netSend({t:'zb',bl:(typeof EST!='undefined'&&EST.bx?EST.bx.loc:-1),lo:(typeof lonPack=='function'?lonPack():0),r:z.r,l:bots.filter(b=>b.zom&&b.al).map(b=>[b.i,+b.x.toFixed(1),+b.z.toFixed(1),b.big?1:0,b.atk?b.atype+1:0])})}
-  zsT+=dt;if(zsT>.5){zsT=0;netSend({t:'zs',r:z.r,st:z.st,tm:Math.ceil(z.tm),br:z.brutes})}
+  zsT+=dt;if(zsT>.5){zsT=0;netSend({t:'zs',r:z.r,st:z.st,tm:Math.ceil(z.tm),br:z.brutes,rm:z.rm|0})}
   if(!zPlayers().length&&!over){z.ad+=dt;if(z.ad>6)endGame('You reached round '+z.r)}else z.ad=0}
- $('#ob').textContent=z.st=='prep'?(z.r?`Round ${z.r} survived  ·  next round in ${Math.ceil(z.tm)}`:`Get ready  ·  first round in ${Math.ceil(z.tm)}`):`Round ${z.r}  ·  Zombies left ${z.toSpawn+alive}`;zHud()}
+ z.rm=Math.min(999,Math.max(0,(z.hound&&!z.hound.done)?(z.hound.left|0):z.toSpawn+alive));$('#ob').textContent='';zHud()}
 /* lying prone in front of a perk machine pays 100 points, once per machine per match and only to the first player who does it (the host decides in co-op) */
 function zProne(){const z=zq;if(!z||P.dead||!ST.prone||!z.mp)return;z.pbq=z.pbq||{};for(const m of z.mp){if(z.pb[m.k]||z.pbq[m.k])continue;const a=FACE[m.f],fx=Math.sin(a),fz=Math.cos(a),dx=P.x-m.x,dz=P.z-m.z,fw=dx*fx+dz*fz,lat=Math.abs(dx*fz-dz*fx);
   if(fw>.7&&fw<3.6&&lat<1.8){z.pbq[m.k]=1;if(zCli())netSend({t:'zqp',k:m.k});else zProneGrant(m.k,zMe())}}}
 function zProneGrant(k,by){const z=zq,m=z.mp.find(q=>q.k==k);if(!m||z.pb[k])return;z.pb[k]=by;if(by==zMe())zProneGift(k);if(netOn&&isHost)netSend({t:'zpg',k,by})}
-function zProneGift(k){const z=zq,m=z.mp.find(q=>q.k==k);z.pts+=100;msg('+100 · '+(m?m.n:'perk machine')+' secret',2.2);beep(1000,.1,'triangle',.07);setTimeout(()=>beep(1500,.12,'triangle',.06),90)}
+/* the classic cash register: a drawer thunk, then two bright bells that ring out */
+function zCash(){try{ac=ac||new AudioContext();const t=ac.currentTime,out=ac.createGain();out.gain.value=vol;out.connect(ac.destination);
+ const tn=(ty,f0,f1,t0,d,pk)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=ty;o.frequency.setValueAtTime(f0,t0);if(f1!=f0)o.frequency.exponentialRampToValueAtTime(f1,t0+d);g.gain.setValueAtTime(.0001,t0);g.gain.linearRampToValueAtTime(pk,t0+.004);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(out);o.start(t0);o.stop(t0+d+.02)};
+ tn('sine',150,60,t,.09,.22);
+ for(const[t0,f]of[[.07,2093],[.2,2794]]){tn('sine',f,f,t+t0,.55,.15);tn('sine',f*2.76,f*2.76,t+t0,.28,.06);tn('triangle',f*1.005,f*1.005,t+t0,.4,.05)}}catch(e){}}
+function zProneGift(k){const z=zq;z.pts+=100;zCash();try{if(typeof zGainFx=='function')zGainFx(100)}catch(e){}}
 /* guests: the host runs the world, guests move the puppets and handle their own interactions */
 function zcTick(dt){const z=zq;if(!z||mode!='Zombies')return;const k=Math.min(1,dt*10);
  for(const b of bots)if(b.zp&&b.al){const ox=b.x,oz=b.z;if(b.rise>0){b.rise-=dt;b.tyaw=b.m.rotation.y;continue}b.x+=(b.tx-b.x)*k;b.z+=(b.tz-b.z)*k;b.m.position.set(b.x,0,b.z);if(Math.hypot(b.tx-ox,b.tz-oz)>.02)b.tyaw=Math.atan2(b.tx-ox,b.tz-oz);
@@ -379,7 +384,9 @@ function zHudShow(on){const d=$('#zdash');if(d)d.style.display=on?'block':'none'
 /* what the ammo line shows besides the gun: your melee weapon and, for the Nitrogen Fists, the dash */
 function zAmmoX(){if(!zq)return'';const m=zq.mel;return ' · '+(m.pn||m.k)}
 function zPuHud(){const z=zq,el=$('#zpus');if(!el)return;let h='';for(const k of['insta','dbl','fire'])if(z.pu[k]>0){const t=z.pu[k],def=ZPU[k];h+=`<div class="pu${t<6?' lo':''}" style="--c:${hex(def.c)}"><span>${def.i}</span><b>${Math.ceil(t)}</b><i style="width:${Math.min(100,t/30*100)}%"></i></div>`}if(el._h!==h){el._h=h;el.innerHTML=h}}
-function zHud(){zPuHud();const z=zq,ic=Object.keys(z.perks).filter(k=>z.perks[k]).map(k=>`<i style="background:${hex(PERKS[k].c)}">${PERKS[k].n[0]}</i>`).join(''),tm=netOn?bots.filter(b=>b.net&&!b.hb).map(b=>`${esc(b.nm)} ${b.zpts|0}${b.al?'':b.dn?' ✚':' ✖'}`).join('<br>'):'',k=z.r+'|'+z.pts+'|'+ic+'|'+tm+'|'+(z.down?1:0);
+/* zombies left: one plain white number at the top of the screen (Settings > Zombies left counter), only while a round is running */
+function zRem(n){let e=$('#zrem');if(!e){e=document.createElement('div');e.id='zrem';$('#hud').appendChild(e)}const on=typeof OPT=='undefined'||OPT.zrem!==0,s=on&&zq&&zq.st=='run'&&n>0&&!zq.out?String(n):'';if(e._s!==s){const grow=e._s&&s&&+s<+e._s;e._s=s;e.textContent=s;e.className=s?'on':'';if(grow){e.classList.remove('tk');void e.offsetWidth;e.classList.add('tk')}}}
+function zHud(){zRem(zq&&zq.rm);zPuHud();const z=zq,ic=Object.keys(z.perks).filter(k=>z.perks[k]).map(k=>`<i style="background:${hex(PERKS[k].c)}">${PERKS[k].n[0]}</i>`).join(''),tm=netOn?bots.filter(b=>b.net&&!b.hb).map(b=>`${esc(b.nm)} ${b.zpts|0}${b.al?'':b.dn?' ✚':' ✖'}`).join('<br>'):'',k=z.r+'|'+z.pts+'|'+ic+'|'+tm+'|'+(z.down?1:0);
  const dd=$('#zdash');if(dd){const nitro=z.mel.k=='Nitrogen Fists';dd.style.display=nitro?'block':'none';if(nitro){const d=z.dash,u=d.cd>0?d.cd/(d.max||6):0;dd.classList.toggle('rdy',d.cd<=0);dd.classList.toggle('act',d.t>0);dd.querySelector('.fg').style.strokeDashoffset=String(113*u);dd.querySelector('em').textContent=d.cd>0?d.cd.toFixed(1)+'s':MV.eq?'AIM':'V'}}
  if(k==zhc)return;zhc=k;$('#zr').textContent=z.r||'';$('#zpt').textContent=z.pts+(z.down?' · DOWN':'');$('#zpk').innerHTML=ic;$('#zt').innerHTML=tm}
 /* downed: Revive Soda brings you back by yourself, a teammate can revive you (co-op), otherwise the run ends */
@@ -604,10 +611,15 @@ function hhAnim(b,dt){const u=b.m.userData.hh;if(!u)return;const h=b.hs,s=h.st==
 function hhDead(b,dt){b.dyT+=dt;const k=Math.min(1,b.dyT/.45),u=b.m.userData.hh;b.m.rotation.z=k*1.45*(b.i%2?1:-1);b.m.position.y=Math.sin(Math.min(1,b.dyT/.2)*Math.PI)*.2;if(u){u.legs.forEach((l,i)=>{l.up.rotation.x=(i%2?.5:-.5)*k;l.lo.rotation.x=.6*k});u.flames.forEach(f=>f.material.opacity=Math.max(0,.8-b.dyT*.8));u.jaw.rotation.x=.6}if(Math.random()<dt*20)burst(V(b.x,.4,b.z),1,0xff7a22,2,.5,.1)}
 /* ---- the round: schedule, build-up, spawning, finish ---- */
 function hhStartRound(){const z=zq;const n=Math.min(26,6+Math.floor(z.r*.85)+(zq.cap>2?0:0));z.hound={n,spawned:0,t:0,intro:6.5,done:0,voice:0,left:n,nextT:0,wait:0};z.toSpawn=9999;z.brutes=0;z.nextHound=z.r+6+(Math.random()*3|0);
- msg('Round '+z.r+' · Cinder Hounds',3.5);HH.envT=1;
- try{const u=new SpeechSynthesisUtterance('Release the hounds. Bring me their souls.');u.pitch=.05;u.rate=.55;u.volume=Math.min(1,.9*vol);const v=speechSynthesis.getVoices().find(v=>/en/i.test(v.lang));if(v)u.voice=v;setTimeout(()=>{try{speechSynthesis.speak(u)}catch(e){}},1400)}catch(e){}
- hhSub('“Release the hounds. Bring me their souls.”',1.4,4.2);for(const t of[.4,1.9,3.3,4.7]){setTimeout(()=>{if(!zq||!zq.hound||zq.hound.done)return;const a=Math.random()*6.283,d=18+Math.random()*14;hhStrike(P.x+Math.cos(a)*d,P.z+Math.sin(a)*d)},t*1000)}
+ HH.envT=1;
+ for(const t of[.4,1.9,3.3,4.7]){setTimeout(()=>{if(!zq||!zq.hound||zq.hound.done)return;const a=Math.random()*6.283,d=18+Math.random()*14;hhStrike(P.x+Math.cos(a)*d,P.z+Math.sin(a)*d)},t*1000)}
  for(const t of[1,2.4,3.9,5.2]){setTimeout(()=>{if(zq&&zq.hound&&!zq.hound.done)hhBark(30)},t*1000+300)}}
+/* a hound spawn: one of the map's own open spawn points, 12 to 46 metres from the player it is sent after, never outside the arena and never on a blocked cell */
+function hhSpot(p){const M=MAPS[sel.map],open=(M.zs||[]).filter(s=>zq.open[s[2]]),pls=zPlayers(),inM=(x,z)=>Math.abs(x)<M.H-2.5&&Math.abs(z)<M.H-2.5;let best=null,bs=-1e9;
+ for(let k=0;k<(open.length?open.length:0);k++){const s=open[k],d=Math.hypot(s[0]-p.x,s[1]-p.z);if(d<12||d>46||!inM(s[0],s[1]))continue;let near=1e9;for(const q of pls)near=Math.min(near,Math.hypot(s[0]-q.x,s[1]-q.z));const sc=Math.min(near,30)+Math.random()*14-d*.1;if(sc>bs){bs=sc;best=s}}
+ if(!best){for(const s of open)if(inM(s[0],s[1])){best=s;break}}if(!best)return null;
+ for(let t=0;t<8;t++){const[x,z]=zFreeSpot(best[0]+(Math.random()-.5)*3,best[1]+(Math.random()-.5)*3);if(inM(x,z)&&NAV.g){const i=Math.floor(x+H),j=Math.floor(z+H);if(i>0&&j>0&&i<NAV.n-1&&j<NAV.n-1&&!NAV.g[j*NAV.n+i])return[x,z]}else if(inM(x,z)&&!NAV.g)return[x,z]}
+ return[best[0],best[1]]}
 function hhSub(txt,delay,dur){if(!HH.sub){const e=document.createElement('div');e.id='hsub';document.body.appendChild(e);HH.sub=e}setTimeout(()=>{HH.sub.textContent=txt;HH.sub.className='on';setTimeout(()=>{HH.sub.className=''},dur*1000)},delay*1000)}
 function hhEnv(dt){const z=zq,on=z&&z.hound&&!z.hound.done&&mode=='Zombies';HH.envT=on?1:0;HH.env+=(HH.envT-HH.env)*Math.min(1,dt*(on?.8:.6));const e=HH.env;if(e<.01&&!HH.active)return;HH.active=e>.01;
  try{if(typeof skyM!='undefined'&&skyM&&skyM.material){skyM.material.color.setRGB(1-.45*e,1-.78*e,1-.8*e)}
@@ -620,9 +632,9 @@ function hhTick(dt){for(let i=HH.bolts.length-1;i>=0;i--){const b=HH.bolts[i];b.
  if(!H_||H_.done||zCli())return;
  /* the round manager */
  z.toSpawn=9999;H_.t+=dt;const alive=bots.filter(b=>b.hound&&b.al).length;H_.left=alive+(H_.n-H_.spawned);
- if(H_.t>H_.intro&&H_.spawned<H_.n){H_.nextT-=dt;if(H_.nextT<=0&&alive<10){const pls=zPlayers(),p=pls[Math.random()*pls.length|0];if(p){const a=Math.random()*6.283,d=9+Math.random()*11,[x,zz]=zFreeSpot(p.x+Math.cos(a)*d,p.z+Math.sin(a)*d);hhSpawn(x,zz);H_.spawned++}H_.nextT=Math.max(.7,1.8-z.r*.03)+Math.random()*.7}}
+ if(H_.t>H_.intro&&H_.spawned<H_.n){H_.nextT-=dt;if(H_.nextT<=0&&alive<10){const pls=zPlayers(),p=pls[Math.random()*pls.length|0];if(p){const sp=hhSpot(p);if(sp){hhSpawn(sp[0],sp[1]);H_.spawned++}}H_.nextT=Math.max(.7,1.8-z.r*.03)+Math.random()*.7}}
  if(H_.spawned>=H_.n&&alive==0){H_.done=1;z.toSpawn=0}
- const ob=document.getElementById('ob');if(ob)ob.textContent=`Round ${z.r}  ·  Cinder Hounds left ${H_.left}`}
+ }
 {const _t=LX.tick;LX.tick=function(dt){_t.call(this,dt);try{hhTick(dt)}catch(e){console.warn('hounds',e)}}}
 /* hooks: the schedule, no normal spawns, no hound movement by the human zombie AI, and the last hound drops Max Ammo */
 {const _zs=zStart;zStart=function(){const r=_zs.apply(this,arguments);try{zq.nextHound=6+(Math.random()*3|0);zq.hound=null;HH.env=0;HH.fog=null;for(const b of bots)if(b.hound){try{S.remove(b.m)}catch(e){}}}catch(e){}return r}}
@@ -630,3 +642,6 @@ function hhTick(dt){for(let i=HH.bolts.length-1;i>=0;i--){const b=HH.bolts[i];b.
 {const _sp=zSpawn;zSpawn=function(){if(zq&&zq.hound&&!zq.hound.done)return;return _sp.apply(this,arguments)}}
 {const _mv=zMove;zMove=function(dt){const hs=bots.filter(b=>b.hound&&b.al);for(const b of hs)b.zom=0;try{return _mv.apply(this,arguments)}finally{for(const b of hs)b.zom=1}}}
 {const _pt=zPuTry;zPuTry=function(b){if(b&&b.hound){const z=zq,H_=z.hound;if(H_&&H_.spawned>=H_.n&&bots.filter(x=>x.hound&&x.al&&x!==b).length==0&&!H_.dropped){H_.dropped=1;let x=b.x,zz=b.z;if(!zPuOk(x,zz)){x=P.x;zz=P.z}const id=z.puId++;zPuSpawn(id,'ammo',x,zz);burst(V(x,.8,zz),30,0x40ff70,7,.9,.14)}return}return _pt.apply(this,arguments)}}
+
+/* a +100 style gain that rises from the points counter: no banner, just the number */
+function zGainFx(n){try{const e=$('#zpt');if(!e)return;const r=e.getBoundingClientRect(),d=document.createElement('div');d.className='zgain';d.textContent='+'+n;d.style.left=Math.round(r.left+r.width/2)+'px';d.style.top=Math.round(r.top)+'px';document.body.appendChild(d);setTimeout(()=>d.remove(),1100)}catch(x){}}

@@ -485,7 +485,7 @@ function estDoor(d,idx){const W=Math.max(d.w,d.d),alongZ=d.d>d.w,H=d.s=='iron'||
  for(const q of o.piv)eFlatten(q.pv,.8,.1);
  /* the barricade: planks nailed across, a chain and a padlock; they fly off when the door opens */
  const pm=[eM(0x4a3a24,0,.9,0),eM(0x3a2c1c,0,.9,0),eM(0x544028,0,.9,0)],np=d.s=='stone'?0:4;for(let i=0;i<np;i++){const y=.55+i*(H-1)/(np-1),pl=new THREE.Group(),sw=W*(.92+erand()*.1);eMk(pl,EG.box,pm[i%3],0,0,0,sw,.26,.07);for(const x of[-sw*.4,0,sw*.4])eMk(pl,EG.sph,eM(0x2a2a2a,0,.4,.9),x,0,.05,.025,.025,.025);pl.position.set(0,y,.3+.02*i);pl.rotation.z=(erand()-.5)*.28;g.add(pl);o.planks.push({m:pl,vx:(erand()-.5)*5,vy:2+erand()*3,vz:2+erand()*3.5,rx:(erand()-.5)*9,rz:(erand()-.5)*9})}
- if(d.s!='wood'||W>4){for(let i=0;i<5;i++)eMk(g,EG.tor,iron,-.5+i*.25,H*.45-i*.02,.34,.1,.1,.1,0,0,i);eMk(g,EG.box,brass,0,H*.4,.36,.2,.26,.1);eMk(g,EG.tor,brass,0,H*.4+.18,.36,.07,.07,.07)}
+ if(d.s!='wood'||W>4){const lk=new THREE.Group();lk.position.set(0,H*.42,.34);for(let i=0;i<5;i++)eMk(lk,EG.tor,iron,-.5+i*.25,H*.03-i*.02,0,.1,.1,.1,0,0,i);eMk(lk,EG.box,brass,0,-H*.02,.02,.2,.26,.1);eMk(lk,EG.tor,brass,0,.18-H*.02,.02,.07,.07,.07);g.add(lk);o.planks.push({m:lk,vx:(erand()-.5)*2,vy:1.5+erand()*2,vz:2+erand()*2,rx:(erand()-.5)*6,rz:(erand()-.5)*6})}
  /* a hand-painted price plate */
  const sg=eSign('LOCKED · '+d.c,0xffc860,256,72);const sgm=eMk(g,EG.pl,sg,0,H+.55,.1,1.7,.5,1);sgm.castShadow=false;o.sign=sgm;
  o.box=zSolid(d.x,d.z,d.w,d.d,H<4?3.5:4.6);zG.add(g);EST.objs.doors.push(o);zDoorRule(o,d,idx);return o}

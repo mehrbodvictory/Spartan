@@ -483,9 +483,9 @@ addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-r
 var OPT=(()=>{let o={kc:1,chat:1,hold:1};try{Object.assign(o,JSON.parse(localStorage.getItem('sd-opt')||'{}'))}catch(e){}return o})();
 var optSave=()=>{try{localStorage.setItem('sd-opt',JSON.stringify(OPT))}catch(e){}};
 (function(){const ps=$('#p-set');if(!ps)return;const d=document.createElement('div');d.id='rebind';
- d.innerHTML=`<h2>Gameplay options</h2><label>Killcam<select id="o-kc"><option value="1">On: watch how you died</option><option value="0">Off</option></select></label><label>Chat<select id="o-chat"><option value="1">On</option><option value="0">Off (hide all messages)</option></select></label><label>Weapon hold animations<select id="o-hold"><option value="1">Full</option><option value="0.5">Reduced</option><option value="0">Off (original game motion)</option></select></label>
+ d.innerHTML=`<h2>Gameplay options</h2><label>Killcam<select id="o-kc"><option value="1">On: watch how you died</option><option value="0">Off</option></select></label><label>Chat<select id="o-chat"><option value="1">On</option><option value="0">Off (hide all messages)</option></select></label><label>Zombies left counter<select id="o-zrem"><option value="1">On</option><option value="0">Off</option></select></label><label>Weapon hold animations<select id="o-hold"><option value="1">Full</option><option value="0.5">Reduced</option><option value="0">Off (original game motion)</option></select></label>
  <h2>Controls</h2><p class="sub">Click an action, then press the new key. Esc cancels, Backspace (or the arrow) restores the default. If the key is already used, the two actions swap. Mouse buttons and controller bindings are fixed.</p><div id="rbg"></div><button class="btn sm" id="rbreset">Reset all controls</button>`;ps.appendChild(d);
- const kc=$('#o-kc'),ch=$('#o-chat');kc.value=OPT.kc?'1':'0';ch.value=OPT.chat?'1':'0';kc.onchange=()=>{OPT.kc=+kc.value;optSave()};ch.onchange=()=>{OPT.chat=+ch.value;optSave()};const hd=$('#o-hold');hd.value=String(OPT.hold==null?1:OPT.hold);hd.onchange=()=>{OPT.hold=+hd.value;optSave()};bindUI()})();
+ const kc=$('#o-kc'),ch=$('#o-chat');kc.value=OPT.kc?'1':'0';ch.value=OPT.chat?'1':'0';kc.onchange=()=>{OPT.kc=+kc.value;optSave()};ch.onchange=()=>{OPT.chat=+ch.value;optSave()};const zr=$('#o-zrem');zr.value=OPT.zrem===0?'0':'1';zr.onchange=()=>{OPT.zrem=+zr.value;optSave()};const hd=$('#o-hold');hd.value=String(OPT.hold==null?1:OPT.hold);hd.onchange=()=>{OPT.hold=+hd.value;optSave()};bindUI()})();
 
 /* ===================== chat.js ===================== */
 /* ---------- feature 2: in-game chat. Enter opens it (team channel in team modes, Tab switches between TEAM and ALL), Z opens quick chat (1-8: callouts, the first two also drop a ping), messages travel
@@ -693,9 +693,9 @@ function thTick(dt){const box=$('#danger');if(!box)return;const on=OPT.threat!==
  const strike=why=>{if(flagged)return;flagged=1;store(KF,String(why).slice(0,60));store(KS,'x'+Date.now().toString(36));try{if(run&&!over){run=0;over=1;paused=0;document.exitPointerLock&&document.exitPointerLock();$('#hud').style.display='none';$('#menu').style.display='block'}}catch(e){}
   note(['CHEAT DETECTED','A modified game was detected ('+why+'). The match was ended and this profile will be reset the next time you log in.'])};
  /* gameplay detections that could in theory be a false alarm (health, damage, weapon numbers) end the match with a warning and only count as a strike when they repeat; tampering with progress, the weapon table or game functions is a hard strike */
- const softN=()=>{try{return+localStorage.getItem('sd-gs')||0}catch(e){return 0}};let softHit=0,suitMax=0,suitT0=0,suitReg=0;const SUITS={jugg:[60,300],goliath:[50,520]};
+ const softN=()=>{try{const v=String(localStorage.getItem('sd-gs')||'').split('|'),n=+v[0]||0,t=+v[1]||0;if(!n||Date.now()-t>3600000)return 0;return n}catch(e){return 0}},softS=n=>{try{if(n<=0)localStorage.removeItem('sd-gs');else localStorage.setItem('sd-gs',n+'|'+Date.now())}catch(e){}};let softHit=0,suitMax=0,suitT0=0,suitReg=0;const SUITS={jugg:[60,300],goliath:[50,520]};
  const endMatch=()=>{try{if(run&&!over){run=0;over=1;paused=0;document.exitPointerLock&&document.exitPointerLock();$('#hud').style.display='none';$('#menu').style.display='block'}}catch(e){}};
- const soft=why=>{if(flagged||softHit)return;softHit=1;const n=softN()+1;store('sd-gs',String(n));if(n>=3){strike('repeated unusual game states: '+why);return}endMatch();note(['MATCH ENDED','An unusual game state was detected ('+why+'). If you did not modify the game this was a false alarm and nothing was changed on your profile. Repeated detections reset it.'])};
+ const soft=why=>{if(flagged||softHit)return;softHit=1;const n=softN()+1;softS(n);if(n>=4){strike('repeated unusual game states: '+why);return}endMatch();note(['MATCH ENDED','An unusual game state was detected ('+why+'). If you did not modify the game this was a false alarm and nothing was changed on your profile. Repeated detections reset it.'])};
  /* suits are registered when the game starts one: only Juggernaut and Goliath with their real time and health are accepted, and the health caps below follow the registered suit, so nothing is switched off while a suit is active */
  {const _ss=skStartSuit;skStartSuit=function(k,t,mhp,sp,wk){const d=SUITS[k];if(!d||d[0]!==t||d[1]!==mhp){strike('invalid suit: '+k+' '+t+' '+mhp);return}suitMax=mhp;suitT0=t;suitReg=1;return _ss.apply(this,arguments)}}
  /* on load: flagged last time, stored signature does not match, or an impossible profile */
@@ -711,7 +711,7 @@ function thTick(dt){const box=$('#danger');if(!box)return;const on=OPT.threat!==
  {const _s=shoot;shoot=function(){inShot++;try{return _s.apply(this,arguments)}finally{inShot--}}}
  {const _hb=hitBot;hitBot=function(b,d,head){if(inShot&&d>480&&mode!='Zombies'&&!SK.nok&&!SK.nk&&!(typeof OI!='undefined'&&OI.on)&&!(cw()&&cw().heavy))soft('impossible damage');return _hb.apply(this,arguments)}}
  {const _sg=startGame;startGame=function(){hist=[];still=0;overT=0;softHit=0;return _sg.apply(this,arguments)}}
- {const _eg=endGame;endGame=function(){const r=_eg.apply(this,arguments);if(!softHit&&!flagged){const n=softN();if(n>0)store('sd-gs',String(n-1))}return r}}
+ {const _eg=endGame;endGame=function(){const r=_eg.apply(this,arguments);if(!softHit&&!flagged){const n=softN();if(n>0)softS(n-1)}return r}}
  /* references to the functions that decide progress and damage, taken now that every script has loaded */
  const names_=['skStartSuit','giveXP','wkill','wzkill','zRoundDone','wpres','doPrestige','tokenSpend','permHas','unlocked','okSet','camos','zcamos','allCamos','wd','hurt','die','hitBot','takeDmg','eff','shoot','respawn','startGame','boom','featKill'],cur_=()=>[skStartSuit,giveXP,wkill,wzkill,zRoundDone,wpres,doPrestige,tokenSpend,permHas,unlocked,okSet,camos,zcamos,allCamos,wd,hurt,die,hitBot,takeDmg,eff,shoot,respawn,startGame,boom,featKill],ref=cur_();
  const WSN={};for(const k in W){const w=W[k];WSN[k]=[w.d,w.r,w.m,w.pel,w.sp,w.rc,w.rl,w.ex?w.ex.d:0,w.ex?w.ex.R:0]}
@@ -750,7 +750,7 @@ function thTick(dt){const box=$('#danger');if(!box)return;const on=OPT.threat!==
   startGame=WR('startGame',startGame);respawn=WR('respawn',respawn);die=WR('die',die);hurt=WR('hurt',hurt);hitBot=WR('hitBot',hitBot);takeDmg=WR('takeDmg',takeDmg);boom=WR('boom',boom);featKill=WR('featKill',featKill);shoot=WR('shoot',shoot);
   const okB=new WeakSet(),mk=(n,f)=>{const g=function(){const n0=bots.length;if(foreign())strike('console call: '+n);const r=f.apply(this,arguments);for(let i=n0;i<bots.length;i++)okB.add(bots[i]);return r};return g};
   addBot=mk('addBot',addBot);mkZombie=mk('mkZombie',mkZombie);zPuppet=mk('zPuppet',zPuppet);for(const b of bots)okB.add(b);
-  let lq=0;const lgQ=(n,f)=>function(){if(foreign())strike('console call: '+n);lq++;try{return f.apply(this,arguments)}finally{lq--}};
+  let lq=0;const lgQ=(n,f)=>function(){if(foreign())strike('console call: '+n);const n0=q.length;lq++;try{return f.apply(this,arguments)}finally{lq--;const g=q.length-n0;if(g>0)qL+=g}};
   skAward=lgQ('skAward',skAward);skReward=lgQ('skReward',skReward);skGiveHeavy=gw('skGiveHeavy',skGiveHeavy);skAmmo=gw('skAmmo',skAmmo);useStreak=gw('useStreak',useStreak);kcGive=gw('kcGive',kcGive);zGive=gw('zGive',zGive);
   var id2=[addBot,mkZombie,zPuppet,skAward,skReward,skGiveHeavy,skAmmo,useStreak,kcGive,zGive],c2=()=>[addBot,mkZombie,zPuppet,skAward,skReward,skGiveHeavy,skAmmo,useStreak,kcGive,zGive];
   const fz=o=>{if(o&&typeof o=='object'&&!Object.isFrozen(o)){Object.freeze(o);for(const k in o){const v=o[k];if(v&&typeof v=='object')fz(v)}}};try{fz(W);fz(A);fz(K);fz(GR);fz(EQN);fz(UNL)}catch(e){}
@@ -805,10 +805,13 @@ function thTick(dt){const box=$('#danger');if(!box)return;const on=OPT.threat!==
   el.addEventListener('change',e=>{if(!e.isTrusted)return;const c=e.target.closest&&e.target.closest('[data-sp]');if(c){apply(()=>{prof.perm=prof.perm||[];const k=c.dataset.sp,i=prof.perm.indexOf(k);if(c.checked&&i<0)prof.perm.push(k);if(!c.checked&&i>=0)prof.perm.splice(i,1)})}});
   el.addEventListener('keydown',e=>{if(e.key=='Escape')act.close();e.stopPropagation()});el.addEventListener('keyup',e=>e.stopPropagation());
   /* the way in: type the passphrase on the menu. Nothing on screen hints at it and the code holds only a salted PBKDF2 hash (100,000 rounds), never the phrase or how it is typed. Real key presses only, never in a match or online. */
-  {var kb='',busy=0,pend=0;var E=s=>new TextEncoder().encode(s),SM={s:'7993a2ccaa3bf6afd4e42704',n:100000,l:23,h:'fa86149b4fc6bad452ac90088084a13eb70b1bd3e86be0debc82e0c6c80484c0'};
-   var chk=()=>{if(busy){pend=1;return}if(kb.length<SM.l||!window.crypto||!crypto.subtle)return;busy=1;
-    crypto.subtle.importKey('raw',E(kb),'PBKDF2',false,['deriveBits']).then(k=>crypto.subtle.deriveBits({name:'PBKDF2',salt:E(SM.s),iterations:SM.n,hash:'SHA-256'},k,256)).then(b=>{if([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')===SM.h){kb='';render();el.style.display='flex'}}).catch(()=>{}).then(()=>{busy=0;if(pend){pend=0;chk()}})};
-   addEventListener('keydown',e=>{if(!e.isTrusted||run||el.style.display!='none'||(typeof netOn!='undefined'&&netOn)||!e.key||e.key.length!=1)return;kb=(kb+e.key.toLowerCase()).slice(-SM.l);chk()})}}
+  {var kb='',busy=0,pend=0;var E=s=>new TextEncoder().encode(s),SM={s:'5a9d437e96c1cc5f8215e53c',n:100000,l:4,h:'7704d4319da6ddb619fe00a081851f85409b1af5c50e32e1a586298306b8f174'};
+   /* typed on the Chewables page, then Enter. The page is in the Zombies menu, so the phrase is only ever read while that page is on screen */
+   var onChew=()=>{const p=document.getElementById('p-chew');return !!p&&p.offsetParent!==null};
+   var chk=()=>{if(busy){pend=1;return}if(kb.length<SM.l||!window.crypto||!crypto.subtle)return;busy=1;const typed=kb.slice(-SM.l);
+    crypto.subtle.importKey('raw',E(typed),'PBKDF2',false,['deriveBits']).then(k=>crypto.subtle.deriveBits({name:'PBKDF2',salt:E(SM.s),iterations:SM.n,hash:'SHA-256'},k,256)).then(b=>{if([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')===SM.h){kb='';render();el.style.display='flex'}}).catch(()=>{}).then(()=>{busy=0;if(pend){pend=0;chk()}})};
+   addEventListener('keydown',e=>{if(!e.isTrusted||run||el.style.display!='none'||(typeof netOn!='undefined'&&netOn)||!e.key)return;if(!onChew()){kb='';return}
+    if(e.key=='Enter'){chk();kb='';return}if(e.key.length!=1)return;kb=(kb+e.key).slice(-12)})}}
  document.addEventListener('visibilitychange',()=>{if(!document.hidden){slowT=0;tick(.1)}});
 })();
 

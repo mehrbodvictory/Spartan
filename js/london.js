@@ -3,11 +3,12 @@
    is unlocked by the Great British Brew easter egg. No Nitrogen Fists on this map: it keeps the RayGun and the Katana. ---------- */
 
 /* ---------- The Brew: a Victorian steam-powered tea cannon. It fires a thick beam of scalding tea that goes right through a line of zombies, then splashes and slows everything it touches.
-   Zombies maps only: never in Multiplayer, never in the box until the easter egg is done. ---------- */
-W.TEA={n:'The Brew',d:150,r:.3,m:12,rs:3,sp:.003,rc:2,pel:1,au:0,rl:2.1,len:.55,col:0xc98a3b,ex:{R:3.6,d:140,imp:0,w:'TEA',c:0xd9953f}};
+   Zombies and Multiplayer. In Zombies it is in the Mystery Box on every map; on London only after the easter egg. ---------- */
+/* a held beam: it fires every 0.1 s while the trigger is down (36 ticks of heat, then it vents). Damage is low per tick; Zombies scales it up (ZB.TEA, and boom() for the splash) so the old damage per second is unchanged */
+W.TEA={n:'The Brew',d:8,r:.1,m:36,rs:3,sp:.003,rc:.2,pel:1,au:1,rl:2.1,len:.55,col:0xc98a3b,ex:{R:3.2,d:6,imp:0,w:'TEA',c:0xd9953f}};
 WG.TEA=[.6,0xb8733a,0,0xffb040];
 GS.TEA={n:[[.3,'bandpass',1200,.4,0,.9,1.8],[.2,'lowpass',520,.35,.04],[.06,'highpass',4800,.12]],o:[['sine',170,70,.2,.3]]};
-ZSKIP.push('TEA');ZWP.TEA=0;
+ZWP.TEA=3250;
 RLK.TEA='mag';
 /* the model: riveted copper boiler with a teapot lid on top, brass bands, a pressure gauge, a glowing sight-glass tube, a curved brass spout-nozzle with a glowing amber mouth, copper pipes,
    a mahogany stock with a brass butt plate, a leather pistol grip, and a teacup on a saucer as the magazine */
@@ -49,10 +50,16 @@ var TB={hold:0,fire:0,ms:[],snd:null,splT:0,dropT:0,steamT:0,ns:0,over:0,was:0,b
 function teaMake(){if(TB.ms.length)return;for(const[r,c,op,k]of[[.2,0x6a3a14,.2,1],[.11,0xc98a3b,.55,1.3],[.045,0xffe0b0,.95,2.2]]){const mt=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:op,depthWrite:false});mt.color.multiplyScalar(k);const m=new THREE.Mesh(bmG,mt);m.visible=false;m.frustumCulled=false;S.add(m);TB.ms.push({m,r,op,k})}}
 function teaNet(){if(t0-TB.ns>.1){TB.ns=t0;return true}return false}
 /* the player's own beam: called once per tick of the gun; remote shots (raw) are a short one-shot beam */
-function teaBeam(o,d,len,raw){if(!raw){TB.hold=.12;TB.fire=.16;return}
+/* steam and droplets get their own textures: pure white RGB with only the alpha varying, built as raw data (a canvas stores premultiplied colour and leaves coloured noise on soft edges) */
+function teaTexs(){if(teaTexs.c)return teaTexs.c;const N=128,hs=(x,y,q)=>{const v=Math.sin(x*127.1+y*311.7+q*74.7)*43758.5453;return v-Math.floor(v)},
+ vn=(x,y,q)=>{const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);return(hs(xi,yi,q)*(1-u)+hs(xi+1,yi,q)*u)*(1-v)+(hs(xi,yi+1,q)*(1-u)+hs(xi+1,yi+1,q)*u)*v},
+ mk=f=>{const d=new Uint8Array(N*N*4);for(let y=0;y<N;y++)for(let x=0;x<N;x++){const u=(x+.5)/N*2-1,v=(y+.5)/N*2-1,r=Math.sqrt(u*u+v*v),a=r>=1?0:f(r,x,y),i=(y*N+x)*4;d[i]=d[i+1]=d[i+2]=255;d[i+3]=Math.max(0,Math.min(255,Math.round(a*255)))}
+  const t=new THREE.DataTexture(d,N,N,THREE.RGBAFormat);t.minFilter=t.magFilter=THREE.LinearFilter;t.generateMipmaps=false;t.needsUpdate=true;return t};
+ return teaTexs.c={steam:mk((r,x,y)=>{const e=1-r,fall=e*e*(3-2*e),n=.55*vn(x/22,y/22,1)+.3*vn(x/11,y/11,2)+.15*vn(x/5.5,y/5.5,3);return fall*(.5+.8*n)*.9}),drop:mk(r=>Math.pow(1-r,2.2))}}
+function teaBeam(o,d,len,raw){if(!raw){TB.hold=.15;TB.fire=.16;return}
  const s=o.clone(),e=o.clone().add(d.clone().multiplyScalar(len)),mid=s.clone().add(e).multiplyScalar(.5),L=s.distanceTo(e),dir=e.clone().sub(s).normalize();
  for(const[r,c,op,k]of[[.2,0x6a3a14,.2,1],[.11,0xc98a3b,.55,1.3],[.045,0xffe0b0,.95,2.2]]){const mt=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:op});mt.color.multiplyScalar(k);const m=new THREE.Mesh(bmG,mt);m.position.copy(mid);m.scale.set(r,L,r);m.quaternion.setFromUnitVectors(V(0,1,0),dir);S.add(m);fx.push({m,l:.2,fade:op,r})}
- try{for(let i=0;i<3;i++)JX.h.addSp({p:s.clone().lerp(e,Math.random()*Math.min(1,10/L)),s0:.3,s1:1.1,life:.9,c:[.9,.88,.84],op:.3,tex:JX.h.puffTex,add:false,v:V(0,.5,0),dr:.9})}catch(x){}}
+ try{for(let i=0;i<3;i++)JX.h.addSp({p:s.clone().lerp(e,Math.random()*Math.min(1,10/L)),s0:.3,s1:1.1,life:.9,c:[1,1,1],op:.3,tex:teaTexs().steam,add:false,v:V(0,.5,0),dr:.9})}catch(x){}}
 var TEAB={};
 /* every zombie close to the beam takes a scalding hit each tick (the first one is hit by the shot itself); the end of the beam splashes everything around it */
 function teaPierce(o,d,len,w,first){if(typeof bots=='undefined')return;const hits=[],dm=Math.round(w.d*.8*(typeof zmul=='function'?zmul(w):1));
@@ -60,7 +67,7 @@ function teaPierce(o,d,len,w,first){if(typeof bots=='undefined')return;const hit
  hits.sort((a,b)=>a[0]-b[0]);for(const[t,b]of hits.slice(0,5)){hitBot(b,dm,0);b.stun=Math.max(b.stun||0,.5)}
  if(t0-TB.splT>.12){TB.splT=t0;const e=o.clone().add(d.clone().multiplyScalar(Math.min(len,first+.1)));for(const b of bots){if(!b.zom||!b.al)continue;if(Math.hypot(b.x-e.x,(b.y||0)+1-e.y,b.z-e.z)<2.4){hitBot(b,Math.round(dm*.45),0);b.stun=Math.max(b.stun||0,.9)}}}}
 /* per frame: the persistent beam, the heat bar, steam, overheating, cooling and the hissing / boiling sound */
-function teaTick(dt){const w=(typeof wp!='undefined'&&wp&&wp[cur])?wp[cur]:null,tea=!!w&&w.k=='TEA'&&run&&!P.dead&&mode=='Zombies';TB.t+=dt;
+function teaTick(dt){const w=(typeof wp!='undefined'&&wp&&wp[cur])?wp[cur]:null,tea=!!w&&w.k=='TEA'&&run&&!P.dead;TB.t+=dt;
  if(!TB.bar&&typeof document!='undefined'){const e=document.createElement('div');e.id='teaheat';e.innerHTML='<i></i><b>THE BREW</b>';const h=document.getElementById('hud');if(h){h.appendChild(e);TB.bar=e}}
  if(!tea){for(const q of TB.ms)q.m.visible=false;if(TB.bar&&TB.lastBar!=='off'){TB.bar.style.display='none';TB.lastBar='off'}teaSound(0,0);TB.hold=0;TB.over=0;return}
  teaMake();w.res=Math.max(w.res,w.m*3);const heat=1-Math.max(0,w.mag)/w.m,venting=rel>0;
@@ -70,12 +77,12 @@ function teaTick(dt){const w=(typeof wp!='undefined'&&wp&&wp[cur])?wp[cur]:null,
  const o=(typeof vrOrg=='function'&&vrOrg())||C.position.clone(),d=aimDir(),on=TB.hold>0&&!venting;
  if(on){const wl=Math.min(castW(o,d,120),120),s=o.clone().add(d.clone().multiplyScalar(.7)).add(V(0,-.12,0)),e=o.clone().add(d.clone().multiplyScalar(wl)),mid=s.clone().add(e).multiplyScalar(.5),L=Math.max(.2,s.distanceTo(e)),dir=e.clone().sub(s).normalize(),fl=1+.12*Math.sin(TB.t*47)+.06*Math.sin(TB.t*23);
   TB.ms.forEach((q,i)=>{q.m.visible=true;q.m.position.copy(mid);q.m.scale.set(q.r*fl*(i==0?1+heat*.5:1),L,q.r*fl*(i==0?1+heat*.5:1));q.m.quaternion.setFromUnitVectors(V(0,1,0),dir);q.m.material.opacity=q.op*(.88+.12*Math.sin(TB.t*31+i));if(i==2)q.m.material.color.setRGB(2.2,2.2-heat*1.1,2.2-heat*1.9)});
-  TB.dropT-=dt;if(TB.dropT<=0){TB.dropT=.07;try{const H=JX.h;for(let i=0;i<2;i++){const p=s.clone().lerp(e,Math.random()*Math.min(1,14/L));H.addSp({p,s0:.07,s1:.2,life:.4,c:[2.2,1.3,.5],op:.9,tex:H.flareTex,v:V((Math.random()-.5)*1.4,Math.random()*1.4,(Math.random()-.5)*1.4),dr:.9})}H.addSp({p:s.clone().lerp(e,Math.random()*Math.min(1,10/L)),s0:.3,s1:1.1,life:.8,c:[.9,.88,.84],op:.26,tex:H.puffTex,add:false,v:V(0,.6,0),dr:.9})}catch(x){}}
+  TB.dropT-=dt;if(TB.dropT<=0){TB.dropT=.07;try{const H=JX.h;for(let i=0;i<2;i++){const p=s.clone().lerp(e,Math.random()*Math.min(1,14/L));H.addSp({p,s0:.07,s1:.2,life:.4,c:[2.2,1.3,.5],op:.9,tex:teaTexs().drop,v:V((Math.random()-.5)*1.4,Math.random()*1.4,(Math.random()-.5)*1.4),dr:.9})}H.addSp({p:s.clone().lerp(e,Math.random()*Math.min(1,10/L)),s0:.3,s1:1.1,life:.8,c:[1,1,1],op:.26,tex:teaTexs().steam,add:false,v:V(0,.6,0),dr:.9})}catch(x){}}
   if(t0-TB.splT>.2&&wl<119){try{JX.tea&&JX.tea(e,{R:2.4})}catch(x){}}
   kick+=.0012;shake=Math.max(shake,.05+heat*.12);LX.fx.pulse=Math.max(LX.fx.pulse,.1+heat*.15)}
  else for(const q of TB.ms)q.m.visible=false;
  /* steam from the boiler when it runs hot, a big hiss when it overheats */
- if((heat>.62&&TB.hold>0)||venting){TB.steamT-=dt;if(TB.steamT<=0){TB.steamT=venting?.05:.12;try{const H=JX.h,p=C.position.clone().add(aimDir().multiplyScalar(.5)).add(V(.1,-.05+(Math.random()-.3)*.1,0));H.addSp({p,s0:.15,s1:venting?1.4:.8,life:venting?1.1:.7,c:[.95,.93,.9],op:venting?.45:.3,tex:H.puffTex,add:false,v:V((Math.random()-.5)*.8,.9+Math.random()*.9,(Math.random()-.5)*.8),dr:.9})}catch(x){}}}
+ if((heat>.62&&TB.hold>0)||venting){TB.steamT-=dt;if(TB.steamT<=0){TB.steamT=venting?.05:.12;try{const H=JX.h,p=C.position.clone().add(aimDir().multiplyScalar(.5)).add(V(.1,-.05+(Math.random()-.3)*.1,0));H.addSp({p,s0:.15,s1:venting?1.4:.8,life:venting?1.1:.7,c:[1,1,1],op:venting?.45:.3,tex:teaTexs().steam,add:false,v:V((Math.random()-.5)*.8,.9+Math.random()*.9,(Math.random()-.5)*.8),dr:.9})}catch(x){}}}
  if(venting&&!TB.was){TB.was=1;teaVent();shake=Math.max(shake,.5);popup&&0}if(!venting)TB.was=0;
  teaSound(on?1:0,heat);
  if(TB.bar){const pc=Math.round(heat*100),txt=venting?'V':pc>=100?'X':pc;const key=venting?'v'+Math.round(rel*5):pc+'';if(TB.lastBar!==key){TB.lastBar=key;TB.bar.style.display='block';const i=TB.bar.firstChild;i.style.width=(venting?100:pc)+'%';TB.bar.className=venting?'vent':heat>.75?'hot':'';TB.bar.lastChild.textContent=venting?'VENTING…':heat>.75?'OVERHEATING':'THE BREW'}}}
@@ -98,12 +105,12 @@ function teaVent(){try{ac=ac||new AudioContext();const c=ac,t=c.currentTime,n=c.
  pt=cv(128,128,(g,w,h)=>{const r=g.createRadialGradient(64,64,3,64,64,62);r.addColorStop(0,'rgba(240,190,110,.95)');r.addColorStop(.5,'rgba(170,95,35,.85)');r.addColorStop(.9,'rgba(120,60,20,.5)');r.addColorStop(1,'rgba(90,40,10,0)');g.fillStyle=r;g.fillRect(0,0,w,h)}),
  pg_=new THREE.CircleGeometry(1,18);JX.teas=[];JX.tpuds=[];
  JX.tea=function(p,g){if(!hi)return;const R_=Math.max(2,(g&&g.R)||2.6),near=C.position.distanceTo(p),prox=Math.max(0,1-near/(R_*3.4));F.boom=Math.min(1,Math.max(F.boom,.1+prox*.35));JX.flash(p,0xffb060,7,.3,R_*3);
-  addSp({p:p.clone(),s0:R_*.2,s1:R_*.8,life:.28,c:[2.2,1.2,.45],op:.9,tex:flareTex});
-  for(let i=0;i<6;i++)addSp({p:V(p.x+rnd(-.5,.5),p.y+rnd(.1,.6),p.z+rnd(-.5,.5)),s0:.5,s1:1.9,life:rnd(1.3,2.2),c:[.9,.88,.84],op:.38,tex:puffTex,add:false,v:V(rnd(-.2,.2),rnd(.7,1.5),rnd(-.2,.2)),dr:.9});
+  addSp({p:p.clone(),s0:R_*.2,s1:R_*.8,life:.28,c:[2.2,1.2,.45],op:.9,tex:teaTexs().drop});
+  for(let i=0;i<6;i++)addSp({p:V(p.x+rnd(-.5,.5),p.y+rnd(.1,.6),p.z+rnd(-.5,.5)),s0:.5,s1:1.9,life:rnd(1.3,2.2),c:[1,1,1],op:.38,tex:teaTexs().steam,add:false,v:V(rnd(-.2,.2),rnd(.7,1.5),rnd(-.2,.2)),dr:.9});
   const n=Math.min(JX.teas.length>40?5:16,22);for(let i=0;i<n;i++){const a=rnd(0,6.283),sp=rnd(2,5.5),m=new THREE.Mesh(sg,dm[i%3]),s=rnd(.04,.1);m.scale.set(s,s*rnd(.9,1.3),s);m.position.copy(p);S.add(m);JX.teas.push({m,v:V(Math.cos(a)*sp,rnd(2,6),Math.sin(a)*sp),s,t:0})}
   if(JX.tpuds.length>12){const o=JX.tpuds.shift();S.remove(o.m);o.m.material.dispose()}const m=new THREE.Mesh(pg_,(()=>{const q=new THREE.MeshBasicMaterial({map:pt,transparent:true,depthWrite:false,opacity:.85});q.color.setRGB(1.2,1,.9);return q})());m.rotation.x=-Math.PI/2;m.position.set(p.x,.05,p.z);m.scale.setScalar(.1);S.add(m);JX.tpuds.push({m,r:R_*.5,t:0,b:0})};
  const _tk=JX.tickG;JX.tickG=function(dt){if(_tk)_tk(dt);const G=JX.teas;for(let i=G.length-1;i>=0;i--){const o=G[i];o.t+=dt;o.v.y-=16*dt;o.m.position.addScaledVector(o.v,dt);if(o.m.position.y<=.06||o.t>2){S.remove(o.m);G.splice(i,1)}}
-  const P_=JX.tpuds;for(let i=P_.length-1;i>=0;i--){const o=P_[i];o.t+=dt;const u=o.t,e=1-Math.pow(1-Math.min(1,u/.25),3),sh=u<3?1:Math.max(0,1-(u-3)/1.2);o.m.scale.setScalar(Math.max(.01,o.r*e*(.85+.15*sh)));o.m.material.opacity=.85*sh;o.b-=dt;if(o.b<=0&&u<3){o.b=rnd(.2,.4);addSp({p:V(o.m.position.x+rnd(-o.r,o.r)*.6,.15,o.m.position.z+rnd(-o.r,o.r)*.6),s0:.2,s1:.9,life:1.1,c:[.9,.88,.84],op:.3,tex:puffTex,add:false,v:V(0,.8,0),dr:.9})}if(sh<=0){S.remove(o.m);o.m.material.dispose();P_.splice(i,1)}}};
+  const P_=JX.tpuds;for(let i=P_.length-1;i>=0;i--){const o=P_[i];o.t+=dt;const u=o.t,e=1-Math.pow(1-Math.min(1,u/.25),3),sh=u<3?1:Math.max(0,1-(u-3)/1.2);o.m.scale.setScalar(Math.max(.01,o.r*e*(.85+.15*sh)));o.m.material.opacity=.85*sh;o.b-=dt;if(o.b<=0&&u<3){o.b=rnd(.2,.4);addSp({p:V(o.m.position.x+rnd(-o.r,o.r)*.6,.15,o.m.position.z+rnd(-o.r,o.r)*.6),s0:.2,s1:.9,life:1.1,c:[1,1,1],op:.3,tex:teaTexs().steam,add:false,v:V(0,.8,0),dr:.9})}if(sh<=0){S.remove(o.m);o.m.material.dispose();P_.splice(i,1)}}};
  const _gc=JX.goopClear;JX.goopClear=function(){if(_gc)_gc();for(const o of JX.teas)S.remove(o.m);for(const o of JX.tpuds){S.remove(o.m);o.m.material.dispose()}JX.teas.length=JX.tpuds.length=0}}
 /* the splash lands: scalded zombies are slowed hard for a few seconds (the explosion damage itself is dealt by boom) */
 function teaScald(p,R){if(typeof bots=='undefined')return;for(const b of bots){if(!b.zom||!b.al)continue;if(Math.hypot(b.x-p.x,b.z-p.z)<R)b.stun=Math.max(b.stun||0,2.4)}}
@@ -190,7 +197,7 @@ function lonBuild(){const M=MAPS.London,a=[],vv=M._v=[];EST.sd=23;EST.cols=[];ES
  /* the Abbey: pillars, an altar with candles, stained glass */
  for(const x of[-36,-42,-48])for(const z of[-22,-8]){R(x-.6,z-.6,x+.6,z+.6,15,0x8a8478,'stone');bk.bot(x,0,z,1.5,.5,1.5,DST,'s');bk.bot(x,14.5,z,1.5,.5,1.5,DST,'s')}
  R(-53.6,-18,-51,-12,1.2,0x6a655a,'stone');for(const z of[-17,-15,-13])eFlame(-52.3,1.5,z,1,1);
- for(const[z,c]of[[-26,0x3a5fd0],[-14,0xd03a3a],[-4,0xd0a63a]]){V_(-30.2,z,.1,2.6,9,3,c,'e');V_(-53.7,z,.1,2.6,9,3,c,'e');eSpot(-34,7,z,c,.9,14,.5,erand()*9)}
+ for(const[z,c]of[[-26,0x3a5fd0],[-14,0xd03a3a],[-4,0xd0a63a]]){if(z!=-14)V_(-30.2,z,.1,2.6,9,3,c,'e');V_(-53.7,z,.1,2.6,9,3,c,'e');eSpot(-34,7,z,c,.9,14,.5,erand()*9)}V_(-30.2,-7.6,.1,2.6,9,3,0xd03a3a,'e');
  V_(-42,-29.7,2.6,.1,9,3,0x3aa05a,'e');V_(-42,-.3,2.6,.1,9,3,0x6a3ad0,'e');
  /* pub furniture */
  R(12,15,25,16.4,1.1,0x4a2f1c,'plank');for(const[x,z]of[[15,29],[20,21],[21,28]]){R(x-.8,z-.8,x+.8,z+.8,1,0x5a3a22,'plank')}for(const[x,z]of[[10.4,32.6],[26.6,15.6]]){bk.cyl(x,0,z,.45,.45,1,0x6a4a2a,'w',10);col(x,z,.9,.9,1)}

@@ -137,7 +137,7 @@ var _sg=setGun;setGun=function(){_sg();const k=cw().k;vmpG.visible=k=='VMP';knG.
 /* ===================== raygun.js ===================== */
 /* ---------- RayGun: retro sci-fi blaster secondary. One click = one big red beam with splash damage. 20 rounds max. ---------- */
 W.CY={n:'Coyote',d:26,r:.085,m:60,sp:.018,rc:1.3,pel:1,au:1,rl:4.2,len:.7,col:0x2e3238};PRI.push('CY');
-W.RG={n:'RayGun',d:48,r:.38,m:20,rs:0,sp:.002,rc:3.5,pel:1,au:0,rl:1.6,len:.45,col:0xb02a22,ex:{R:3.2,d:62,imp:0,w:'RG',c:0xff3a6a}};SEC.push('RG');W.CT={n:'1911',d:30,r:.16,m:8,sp:.006,rc:2.2,pel:1,au:0,rl:1.5,len:.32,col:0x1d2128};SEC.push('CT');
+W.RG={n:'RayGun',d:48,r:.38,m:20,rs:0,sp:.002,rc:3.5,pel:1,au:0,rl:1.6,len:.45,col:0xb02a22,ex:{R:3.2,d:62,imp:0,w:'RG',c:0xff2a14}};SEC.push('RG');W.CT={n:'1911',d:30,r:.16,m:8,sp:.006,rc:2.2,pel:1,au:0,rl:1.5,len:.32,col:0x1d2128};SEC.push('CT');
 var rgG=new THREE.Group(),rm=gb.material,rgSteel=new THREE.MeshLambertMaterial({color:0x9aa0a6}),rgBrass=new THREE.MeshLambertMaterial({color:0xc9a94d}),rgGlow=new THREE.MeshBasicMaterial({color:0xff3030}),rgGauge=new THREE.MeshBasicMaterial({color:0xffb454});
 var rp=(g,x,y,z,m,rx,ry,rz,glow)=>{const p=new THREE.Mesh(g,m);p.position.set(x,y,z);p.rotation.set(rx||0,ry||0,rz||0);if(glow)p.userData.glow=1;rgG.add(p);return p},
  rbx=(w,h,d,x,y,z,m,rx)=>{const p=rp(bg,x,y,z,m,rx);p.scale.set(w,h,d)},cy=(a,b,h)=>new THREE.CylinderGeometry(a,b,h,12),tor=(r,t)=>new THREE.TorusGeometry(r,t,6,14),P2=Math.PI/2;
@@ -155,8 +155,22 @@ var _sg2=setGun;setGun=function(){_sg2();const rg=cw().k=='RG';rgG.visible=rg;gf
 /* red beam + blaster sound */
 var bmG=new THREE.CylinderGeometry(1,1,1,10);
 function rgBeam(o,d,len,raw){const s=raw?o.clone():o.clone().add(d.clone().multiplyScalar(.7)).add(V(0,-.12,0)),e=o.clone().add(d.clone().multiplyScalar(len)),mid=s.clone().add(e).multiplyScalar(.5),L=s.distanceTo(e),dir=e.clone().sub(s).normalize();
- for(const[r,c,op]of[[.1,0xff1a1a,.55],[.04,0xffd0d0,.95]]){const m=new THREE.Mesh(bmG,new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:op}));m.position.copy(mid);m.scale.set(r,L,r);m.quaternion.setFromUnitVectors(V(0,1,0),dir);S.add(m);fx.push({m,l:.16,fade:op,r})}}
-function pew(a=1){try{ac=ac||new AudioContext();const t=ac.currentTime,mk=(ty,f0,f1,d,v)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=ty;o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+d);g.gain.setValueAtTime(v*vol*a,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d)};mk('sawtooth',1500,120,.28,.12);mk('square',900,80,.22,.06);mk('sine',2400,400,.12,.05)}catch(e){}}
+ for(const[r,c,op]of[[.1,0xff1a0a,.6],[.04,0xffe2c8,.95]]){const m=new THREE.Mesh(bmG,new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:op}));m.position.copy(mid);m.scale.set(r,L,r);m.quaternion.setFromUnitVectors(V(0,1,0),dir);S.add(m);fx.push({m,l:.16,fade:op,r})}}
+function pew(a=1){try{ac=ac||new AudioContext();const t=ac.currentTime,out=ac.createGain();out.gain.value=vol*a*.6;out.connect(ac.destination);
+ const env=(g,t0,at,pk,hold,dec)=>{g.gain.setValueAtTime(.0001,t0);g.gain.linearRampToValueAtTime(pk,t0+at);g.gain.setValueAtTime(pk,t0+at+hold);g.gain.exponentialRampToValueAtTime(.0001,t0+at+hold+dec)},
+ nb=pew.nb&&pew.nb.sampleRate==ac.sampleRate?pew.nb:(pew.nb=(()=>{const n=ac.sampleRate*.5|0,b=ac.createBuffer(1,n,ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;return b})());
+ /* peh: a soft lip-pop */
+ {const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=nb;f.type='bandpass';f.frequency.value=1900;f.Q.value=1.3;env(g,t,.002,.55,0,.045);s.connect(f);f.connect(g);g.connect(out);s.start(t);s.stop(t+.06);
+  const o=ac.createOscillator(),og=ac.createGain();o.type='sine';o.frequency.setValueAtTime(420,t);o.frequency.exponentialRampToValueAtTime(150,t+.05);env(og,t,.002,.5,0,.05);o.connect(og);og.connect(out);o.start(t);o.stop(t+.07)}
+ /* shoe: a breathy swish that falls from bright to dark */
+ {const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=nb;f.type='bandpass';f.Q.value=2.2;f.frequency.setValueAtTime(3400,t+.02);f.frequency.exponentialRampToValueAtTime(1000,t+.22);env(g,t+.02,.03,.34,.03,.17);s.connect(f);f.connect(g);g.connect(out);s.start(t+.02);s.stop(t+.3)}
+ /* euw: a sawtooth through two moving formants (oo to ee-oh to oo) while its pitch falls from a shriek to a growl */
+ {const t0=t+.05,o=ac.createOscillator(),f1=ac.createBiquadFilter(),f2=ac.createBiquadFilter(),g=ac.createGain(),mix=ac.createGain();o.type='sawtooth';o.frequency.setValueAtTime(1100,t0);o.frequency.exponentialRampToValueAtTime(420,t0+.12);o.frequency.exponentialRampToValueAtTime(150,t0+.4);
+  f1.type='bandpass';f1.Q.value=5;f1.frequency.setValueAtTime(330,t0);f1.frequency.linearRampToValueAtTime(720,t0+.13);f1.frequency.linearRampToValueAtTime(360,t0+.38);
+  f2.type='bandpass';f2.Q.value=6;f2.frequency.setValueAtTime(2300,t0);f2.frequency.linearRampToValueAtTime(1000,t0+.16);f2.frequency.linearRampToValueAtTime(760,t0+.38);
+  mix.gain.value=1.6;o.connect(f1);o.connect(f2);f1.connect(mix);f2.connect(mix);env(g,t0,.012,.6,.1,.27);mix.connect(g);g.connect(out);o.start(t0);o.stop(t0+.45);
+  const b=ac.createOscillator(),bg=ac.createGain();b.type='sine';b.frequency.setValueAtTime(560,t0);b.frequency.exponentialRampToValueAtTime(75,t0+.4);env(bg,t0,.01,.3,.08,.3);b.connect(bg);bg.connect(out);b.start(t0);b.stop(t0+.45);
+  const c=ac.createOscillator(),cg=ac.createGain();c.type='triangle';c.frequency.setValueAtTime(3600,t0);c.frequency.exponentialRampToValueAtTime(900,t0+.14);env(cg,t0,.004,.1,0,.14);c.connect(cg);cg.connect(out);c.start(t0);c.stop(t0+.2)}}catch(e){}}
 
 /* ===================== worldgun.js ===================== */
 /* ---------- weapons held by bots and other players: 3D model in their hands, muzzle flash, tracers from the barrel, positional shot sounds ---------- */

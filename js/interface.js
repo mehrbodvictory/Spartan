@@ -1,8 +1,8 @@
 /* ######## interface.js ######## */
 /* ===================== mastery.js ===================== */
 /* ---------- Progression: levels 1-55, prestige 1-10, Prestige Master (to 1250), unlocks, weapon mastery, camos ---------- */
-var UNL={AR:1,MG:1,SMG:8,BR:16,MP:24,SG:32,'Extended Mag':2,'Compensator':6,'Laser Sight':12,'Fast Hands':18,'Long Barrel':28,'Hollow Point':40,Frag:1,Impact:22,Marathon:4,Scavenger:14,Overshield:26,'Spring Legs':36,'Second Wind':44,'Hardline':50,'Run & Gun':10,'Semtex':18,'Quick Fix':16,VMP:20,RG:30,CY:34,CT:12,MVR:1,TRB:22,TUR:26};
-var CATS={Rifles:['AR','MVR','TRB','TUR','BR'],'Close Quarters':['SMG','SG','VMP'],Sidearms:['CT','MG','MP','RG'],'Power Weapons':['RL','SN'],Support:['CY']};
+var UNL={TEA:38,AR:1,MG:1,SMG:8,BR:16,MP:24,SG:32,'Extended Mag':2,'Compensator':6,'Laser Sight':12,'Fast Hands':18,'Long Barrel':28,'Hollow Point':40,Frag:1,Impact:22,Marathon:4,Scavenger:14,Overshield:26,'Spring Legs':36,'Second Wind':44,'Hardline':50,'Run & Gun':10,'Semtex':18,'Quick Fix':16,VMP:20,RG:30,CY:34,CT:12,MVR:1,TRB:22,TUR:26};
+var CATS={Rifles:['AR','MVR','TRB','TUR','BR'],'Close Quarters':['SMG','SG','VMP'],Sidearms:['CT','MG','MP','RG'],'Power Weapons':['RL','SN','TEA'],Support:['CY']};
 var srcK='',curCamo=null,prof=(()=>{try{const p=JSON.parse(localStorage.getItem('sd-prof'));if(p&&p.v==1)return p}catch(e){}return{v:1,lvl:1,xp:0,pres:0,master:0,ml:1,wk:{},camo:{}}})();
 var save=()=>{try{localStorage.setItem('sd-prof',JSON.stringify(prof))}catch(e){}},need=()=>prof.master?1500:1500+prof.lvl*10,nm=k=>W[k]?W[k].n:(k.startsWith('sk:')&&typeof STK!='undefined'&&STK[k.slice(3)]?STK[k.slice(3)].n+' (streak)':k),tx={};
 /* Prestige rules: going back to level 1 resets the unlocks (camos are never touched). What stays: items that were unlocked permanently with an unlock token (one earned per prestige),
@@ -27,7 +27,9 @@ var wd=k=>prof.wk[k]||(prof.wk[k]={k:0,c:0,p:0,z:0}),wlv=k=>Math.min(20,1+Math.f
 function camos(k){const w=wd(k),kc=[['Sand','#c8b27a',25],['Moss','#4f7a45',75],['Cobalt','#3d6ad6',150],['Crimson','#c0392b',225],['Violet','#8e44ad',300],['Neon','#29f0a0',375]].map(([n,c,r])=>({n,c,ok:w.k>=r,rq:r+' kills'})),
  pc=[['Ember','#ff7a2a'],['Frost','#8ad8ff'],['Aurora','#7affc8']].map(([n,c],i)=>({n,c,ok:w.p>=i+1,rq:'weapon prestige '+(i+1),pr:1})),
  gold=kc.every(c=>c.ok)&&w.k>=500,dia=(CATS[catOf(k)]||[k]).every(x=>wd(x).k>=500),dm=Object.keys(W).every(x=>wd(x).k>=500);
- return[...kc,...pc,{n:'Gold',c:'#ffc83a',ok:gold,rq:'500 kills',anim:1},{n:'Diamond',c:'#bff4ff',ok:dia,rq:'Gold on every '+catOf(k)+' weapon',anim:1},{n:'Dark Matter',c:'#1a0a2a',ok:dm,rq:'Diamond on every weapon',anim:1}].map(c=>({...c,ok:c.ok||!!prof.all}))}
+ const base=[...kc,...pc,{n:'Gold',c:'#ffc83a',ok:gold,rq:'500 kills',anim:1},{n:'Diamond',c:'#bff4ff',ok:dia,rq:'Gold on every '+catOf(k)+' weapon',anim:1},{n:'Dark Matter',c:'#1a0a2a',ok:dm,rq:'Diamond on every weapon',anim:1}],
+ gmOk=base.every(c=>c.ok)&&zcamos(k).every(c=>c.ok);
+ return[...base,{n:'Grandmaster',c:'#ffd34a',ok:gmOk,rq:'every other camo on this weapon, Multiplayer and Zombies',anim:1,gm:1}].map(c=>({...c,ok:c.ok||!!prof.all}))}
 /* zombies camo track: its own set of camos, earned with zombie kills (and best round). Both tracks can be equipped in either mode. */
 function zcamos(k){const w=wd(k),z=w.z||0,zb=prof.zbest||0,
  kc=[['Rotted','#6b7a3a',25],['Bile','#9acd32',75],['Bone','#e3d8b8',150],['Blood','#8a1c1c',225],['Rust','#a5542a',300],['Toxic','#3cff7a',375]].map(([n,c,r])=>({n,c,ok:z>=r,rq:r+' zombie kills',s:'z'})),
@@ -46,7 +48,7 @@ function camoTex(col,st){const c=document.createElement('canvas');c.width=c.heig
  else for(let k=0;k<16;k++){g.fillStyle=`rgba(${k%2?'0,0,0':'255,255,255'},.22)`;g.beginPath();g.ellipse(Math.random()*64,Math.random()*64,5+Math.random()*10,3+Math.random()*7,Math.random()*3,0,7);g.fill()}return new THREE.CanvasTexture(c)}
 /* the final three camos of each track are live shaders: Gold (molten gold), Diamond (prismatic ice), Dark Matter (swirling nebula),
    Inferno (flames and lava cracks), Necrotic (toxic plasma arcs), Abyss (a void with glowing rifts). All are driven by one time uniform. */
-var ANIM={Gold:0,Diamond:1,'Dark Matter':2,Inferno:3,Necrotic:4,Abyss:5},rfm={};
+var ANIM={Gold:0,Diamond:1,'Dark Matter':2,Inferno:3,Necrotic:4,Abyss:5,Grandmaster:6},rfm={};
 var CAMO_VS=`varying vec3 vN;varying vec3 vV;varying vec3 vP;
 void main(){vec4 mv=modelViewMatrix*vec4(position,1.0);vN=normalize(normalMatrix*normal);vV=-mv.xyz;vP=(modelMatrix*vec4(position,1.0)).xyz-(modelMatrix*vec4(0.0,0.0,0.0,1.0)).xyz;gl_Position=projectionMatrix*mv;}`;
 var CAMO_FS=`uniform float t;uniform float k;varying vec3 vN;varying vec3 vV;varying vec3 vP;
@@ -103,7 +105,7 @@ void main(){
   float arc=pow(1.0-abs(sin(pl*1.6+n*4.0)),10.0);col+=vec3(0.6,1.0,0.8)*arc*0.9;
   float bub=0.0;
   col*=0.6+0.4*nl;col+=vec3(0.2,1.0,0.5)*fr*0.9;
- }else{
+ }else if(k<5.5){
   float a=fbm(p*0.8+vec3(t*0.05,0.0,t*0.04));
   float rift=abs(fbm(p*1.1+a*2.0+vec3(0.0,t*0.2,0.0))-0.5);
   col=vec3(0.01,0.01,0.03)+vec3(0.02,0.04,0.12)*a;
@@ -111,6 +113,31 @@ void main(){
   float pulse=0.5+0.5*sin(t*1.5+a*6.0);col+=vec3(0.5,0.0,0.1)*pulse*pow(a,3.0)*0.6;
   float st=0.0;
   col*=0.7+0.3*nl;col+=vec3(0.9,0.1,0.15)*fr*0.8;
+ }else{
+  /* GRANDMASTER: obsidian glass under a living opal, molten-gold veins that pulse along the weapon, a cyan crack layer, twinkling stars, a foil sweep and a breathing crown of light on the rim */
+  vec3 q=p*0.8;
+  float w1=fbm(q+vec3(t*0.07,-t*0.05,t*0.04));
+  float w2=fbm(q*1.7+vec3(w1*2.4,w1*2.4,w1*2.4)+vec3(0.0,t*0.16,0.0));
+  float opl=dot(N,V)*1.2+w1*1.6+p.y*0.08+t*0.1;
+  vec3 opal=hsv(fract(opl),0.65,1.0);
+  col=vec3(0.015,0.012,0.03)+opal*0.16*pow(w2,1.3)+vec3(0.35,0.08,0.55)*pow(w1,3.0)*0.55;
+  float ridge=1.0-abs(noise(q*2.1+vec3(0.0,t*0.12,0.0))*2.0-1.0);
+  float vein=pow(ridge,14.0);
+  float flow=0.5+0.5*sin(p.x*1.6+p.z*1.2-t*3.0+w1*5.0);
+  col+=mix(vec3(1.0,0.55,0.08),vec3(1.0,0.92,0.55),flow)*vein*(0.9+1.4*flow);
+  float ridge2=1.0-abs(noise(q*4.3-vec3(t*0.09,0.0,t*0.07))*2.0-1.0);
+  col+=vec3(0.15,0.9,1.0)*pow(ridge2,22.0)*0.55;
+  vec3 cell=floor(p*9.0);
+  float hh=fract(sin(dot(cell,vec3(12.9898,78.233,37.719)))*43758.5453);
+  vec3 f3=fract(p*9.0)-vec3(0.5);
+  float star=(1.0-smoothstep(0.0,0.17,length(f3)))*step(0.86,hh);
+  float tw=0.5+0.5*sin(t*(2.0+hh*5.0)+hh*40.0);
+  col+=vec3(1.0,0.95,0.85)*star*tw*2.2;
+  float sw=0.5+0.5*sin((p.x+p.y*0.6-p.z*0.5)*1.4-t*1.5);
+  col+=hsv(fract(p.x*0.3+t*0.2),0.5,1.0)*pow(sw,26.0)*0.85;
+  float br=0.5+0.5*sin(t*1.7);
+  col*=0.72+0.28*nl;
+  col+=mix(vec3(1.0,0.72,0.2),hsv(fract(t*0.15+fr*0.5),0.6,1.0),0.5)*fr*(1.0+0.6*br);
  }
  gl_FragColor=vec4(clamp(col,0.0,1.0),1.0);
 }`;
