@@ -755,10 +755,22 @@ function zdrStart(k){if(ZDR.on||P.dead)return;const p=PERKS[k],col=p?p.c:0xd8332
  flNoise(.1,4200,2200,.05,'highpass',.7,.35);flTone(1500,900,.05,.03,.38,'sine');flNoise(.22,900,3000,.04,'bandpass',1.2)}
 function zdrEnd(){if(ZDR.D){C.remove(ZDR.D);ZDR.D=null}ZDR.on=0;try{if(!P.dead&&!(typeof zq!='undefined'&&zq&&(zq.papT>0||zq.down))&&!(typeof SK!='undefined'&&SK.rc))gun.visible=true}catch(e){}}
 function zdrBottleWorld(col){const m=zdrBottle(col);m.userData.liq.visible=false;const d=aimDir(),rx=Math.cos(yaw),rz=-Math.sin(yaw);m.position.set(C.position.x+d.x*.7+rx*.22,C.position.y-.25,C.position.z+d.z*.7+rz*.22);S.add(m);ZDR.bottles.push({m,v:V(d.x*1.4+rx*.5,-1.2,d.z*1.4+rz*.5),t:0,b:0,sp:V(7,3,5)})}
+/* ---- the bottle shatters when it hits the floor: a layered glass crash, a burst of shards that skitter and settle, and a puddle of cola that spreads and slowly dries ---- */
+var ZSH=[];
+function zdrShatter(p,col){flNoise(.22,6200,2400,.11,'highpass',.7);flNoise(.5,3800,1500,.06,'bandpass',1.4,.03);for(let k=0;k<8;k++)flTone(2400+Math.random()*3200,1800+Math.random()*1800,.1+Math.random()*.16,.03,k*.026+Math.random()*.03,'sine');flTone(150,70,.14,.1,0,'sine');flNoise(.9,2600,700,.03,'bandpass',.8,.15);
+ const q=p.clone();q.y=.1;burst(q,26,0xd8f0e8,4.8,.8,.06);burst(q,20,col,3.4,.8,.07);burst(q,8,0xffffff,6,.4,.035);
+ const geo=zdrShatter.g||(zdrShatter.g=new THREE.CircleGeometry(.035,3)),mat=zdrShatter.m||(zdrShatter.m=new THREE.MeshLambertMaterial({color:0xcfeee0,transparent:true,opacity:.8,side:THREE.DoubleSide}));
+ for(let i=0;i<16;i++){const m=new THREE.Mesh(geo,mat),a=Math.random()*6.283,sp=1.2+Math.random()*3.2;m.position.set(p.x,.07,p.z);m.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);m.scale.setScalar(.6+Math.random()*1.4);S.add(m);ZSH.push({k:0,m,v:V(Math.cos(a)*sp,1.6+Math.random()*2.6,Math.sin(a)*sp),r:V((Math.random()-.5)*16,(Math.random()-.5)*16,(Math.random()-.5)*16),t:0,L:1.8+Math.random()*.9})}
+ const pg=zdrShatter.p||(zdrShatter.p=new THREE.CircleGeometry(.5,28)),pm=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.6,depthWrite:false,side:THREE.DoubleSide}),pu=new THREE.Mesh(pg,pm);pu.rotation.x=-Math.PI/2;pu.position.set(p.x,.014,p.z);pu.scale.setScalar(.15);S.add(pu);ZSH.push({k:1,m:pu,t:0,L:5.5,mat:pm})}
+function zshTick(dt){for(let i=ZSH.length-1;i>=0;i--){const s=ZSH[i];s.t+=dt;if(s.k==0){if(s.m.position.y>.02){s.v.y-=16*dt;s.m.position.addScaledVector(s.v,dt);s.m.rotation.x+=s.r.x*dt;s.m.rotation.y+=s.r.y*dt;s.m.rotation.z+=s.r.z*dt;if(s.m.position.y<=.02){s.m.position.y=.02;s.m.rotation.set(-Math.PI/2,0,s.m.rotation.z);if(Math.abs(s.v.y)>2.4&&Math.random()<.5)flTone(3600+Math.random()*2400,3000,.05,.012,0,'sine')}}}
+  else{const g=Math.min(1,s.t/.35);s.m.scale.setScalar(.15+.95*(1-Math.pow(1-g,3)));s.mat.opacity=.6*Math.min(1,(s.L-s.t)/2.5)}
+  if(s.k==0&&s.t>s.L-.4)s.m.scale.multiplyScalar(Math.max(.01,1-dt*3));
+  if(s.t>=s.L){S.remove(s.m);if(s.mat)s.mat.dispose();ZSH.splice(i,1)}}}
+{const _t=LX.tick;LX.tick=function(dt){_t.call(this,dt);try{if(ZSH.length)zshTick(dt)}catch(e){}}}
 function zdrTick(dt){
  for(let i=ZDR.bottles.length-1;i>=0;i--){const b=ZDR.bottles[i];b.t+=dt;b.v.y-=18*dt;b.m.position.addScaledVector(b.v,dt);b.m.rotation.x+=b.sp.x*dt*(b.b>1?0:1);b.m.rotation.z+=b.sp.z*dt*(b.b>1?0:1);
-  if(b.m.position.y<.06){b.m.position.y=.06;b.b++;if(b.b==1){b.v.y*=-.38;b.v.x*=.6;b.v.z*=.6;flTone(2300,2100,.32,.05,0,'sine');flTone(3400,3150,.2,.03,.02,'sine');flNoise(.06,4500,2500,.04,'highpass',.7)}else if(b.b==2){b.v.set(0,0,0);b.m.rotation.set(Math.PI/2,b.m.rotation.y,.3);flTone(1900,1700,.25,.035,0,'sine')}}
-  if(b.t>3.2&&b.b>=2&&!b.broke){b.broke=1;flNoise(.3,5200,2400,.07,'highpass',.8);for(let k=0;k<3;k++)flTone(2800+k*700,2500+k*600,.12,.025,k*.03,'sine');burst(b.m.position.clone().add(V(0,.1,0)),16,ZDR.col,2.6,.6,.05);burst(b.m.position.clone().add(V(0,.1,0)),10,0xd8f0e8,3,.6,.05);S.remove(b.m);ZDR.bottles.splice(i,1)}}
+  if(b.m.position.y<.06){zdrShatter(b.m.position.clone(),ZDR.col);S.remove(b.m);ZDR.bottles.splice(i,1);continue}
+  if(b.t>4){S.remove(b.m);ZDR.bottles.splice(i,1)}}
  if(!ZDR.on)return;if(P.dead||!run||mode!='Zombies'){zdrEnd();return}
  ZDR.t+=dt;const t=ZDR.t,D=ZDR.D,L=(a,b,u)=>a+(b-a)*Math.max(0,Math.min(1,u)),E=u=>1-Math.pow(1-Math.max(0,Math.min(1,u)),3);
  gun.visible=false;try{hideFP()}catch(e){}
@@ -906,21 +918,41 @@ var chHex=c=>'#'+c.toString(16).padStart(6,'0');
 var chPrem=id=>false;
 CG.own=CG.stock;CG.rt=null;
 /* ---- persistence: version 2 stores the collection ("own": how many of each gum is left) and the pack ---- */
-function cgLoad(){let j=null;try{j=JSON.parse(localStorage.getItem('sd-gum')||'null')}catch(e){}
- const own={};let sel=[],fresh=false;
- if(j&&j.v>=2){for(const k in(j.own||{}))if(CGD[k]&&j.own[k]>0)own[k]=Math.min(99,j.own[k]|0);sel=(j.sel||[]).filter(i=>CGD[i])}
- else if(j){/* a version 1 save: keep what was in stock, and give each standard, cosmetic or community gum the player had reached by level a single copy, once */
-  for(const k in(j.stock||{}))if(CGD[k]&&j.stock[k]>0)own[k]=j.stock[k]|0;for(const c of CHEW)if((c[2]=='s'||c[2]=='c'||c[2]=='m')&&c[8]>0&&(prof.lvl||1)>=c[8])own[c[0]]=(own[c[0]]||0)+1;sel=(j.sel||[]).filter(i=>CGD[i])}
- else fresh=true;
- if(fresh){/* the starter pack: six random standard gums, two of each */const s=chShuffle(CHEW.filter(c=>c[2]=='s').map(c=>c[0]));for(const id of s.slice(0,6))own[id]=2}
- sel=sel.filter((i,n)=>own[i]>0&&sel.indexOf(i)==n).slice(0,5);
- if(!sel.length){const order=['s','m','c','r','u'];for(const t of order)for(const c of CHEW)if(c[2]==t&&own[c[0]]>0&&sel.length<5&&!sel.includes(c[0]))sel.push(c[0])}
- CG.own=CG.stock=own;CG.sel=sel;if(fresh||(j&&!(j.v>=2)))cgSave()}
-function cgSave(){try{localStorage.setItem('sd-gum',JSON.stringify({v:2,sel:CG.sel,own:CG.own}))}catch(e){}}
+/* ======= the collection is sealed to this device =======
+   The stored counts carry a MAC made with a NON-EXTRACTABLE HMAC key that lives in IndexedDB (the page can ask it to sign but can never read it), and a save counter kept beside the key.
+   Editing the stored counts, forging the old public checksum, or pasting an older copy back in all fail verification at load, and the collection is cleared. */
+var DSV={p:null,o:null};
+function dsReady(){if(DSV.p)return DSV.p;return DSV.p=(async()=>{try{if(!window.indexedDB||!window.crypto||!crypto.subtle)return null;
+ const db=await new Promise((res,rej)=>{const r=indexedDB.open('sd-kv',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}),
+  g=k=>new Promise((res,rej)=>{const q=db.transaction('k').objectStore('k').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)}),
+  p=(k,v)=>new Promise((res,rej)=>{const t=db.transaction('k','readwrite');t.objectStore('k').put(v,k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)});
+ let key=await g('dk'),fresh=0;if(!key){key=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign']);await p('dk',key);await p('dn',0);fresh=1}
+ const mac=async s=>[...new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(s)))].map(x=>x.toString(16).padStart(2,'0')).join('');
+ return DSV.o={fresh,get:g,put:p,mac}}catch(e){return null}})()}
+var CGP={q:Promise.resolve(),pend:0};
+function cgCanon(o,n){return 'gm3|'+n+'|'+Object.keys(o).sort().map(k=>k+':'+(o[k]|0)).join(';')}
+function cgPersist(){CGP.pend++;CGP.q=CGP.q.then(async()=>{const ds=await dsReady(),own=Object.assign({},CG.own),sel=CG.sel.slice();let rec;
+ if(ds){const n=(+(await ds.get('dn'))||0)+1,k=await ds.mac(cgCanon(own,n));await ds.put('dn',n);rec={v:3,sel,own,n,k}}else rec={v:2,sel,own,k:cgSig(own)};
+ try{localStorage.setItem('sd-gum',JSON.stringify(rec))}catch(e){}}).catch(()=>{}).then(()=>{CGP.pend--})}
+/* a keyed fingerprint kept in memory only (the page compares it every watcher tick to catch edits made to the live collection) */
+function cgSig(o){let s='gm2|zq9|';for(const k of Object.keys(o).sort())s+=k+':'+(o[k]|0)+';';let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return(4294967296*(2097151&h2)+(h1>>>0)).toString(36)}
+function cgSave(){CG.k=cgSig(CG.own);cgPersist()}
+/* keep the pack tidy; the storage is only read once, at start-up (cgBoot) */
+function cgLoad(){CG.sel=CG.sel.filter((i,n)=>CGD[i]&&(CG.own[i]||0)>0&&CG.sel.indexOf(i)==n).slice(0,5);if(!CG.sel.length&&CG.ver){for(const t of['s','m','c','r','u'])for(const c of CHEW)if(c[2]==t&&(CG.own[c[0]]||0)>0&&CG.sel.length<5&&!CG.sel.includes(c[0]))CG.sel.push(c[0])}}
+async function cgBoot(){const ds=await dsReady();let j=null;try{j=JSON.parse(localStorage.getItem('sd-gum')||'null')}catch(e){}
+ const dev=typeof prof!='undefined'&&prof&&prof.dev,fitsK=(o,per,tot)=>{let t=0;if(!o||typeof o!='object')return false;for(const k in o){const v=o[k];if(!CGD[k]||!(v>=0)||v>per||v!==Math.floor(v))return false;t+=v}return t<=tot};
+ let own={},sel=[],fresh=false,save=false;CG.tamper=0;
+ if(!j)fresh=true;
+ else if(j.v==3){if(ds&&!ds.fresh){const dn=+(await ds.get('dn'))||0;if((j.n===dn||j.n===dn-1)&&fitsK(j.own,999,60000)&&j.k===await ds.mac(cgCanon(j.own,j.n))){own=Object.assign({},j.own);sel=j.sel||[]}else CG.tamper=1}else CG.tamper=1}
+ else if(j.v>=2){/* the earlier checksum was public, so it is accepted once, for small collections only */if(j.k===cgSig(j.own||{})&&fitsK(j.own,dev?999:20,dev?60000:300)){own=Object.assign({},j.own);sel=j.sel||[];save=true}else CG.tamper=1}
+ else{/* the first version: stock plus one copy of each gum reached by level */if(fitsK(j.stock,25,200)){for(const k in j.stock)if(j.stock[k]>0)own[k]=j.stock[k]|0;for(const c of CHEW)if((c[2]=='s'||c[2]=='c'||c[2]=='m')&&c[8]>0&&(prof.lvl||1)>=c[8])own[c[0]]=(own[c[0]]||0)+1;sel=(j.sel||[]).filter(i=>CGD[i]);save=true}else CG.tamper=1}
+ if(fresh){/* the starter pack: six random standard gums, two of each */const s=chShuffle(CHEW.filter(c=>c[2]=='s').map(c=>c[0]));for(const id of s.slice(0,6))own[id]=2;save=true}
+ CG.own=CG.stock=own;CG.sel=sel.filter(i=>CGD[i]);CG.k=cgSig(own);CG.ver=1;cgLoad();if(save||CG.tamper)cgSave();
+ try{const p=document.getElementById('p-chew');if(p&&p.offsetParent!==null)chPanel()}catch(e){}}
 function chDeck(){return CG.sel.filter(i=>CGD[i]&&(CG.own[i]||0)>0).slice(0,5)}
 /* ---- rewards: every 10 rounds, 1 to 3 random gums ---- */
 function gmRoll(n){const wt={s:5,c:3,m:3,r:2,u:1},tot=CHEW.reduce((s,c)=>s+wt[c[2]],0),out=[];for(let i=0;i<n;i++){let r=Math.random()*tot;for(const c of CHEW){r-=wt[c[2]];if(r<=0){out.push(c[0]);break}}}return out}
-function chReward(n){const ids=gmRoll(1+(Math.random()*3|0));for(const id of ids){CG.own[id]=Math.min(99,(CG.own[id]||0)+1);if(CG.sel.length<5&&!CG.sel.includes(id))CG.sel.push(id)}cgSave();chRewardUI(ids,n)}
+function chReward(n){const ids=gmRoll(1+(Math.random()*3|0));for(const id of ids){CG.own[id]=Math.min(999,(CG.own[id]||0)+1);if(CG.sel.length<5&&!CG.sel.includes(id))CG.sel.push(id)}cgSave();chRewardUI(ids,n)}
 function chRewardUI(ids,n){try{let el=document.getElementById('gmrw');if(el)el.remove();el=document.createElement('div');el.id='gmrw';
  el.innerHTML='<div class="rw-h"><small>ROUND '+n+' REWARD</small><b>CHEWABLES UNLOCKED</b></div><div class="rw-c">'+ids.map((id,i)=>{const d=CGD[id];return `<div class="rw-i t-${d.tr}" style="--c:${chHex(d.c)};--d:${(.25+i*.3).toFixed(2)}s"><span class="cw-ball">${chIcon(id)}</span><b>${d.n}</b><small>${CGT[d.tr]}</small></div>`}).join('')+'</div>';document.body.appendChild(el);
  ids.forEach((id,i)=>setTimeout(()=>{try{chSnd(CGD[id].tr=='u'?'ultra':CGD[id].tr=='r'?'rare':'pop');if(typeof burst=='function'&&typeof V=='function')burst(V(P.x,1.4,P.z),14,CGD[id].c,3,.7,.06)}catch(e){}},350+i*300));
@@ -948,7 +980,7 @@ function chPanel(){const el=document.getElementById('p-chew');if(!el)return;cons
   f=CHF,list=CHEW.filter(c=>f=='all'||(f=='own'?own[c[0]]>0:c[2]==f));
  if(!CHSEL||!CGD[CHSEL])CHSEL=sel[0]||(CHEW.find(c=>own[c[0]]>0)||CHEW[0])[0];const cd=CGD[CHSEL],have=own[CHSEL]||0,eq=sel.includes(CHSEL),had=el.contains(document.activeElement),gs=el.querySelector('.cw-grid'),sc=gs?gs.scrollTop:0;
  const ball=(id,k)=>`<span class="cw-ball ${k||''}">${chIcon(id)}</span>`,fl=[['all','All'],['own','Owned'],['s','Standard'],['m','Community'],['c','Cosmetic'],['r','Rare'],['u','Ultra-rare']];
- let h=`<div class="cw"><div class="cw-hd"><div><small>Zombies · loadout</small><h2>Chewables</h2></div><div class="cw-st"><div><b>${kinds}<i>/${CHEW.length}</i></b><small>Collected</small></div><div><b>${tot}</b><small>Gums left</small></div><div><b>10</b><small>Rounds per drop</small></div></div></div>
+ let h=`<div class="cw">${CG.tamper?'<div class="cw-warn"><b>Collection cleared</b><span>The saved Chewables did not match this device, so they were removed.</span></div>':''}${CG.ver?'':'<div class="cw-warn"><b>Loading</b><span>Checking your collection…</span></div>'}<div class="cw-hd"><div><small>Zombies · loadout</small><h2>Chewables</h2></div><div class="cw-st"><div><b>${kinds}<i>/${CHEW.length}</i></b><small>Collected</small></div><div><b>${tot}</b><small>Gums left</small></div><div><b>10</b><small>Rounds per drop</small></div></div></div>
  <div class="cw-pk"><h3>Your pack <small>${sel.length} of 5 · a gumball machine rolls one of these at random, and the gum is used up</small></h3><div class="cw-slots">`;
  for(let i=0;i<5;i++){const id=sel[i],d=id&&CGD[id];h+=d?`<button class="cw-s on t-${d.tr}" data-u="${id}" style="--c:${chHex(d.c)}" title="Take out of the pack">${ball(id)}<b>${d.n}</b><small>×${own[id]} · ${CGT[d.tr]}</small><em>${i+1}</em></button>`:`<div class="cw-s"><span class="cw-ball empty">+</span><b>Empty slot</b><small>Equip from the collection</small><em>${i+1}</em></div>`}
  h+=`</div></div><div class="cw-main"><div class="cw-col"><div class="cw-fl">${fl.map(([k,n])=>`<button data-f="${k}" class="${f==k?'on':''}">${n}</button>`).join('')}</div><div class="cw-grid">`;
@@ -969,7 +1001,7 @@ function chEquip(id){const own=CG.own;CHMSG='';if(!(own[id]>0)){CHMSG='You have 
    if(n){e.preventDefault();CHSEL=n.dataset.t;CHMSG='';chPanel();const f=el.querySelector('.cw-t.sel');if(f){f.focus();f.scrollIntoView({block:'nearest'})}}})}
  if(nb)nb.addEventListener('click',()=>{cgLoad();CHSEL=null;CHMSG='';setTimeout(chPanel,0)})}
 
-cgLoad();
+cgBoot();
 /* ---- sounds: soft sines only; the chime climbs with the rarity ---- */
 function chSnd(k){if(k=='coin'){flTone(1800,1200,.08,.05,0,'sine');flTone(2400,1700,.06,.03,.03,'sine');flNoise(.05,3000,1500,.04,'highpass',.7)}
  else if(k=='crank'){for(let i=0;i<6;i++){flNoise(.03,2200+i*80,1400,.045,'bandpass',2,i*.07);flTone(220-i*6,180,.05,.03,i*.07,'sine')}}
@@ -1000,7 +1032,7 @@ function chMachine(){const T=THREE,g=new T.Group(),G=HV.G(),L=c=>new T.MeshLambe
  const ring=new T.Mesh(new T.RingGeometry(.6,.82,40),new T.MeshBasicMaterial({color:0xffd070,transparent:true,opacity:.35,depthWrite:false,side:T.DoubleSide,blending:T.AdditiveBlending}));ring.rotation.x=-Math.PI/2;ring.position.y=.03;g.add(ring);g.userData.ring=ring;
  g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g}
 /* ---- drawing a gum ---- */
-function chDraw(mc){if(mc.busy||P.dead||mode!='Zombies')return;const c=chCost();if(zq.pts<c)return zf('Not enough points');
+function chDraw(mc){if(mc.busy||P.dead||mode!='Zombies')return;if(!CG.ver){msg('Chewables are loading…',1.6);return}const c=chCost();if(zq.pts<c)return zf('Not enough points');
  CG.pool=CG.pool.filter(i=>(CG.own[i]||0)>0);if(!CG.pool.length)CG.pool=chShuffle(chDeck());if(!CG.pool.length){msg('Your pack is empty · pick Chewables in the Zombies menu',2.8);chSnd('dud');return}const id=CG.pool.pop();CG.own[id]--;if(CG.own[id]<=0)delete CG.own[id];cgSave();zq.pts-=c;CG.draws++;mc.busy=1;mc.t=0;mc.id=id;mc.ph=0;chSnd('coin');mc.knobFx=1;
  setTimeout(()=>chSnd('crank'),260);setTimeout(()=>chSnd('roll'),1050);setTimeout(()=>{chSnd('drop');mc.ph=2},1550);
  mc.id=id}
@@ -1009,8 +1041,9 @@ function chMachTick(dt){for(const mc of CG.mach){const u=mc.g.userData;if(u.gum)
   if(t<1.1){u.knob.rotation.z=-Math.PI*2*(Math.min(1,(t-.25)/.8))*(t>.25?1:0);u.gum.rotation.y+=dt*10;if(Math.random()<dt*14)burst(V(mc.x,1.1,mc.z),1,CGD[mc.id].c,1.4,.5,.05)}
   else if(t<1.6){u.flap.rotation.x=-.9*Math.min(1,(t-1.1)/.2)}
   if(t>=1.55&&!mc.ball){const col=CGD[mc.id].c,b=new THREE.Mesh(new THREE.SphereGeometry(.07,14,10),new THREE.MeshBasicMaterial({color:new THREE.Color(col).multiplyScalar(1.6)}));b.position.set(mc.x+Math.sin(mc.g.rotation.y)*.4,.25,mc.z+Math.cos(mc.g.rotation.y)*.4);S.add(b);mc.ball={m:b,vy:-.5,p:V(b.position.x,b.position.y,b.position.z),bn:0}}
-  if(mc.ball){const bl=mc.ball;bl.vy-=14*dt;bl.m.position.y+=bl.vy*dt;bl.m.position.x+=Math.sin(mc.g.rotation.y)*dt*.6;bl.m.position.z+=Math.cos(mc.g.rotation.y)*dt*.6;if(bl.m.position.y<.07){bl.m.position.y=.07;bl.vy=Math.abs(bl.vy)*.45;bl.bn++;flTone(900+bl.bn*200,800,.06,.03,0,'sine')}
-   if(t>2.5){S.remove(bl.m);const p=V(bl.m.position.x,.2,bl.m.position.z);burst(p,34,CGD[mc.id].c,6,.9,.1);burst(p,12,0xffffff,8,.5,.06);try{JX.flash(p,CGD[mc.id].c,3,.5,18)}catch(e){}chReveal(mc.id);mc.ball=null;mc.busy=0;u.flap.rotation.x=0;u.knob.rotation.z=0}}}}
+  if(mc.ball){const bl=mc.ball;bl.vy-=14*dt;bl.m.position.y+=bl.vy*dt;bl.m.position.x+=Math.sin(mc.g.rotation.y)*dt*.6;bl.m.position.z+=Math.cos(mc.g.rotation.y)*dt*.6;if(bl.m.position.y<.07){bl.m.position.y=.07;bl.vy=bl.bn>=3?0:Math.abs(bl.vy)*.45;bl.bn++;if(bl.bn<=4)flTone(900+bl.bn*200,800,.06,.03,0,'sine')}
+   if(t>2.5&&!mc.off){mc.off=1;const p=V(bl.m.position.x,.2,bl.m.position.z);burst(p,22,CGD[mc.id].c,5,.8,.09);burst(p,8,0xffffff,7,.4,.05);try{JX.flash(p,CGD[mc.id].c,3,.5,18)}catch(e){}u.flap.rotation.x=0;u.knob.rotation.z=0;chOffer(mc)}
+   if(mc.off){bl.m.scale.setScalar(1+.12*Math.sin(t0*6))}}}}
 /* ---- state helpers ---- */
 var gmLive=A=>{if(!A)return false;const t=A.d.ty;if(t=='rnd')return A.left>0;if(t=='time')return A.t>0;if(t=='act')return A.ch>0||A.run>0;if(t=='evt')return(A.id=='second'||A.id=='retain')?A.left>0:A.ch>0;return false},
  gmOn=id=>!!(CG.A&&CG.A.id==id&&gmLive(CG.A)),gmRun=id=>!!(CG.A&&CG.A.id==id&&CG.A.run>0),zs_=()=>bots.filter(b=>b.zom&&b.al&&!b.zp),me_=()=>({x:P.x,z:P.z});
@@ -1053,7 +1086,7 @@ function chUse(){const A=CG.A;if(!A||P.dead||!run||paused||mode!='Zombies'||!gmL
   case'skip':{for(const b of zs_())zDamage(b,9e9,0,zMe(),'',false);z.toSpawn=0;z.pts+=2000;try{if(z.hound)z.hound.done=1}catch(e){}msg('PHASE SKIP · +2,000',2);burst(V(P.x,1,P.z),50,0xd070ff,10,1,.14);return ok()}
  }}
 /* ---- every frame ---- */
-function chTick(dt){chMachTick(dt);chRw();chHud();chFx();if(!run||paused||mode!='Zombies'||!zq||P.dead&&!(zq.down))return;const z=zq,A=CG.A,live=gmLive(A),w=cw();CG.tk+=dt;
+function chTick(dt){chMachTick(dt);chRw();chBubTick(dt);chHud();chFx();if(!run||paused||mode!='Zombies'||!zq||P.dead&&!(zq.down))return;const z=zq,A=CG.A,live=gmLive(A),w=cw();CG.tk+=dt;
  if(A){if(A.d.ty=='time'&&A.t>0){A.t-=dt;if(A.t<=0){chEnd(A);msg(A.d.n+' ended',1.4)}}if(A.run>0){A.run-=dt;if(A.run<=0){chEnd(A);if(!gmLive(A))CG.A=null}}}
  if(CG.th>0){CG.th-=dt;if(CG.th<=0)CG.th=0}
  /* gamepad: D-pad left */
@@ -1117,16 +1150,101 @@ function chSqueak(){flTone(1700,2400,.09,.07,0,'sine');flTone(2400,1500,.1,.05,.
 {const _mm=zBoxMoveStart;zBoxMoveStart=function(o,i){if(gmOn('lock')){CG.A.ch--;msg('LOOT LOCK: the box stays',2);try{EST.bx.uses=0}catch(e){}zBoxEnd(o,i);zBoxStart(o,i,o.by);return}return _mm.apply(this,arguments)}}
 {const _ha=eqHandAnim;eqHandAnim=function(n,d,f){return _ha.call(this,n,gmOn('dex')?d*.6:d,f)}}
 {const _jh=juiceHit;juiceHit=function(b,d,head){const r=_jh.apply(this,arguments);try{if(CG.cos.squeak&&b&&b.zom)chSqueak()}catch(e){}return r}}
-{const _zs=zStart;zStart=function(){const r=_zs.apply(this,arguments);try{cgLoad();CG.A=null;CG.cos={};CG.draws=0;CG.pool=[];CG.trail.length=0;CG.slip.length=0;CG.fz=[];CG.fzOn=0;CG.th=0;CG.ocB=CG.hvB=null;CG.ptsL=null;CG.auraUsed=0;CG.rt=null;chPlace()}catch(e){console.warn('chewables',e)}return r}}
+{const _zs=zStart;zStart=function(){const r=_zs.apply(this,arguments);try{cgLoad();CG.A=null;CG.cos={};CG.draws=0;CG.pool=[];CG.trail.length=0;CG.slip.length=0;CG.fz=[];CG.fzOn=0;CG.th=0;CG.ocB=CG.hvB=null;CG.ptsL=null;CG.auraUsed=0;CG.rt=null;CG.pend=null;chAskUI(null);chBubKill();chPlace()}catch(e){console.warn('chewables',e)}return r}}
 /* ---- the always-visible gum card, the effect overlay, the interaction for Universal Refill ---- */
 function chHud(){if(!CG.hud){const h=document.getElementById('hud');if(!h)return;const e=document.createElement('div');e.id='gumhud';h.appendChild(e);CG.hud=e}
- const A=CG.A,live=run&&mode=='Zombies'&&A&&gmLive(A);let html='';
- if(live){const d=A.d;let st='';if(d.ty=='rnd')st=A.left+' round'+(A.left>1?'s':'');else if(d.ty=='time')st=Math.floor(A.t/60)+':'+String(Math.floor(A.t%60)).padStart(2,'0');else if(d.ty=='act')st=A.run>0?Math.ceil(A.run)+'s active · '+A.ch+' left':A.ch+' charge'+(A.ch>1?'s':'')+' · press '+ctlKey('gum');else st=(A.id=='second'||A.id=='retain')?A.left+' rounds':A.ch+' left';
-  html=`<i style="--c:#${d.c.toString(16).padStart(6,'0')}">${chIcon(A.id)}</i><b>${d.n}</b><span>${st}</span>`}
- const key=html+(run&&mode=='Zombies'?Object.keys(CG.cos).join(','):'');if(key!==CG.hk){CG.hk=key;CG.hud.innerHTML=html;CG.hud.className=html?'on':''}}
+ const A=CG.A,live=run&&mode=='Zombies'&&A&&gmLive(A),id=live?A.id:'';
+ if(id!==CG.hid){CG.hid=id;if(live){const d=A.d;CG.hud.innerHTML=`<svg class="gmr" viewBox="0 0 64 64"><circle class="bg" cx="32" cy="32" r="29"/><circle class="fg" cx="32" cy="32" r="29" stroke-dasharray="182.2" stroke-dashoffset="0"/></svg><i style="--c:${chHex(d.c)}">${chIcon(id)}</i>${d.ty=='act'?`<em>${ctlKey('gum')}</em>`:''}`;CG.hud.style.setProperty('--c',chHex(d.c));CG.hud.className='on';CG.hfg=CG.hud.querySelector('.fg')}else{CG.hud.innerHTML='';CG.hud.className='';CG.hfg=null}}
+ if(live&&CG.hfg){const d=A.d,n=d.cnt||1,f=d.ty=='rnd'?A.left/n:d.ty=='time'?A.t/n:d.ty=='act'?(A.run>0&&d.run?A.run/d.run:A.ch/n):((A.id=='second'||A.id=='retain')?A.left/n:A.ch/n);CG.hfg.style.strokeDashoffset=(182.2*(1-Math.max(0,Math.min(1,f)))).toFixed(1);CG.hud.classList.toggle('run',A.run>0)}}
+/* ---- after the drop: take the gum or leave it (leaving it puts it back in your collection), then flip it into your mouth and blow a bubble ---- */
+function chOffer(mc){CG.pend={id:mc.id,mc,t:0};chSnd('rare');chAskUI(mc.id)}
+function chAskUI(id){let e=document.getElementById('gmask');if(!e){e=document.createElement('div');e.id='gmask';document.body.appendChild(e)}
+ if(!id){e.className='';return}const d=CGD[id];e.style.setProperty('--c',chHex(d.c));
+ e.innerHTML=`<span class="cw-ball">${chIcon(id)}</span><div class="gq"><small>${CGT[d.tr]} · ${CGY[d.ty]}</small><b>${d.n}</b><p>${d.d}</p></div><div class="gk"><kbd>${ctlKey('use')}</kbd><span>Chew it</span><kbd>${typeof usingPad!='undefined'&&usingPad?'B':'X'}</kbd><span>Leave it</span></div>`;e.className='on t-'+d.tr}
+function chPendEnd(mc){if(mc.ball){S.remove(mc.ball.m);mc.ball=null}mc.off=0;mc.busy=0;chAskUI(null)}
+function chAccept(){const p=CG.pend;if(!p)return;CG.pend=null;chPendEnd(p.mc);CG.bub={id:p.id,t:0,on:0,chew:0}}
+function chDecline(loud){const p=CG.pend;if(!p)return;CG.pend=null;CG.own[p.id]=Math.min(999,(CG.own[p.id]||0)+1);cgSave();if(loud){flTone(520,330,.12,.05,0,'triangle');try{burst(V(p.mc.x,.2,p.mc.z),10,0x9aa4ae,2,.5,.05)}catch(e){}}chPendEnd(p.mc)}
+function chBubKill(){const B=CG.bub;if(!B)return;for(const k of['toss','bub']){if(B[k]){C.remove(B[k])}}CG.bub=null;try{if(!P.dead)gun.visible=true}catch(e){}}
+function chBubTick(dt){
+ const pd=CG.pend;if(pd){pd.t+=dt;if(P.dead||!run||pd.t>20||Math.hypot(P.x-pd.mc.x,P.z-pd.mc.z)>7)chDecline(0);else{const g=typeof gpGet=='function'?gpGet():null,a=!!(g&&g.buttons[0]&&g.buttons[0].pressed),b2=!!(g&&g.buttons[1]&&g.buttons[1].pressed);if(a&&!CG.pa)chAccept();else if(b2&&!CG.pb)chDecline(1);CG.pa=a;CG.pb=b2}}
+ const B=CG.bub;if(!B)return;const d=CGD[B.id],col=d.c;
+ if(P.dead||!run||mode!='Zombies'){CG.own[B.id]=Math.min(999,(CG.own[B.id]||0)+1);cgSave();chBubKill();return}
+ if(!B.on){B.on=1;B.toss=new THREE.Mesh(new THREE.SphereGeometry(.035,14,10),new THREE.MeshBasicMaterial({color:new THREE.Color(col).multiplyScalar(1.5)}));C.add(B.toss);
+  const bm=new THREE.MeshPhongMaterial({color:col,transparent:true,opacity:.62,shininess:140,specular:0xffffff,emissive:col,emissiveIntensity:.2,side:THREE.DoubleSide,depthWrite:false});B.bub=new THREE.Mesh(new THREE.SphereGeometry(1,28,20),bm);
+  const hl=new THREE.Mesh(new THREE.SphereGeometry(.15,12,8),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.6,depthWrite:false}));hl.position.set(-.45,.5,.62);B.bub.add(hl);B.bub.visible=false;C.add(B.bub);flNoise(.16,500,2400,.05,'bandpass',1.4)}
+ B.t+=dt;const t=B.t;gun.visible=false;try{hideFP()}catch(e){}nf=Math.max(nf,t0+.1);
+ if(t<.6){const u=t/.6,w=1-u,A_=[.26,-.30,-.42],Bc=[.16,.34,-.38],E=[0,-.07,-.1];B.toss.position.set(w*w*A_[0]+2*u*w*Bc[0]+u*u*E[0],w*w*A_[1]+2*u*w*Bc[1]+u*u*E[1],w*w*A_[2]+2*u*w*Bc[2]+u*u*E[2]);B.toss.scale.setScalar(1+.35*Math.sin(u*Math.PI))}
+ else if(B.toss){C.remove(B.toss);B.toss=null;flTone(520,300,.07,.06,0,'sine');flNoise(.05,1500,800,.05,'lowpass',1)}
+ if(t>.62&&t<1.7&&t-B.chew>.2){B.chew=t;flNoise(.05,2600,1400,.04,'bandpass',2);flTone(230+Math.random()*40,160,.05,.035,0,'sine');shake=Math.max(shake,.06)}
+ if(t>=1.7&&!B.blow){B.blow=1;B.bub.visible=true;flNoise(1.1,900,3400,.035,'bandpass',1.2);flTone(300,980,1.1,.014,0,'sine')}
+ if(B.blow){const u=Math.min(1,(t-1.7)/1.15),e=u*u*(3-2*u),r=.02+.3*e,wob=Math.sin(t*17)*.035*e;B.bub.position.set(0,-.11+.04*e,-.4);B.bub.scale.set(r*(1+wob),r*(1-wob),r);B.bub.material.opacity=.62-.22*e;if(u>.6)shake=Math.max(shake,.05*u)}
+ if(t>=2.9){const f=aimDir();try{burst(V(C.position.x+f.x*.7,C.position.y+f.y*.7-.1,C.position.z+f.z*.7),30,col,3.2,.6,.045);burst(V(C.position.x+f.x*.7,C.position.y+f.y*.7-.1,C.position.z+f.z*.7),10,0xffffff,5,.35,.03)}catch(e){}
+  flNoise(.05,6200,3200,.13,'highpass');flTone(900,190,.07,.1,0,'sine');flNoise(.2,2600,800,.05,'bandpass',1);chSplat(col);chBubKill();chReveal(B.id)}}
+function chSplat(col){let e=document.getElementById('gmsplat');if(!e){e=document.createElement('div');e.id='gmsplat';document.body.appendChild(e)}e.style.setProperty('--c',chHex(col));e.className='';void e.offsetWidth;e.className='on'}
+addEventListener('keydown',e=>{if(!CG.pend||e.repeat||!run||paused)return;const k=typeof RB=='function'?RB(e.code):e.code;if(k=='KeyF'){e.stopImmediatePropagation();e.preventDefault();chAccept()}else if(k=='KeyX'){e.stopImmediatePropagation();e.preventDefault();chDecline(1)}},true);
 function chFx(){if(!CG.fxEl){const e=document.createElement('div');e.id='gmfx';document.body.appendChild(e);CG.fxEl=e}const on=run&&mode=='Zombies';let c='';if(on){if(gmRun('ghost'))c+=' g-ghost';if(gmRun('freeze')||CG.fzOn)c+=' g-freeze';if(gmRun('stasis'))c+=' g-stasis';if(CG.cos.vintage)c+=' g-vint';if(CG.th>0)c+=' g-th';if(CG.disc>0||gmRun('discount'))c+=' g-disc'}if(CG.fxEl.className!==c)CG.fxEl.className=c}
 addEventListener('keydown',e=>{if(!e.repeat&&run&&!paused&&!over&&mode=='Zombies'&&(typeof RB=='function'?RB(e.code):e.code)=='KeyJ')chUse()});
 {const _t=LX.tick;LX.tick=function(dt){_t.call(this,dt);try{chTick(dt)}catch(e){console.warn('chewables tick',e)}}}
 /* Universal Refill: a refill point that follows you around while the gum is active */
 {const _t=LX.tick;LX.tick=function(dt){_t.call(this,dt);try{if(mode=='Zombies'&&zq&&gmOn('refill')){if(!CG.refillE){CG.refillE={x:0,z:0,r:2.6,txt:()=>'Refill ammo from anywhere',cost:()=>cw()&&cw().res<cw().m*cw().rs?600:0,act:()=>{const w=cw();if(zq.pts<600)return zf('Not enough points');zq.pts-=600;w.res=w.m*w.rs;w.mag=w.m;burst(V(P.x,1.2,P.z),20,0x60ff90,5,.6,.08);flTone(600,1200,.2,.06,0,'sine')}};zi.push(CG.refillE)}const f=aimDir();CG.refillE.x=P.x-f.x*2;CG.refillE.z=P.z-f.z*2}else if(CG.refillE){const j=zi.indexOf(CG.refillE);if(j>=0)zi.splice(j,1);CG.refillE=null}}catch(e){}}}
 /* ---- the gum picker: the CHEWABLES button on the home screen ---- */
+
+/* ======================= EMOTES =======================
+   Hold the emote key (K, or D-pad down) for a radial wheel, move the mouse (or right stick) to a slot, let go. You swing out into a third-person view, your weapon lowers, and your
+   character plays the emote. Moving, firing, jumping or taking damage ends it. Other players see it: the emote id travels in the normal player-state message. */
+var EMN=['Wave','Cheer','Dance','Flex','Salute','Clap','Shrug','Spin'],EMLEN=[2.6,3,7,3,2.2,3,2.2,1.6],
+ EMI=[`<path d="M9 17V8a2 2 0 0 1 4 0v6M13 14V6a2 2 0 0 1 4 0v8M17 14V8a2 2 0 0 1 4 0v9c0 7-4 11-9 11-4 0-6-2-8-6l-1-6a2 2 0 0 1 3-1z"/>`,
+ `<circle cx="16" cy="9" r="3"/><path d="M16 12v9M7 4l9 8 9-8M12 29l4-8 4 8"/>`,
+ `<path d="M12 24V8l14-3v16"/><circle cx="9" cy="24" r="3"/><circle cx="23" cy="21" r="3"/>`,
+ `<path d="M5 23c0-8 5-14 12-14 4 0 6 3 6 6 0 4-4 4-4 9"/><path d="M10 29h12"/>`,
+ `<circle cx="14" cy="15" r="5"/><path d="M19 11l9-5M5 29v-6a9 9 0 0 1 18 0v6"/>`,
+ `<path d="M12 6L6 15a3 3 0 0 0 5 3M20 6l6 9a3 3 0 0 1-5 3M12 21l4 6 4-6"/>`,
+ `<circle cx="16" cy="8" r="3"/><path d="M3 21l9-5h8l9 5M16 11v14M10 29l6-3 6 3"/>`,
+ `<path d="M26 16a10 10 0 1 1-4-8"/><path d="M26 4v6h-6"/>`],
+ EMO={open:0,sel:-1,vx:0,vy:0,cur:null,av:null,pad:0};
+/* one pose for any rig: the same IK convention as the podium figures (shoulders at +-0.3, 1.5; hands are targets; hints bend the elbows) */
+function emoPose(rig,e,t,dur){const a=Math.min(1,t/.2,Math.max(0,(dur-t)/.25));let rh=V(.36,.9,.05),lh=V(-.36,.9,.05),hr=V(.6,-1,-.3),hl=V(-.6,-1,-.3),y=0,ry=0,lx=0,lz=0,sx=0;
+ switch(e){
+ case 0:rh.lerp(V(.5+Math.sin(t*9)*.15,2,.1),a);hr=V(.8,-.6,-.2);ry=.25*a;break;
+ case 1:{const u=Math.sin(t*11);rh.lerp(V(.46,2.05+u*.1,.04),a);lh.lerp(V(-.46,2.05-u*.1,.04),a);hr=V(.9,-.5,-.2);hl=V(-.9,-.5,-.2);y+=Math.abs(Math.sin(t*6.5))*.3*a;sx=.5*a;break}
+ case 2:{const ph=Math.floor(t/2.2)%3,u=Math.sin(t*8),w=Math.sin(t*4);
+  if(ph==0){rh.lerp(V(.5,1.5+u*.45,.22),a);lh.lerp(V(-.5,1.5-u*.45,.22),a);ry=w*.55*a;y+=Math.abs(u)*.1*a;lx=u*.6*a}
+  else if(ph==1){rh.lerp(V(.62,1.95+u*.12,.1),a);lh.lerp(V(-.3,1.1,.3),a);ry=w*.7*a;y+=Math.abs(u)*.14*a;lx=u*.55*a;lz=w*.12*a}
+  else{rh.lerp(V(.45+w*.15,1.2+Math.abs(u)*.5,.3),a);lh.lerp(V(-.45+w*.15,1.2+Math.abs(Math.sin(t*8+1.6))*.5,.3),a);ry=Math.sin(t*2)*.9*a;y+=Math.abs(u)*.12*a;lx=u*.5*a;sx=Math.max(0,-u)*.4*a}break}
+ case 3:rh.lerp(V(.6,1.95,.02),a);lh.lerp(V(-.6,1.95,.02),a);hr=V(1,-.3,-.1);hl=V(-1,-.3,-.1);y+=Math.sin(t*5)*.015*a;ry=Math.sin(t*3)*.15*a;break;
+ case 4:rh.lerp(V(.12,1.78,.28),a);hr=V(.9,-.2,-.3);ry=.1*a;break;
+ case 5:{const c=Math.abs(Math.sin(t*10));rh.lerp(V(.1+.2*c,1.3,.4),a);lh.lerp(V(-.1-.2*c,1.3,.4),a);hr=V(.6,-.8,.2);hl=V(-.6,-.8,.2);y+=c*.02*a;break}
+ case 6:rh.lerp(V(.75,1.35+Math.sin(t*6)*.04,.2),a);lh.lerp(V(-.75,1.35+Math.sin(t*6)*.04,.2),a);hr=V(1,-.4,.4);hl=V(-1,-.4,.4);y-=.03*a;break;
+ case 7:{rh.lerp(V(.9,1.45,.05),a);lh.lerp(V(-.9,1.45,.05),a);hr=V(1,-.3,0);hl=V(-1,-.3,0);const k=Math.min(1,t/Math.max(.1,dur-.15));ry=k*k*(3-2*k)*Math.PI*4;lx=Math.sin(t*14)*.3*a;break}}
+ rig.legL.rotation.x=lx;rig.legR.rotation.x=-lx;rig.legL.rotation.z=lz;rig.legR.rotation.z=-lz;rig.shinL.rotation.x=sx+Math.max(0,-lx)*.8;rig.shinR.rotation.x=sx+Math.max(0,lx)*.8;
+ ik(V(.3,1.5,0),rh,hr,rig.armR);ik(V(-.3,1.5,0),lh,hl,rig.armL);return{y,ry}}
+/* other players: their rig poses from the id in their state message, and their gun is lowered while they do it */
+function emoBot(b,dt){if(b._eid!==b.em){b._eid=b.em;b._et=0}b._et+=dt;const dur=EMLEN[b.em]||3,o=emoPose(b.rig,b.em,b._et%(dur+.0001),dur);b.m.position.y=(b.y||0)+o.y;if(b.ry!=null)b.m.rotation.y=b.ry+o.ry;if(b.hg)b.hg.visible=false}
+{const _ab=animBot;animBot=function(b,dt){const r=_ab.apply(this,arguments);try{if(b&&b.rig&&b.net){if(b.em>=0)emoBot(b,dt);else if(b._eid>=0){b._eid=-1;if(b.rig.legL){b.rig.legL.rotation.z=0;b.rig.legR.rotation.z=0}}}}catch(e){}return r}}
+function emoWheel(show){let w=document.getElementById('emw');if(!w){w=document.createElement('div');w.id='emw';w.innerHTML='<div class="ring"></div>'+EMN.map((n,i)=>`<div class="sl" data-i="${i}" style="--a:${i*45}deg"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${EMI[i]}</svg><b>${n}</b><em>${i+1}</em></div>`).join('')+'<div class="ct"><small>EMOTE</small><b id="emn">Move to choose</b></div>';document.body.appendChild(w)}
+ w.classList.toggle('on',!!show);if(show)emoShow()}
+function emoShow(){const w=document.getElementById('emw');if(!w)return;for(const s of w.querySelectorAll('.sl'))s.classList.toggle('on',+s.dataset.i==EMO.sel);const n=w.querySelector('#emn');if(n)n.textContent=EMO.sel>=0?EMN[EMO.sel]:'Move to choose'}
+function emoPick(){const L=Math.hypot(EMO.vx,EMO.vy);if(L<26){if(EMO.sel!=-1){EMO.sel=-1;emoShow()}return}const ang=(Math.atan2(EMO.vx,-EMO.vy)+6.2832)%6.2832,s=Math.floor(ang/.7854+.5)%8;if(s!=EMO.sel){EMO.sel=s;emoShow();flTone(1500+s*60,1400,.03,.025,0,'sine')}}
+function emoOpen(){if(EMO.open||!run||paused||over||P.dead||document.getElementById('chatbox')&&document.activeElement&&document.activeElement.tagName=='INPUT')return;EMO.open=1;EMO.sel=-1;EMO.vx=EMO.vy=0;emoWheel(true)}
+function emoClose(play){if(!EMO.open)return;EMO.open=0;emoWheel(false);if(play&&EMO.sel>=0)emoStart(EMO.sel)}
+function emoStart(id){if(!run||P.dead||paused)return;if(!EMO.av){const g=new THREE.Group(),rig=mkHuman(g);try{g.children[0].material.color.setHex(typeof myTeam!='undefined'&&myTeam=='red'?0xb83a3a:0x2e5aa8)}catch(e){}g.visible=false;S.add(g);EMO.av={g,rig}}
+ EMO.cur={id,t:0,dur:EMLEN[id],hp:P.hp,nb:0,sw:0};EMO.av.g.visible=true;flNoise(.18,400,1800,.04,'bandpass',1.2);flTone(380,620,.14,.04,0,'triangle')}
+function emoEnd(){const c=EMO.cur;EMO.cur=null;if(EMO.av){EMO.av.g.visible=false;EMO.av.rig.legL.rotation.z=0;EMO.av.rig.legR.rotation.z=0}if(c){try{if(!P.dead)gun.visible=true}catch(e){}}}
+/* before the frame is drawn: the wheel's controller input, the third-person camera and the character's pose */
+function emoCam(dt){
+ try{const g=typeof gpGet=='function'?gpGet():null;if(g&&g.buttons&&g.buttons[13]){const d=!!g.buttons[13].pressed;if(d&&!EMO.pad)emoOpen();if(!d&&EMO.pad)emoClose(true);EMO.pad=d;if(EMO.open&&g.axes&&(Math.abs(g.axes[2])>.3||Math.abs(g.axes[3])>.3)){EMO.vx=g.axes[2]*90;EMO.vy=g.axes[3]*90;emoPick()}}}catch(e){}
+ if(EMO.open&&(!run||paused||P.dead||over)){EMO.open=0;emoWheel(false)}
+ const c=EMO.cur;if(!c)return;
+ if(!run||paused||P.dead||over||trig||!P.on||Math.hypot(P.mx||0,P.mz||0)>.7||P.hp<c.hp-.5||EMO.open){emoEnd();return}
+ c.t+=dt;if(c.t>=c.dur){emoEnd();return}
+ const av=EMO.av,o=emoPose(av.rig,c.id,c.t,c.dur);av.g.position.set(P.x,P.y+o.y,P.z);av.g.rotation.y=yaw+Math.PI+o.ry;av.g.visible=true;
+ const k=Math.min(1,c.t/.6),e=k*k*(3-2*k),phi=yaw+2.6*e,sx=Math.sin(phi),sz=Math.cos(phi);let cx=P.x,cz=P.z;
+ for(let i=0;i<7;i++){const q={x:cx,y:P.y+1,z:cz};mv(q,sx*.4,sz*.4,.28);if(Math.hypot(q.x-(cx+sx*.4),q.z-(cz+sz*.4))>.03)break;cx=q.x;cz=q.z}
+ C.position.set(cx,P.y+1.5+.15*e,cz);C.lookAt(P.x,P.y+1.1,P.z);
+ gun.visible=false;try{hideFP()}catch(x){}nf=Math.max(nf,t0+.1);
+ if(c.id==2&&c.t>=c.nb){c.nb+=.4545;flTone(110,52,.14,.1,0,'sine');if(Math.round(c.t/.4545)%2)flNoise(.05,6000,4000,.03,'highpass',1)}}
+{const _t=LX.tick;LX.tick=function(dt){try{emoCam(dt)}catch(e){console.warn('emote',e)}return _t.call(this,dt)}}
+addEventListener('keydown',e=>{if(e.repeat||!run||paused||over||P.dead)return;const t=document.activeElement&&document.activeElement.tagName;if(t=='INPUT'||t=='TEXTAREA')return;const k=typeof RB=='function'?RB(e.code):e.code;
+ if(k=='KeyK')emoOpen();else if(EMO.open&&/^Digit[1-8]$/.test(e.code)){e.stopImmediatePropagation();e.preventDefault();EMO.sel=+e.code.slice(5)-1;emoShow()}},true);
+addEventListener('keyup',e=>{const k=typeof RB=='function'?RB(e.code):e.code;if(k=='KeyK'&&EMO.open)emoClose(true)},true);
+addEventListener('mousemove',e=>{if(!EMO.open)return;EMO.vx+=e.movementX||0;EMO.vy+=e.movementY||0;const L=Math.hypot(EMO.vx,EMO.vy);if(L>90){EMO.vx*=90/L;EMO.vy*=90/L}emoPick()},true);

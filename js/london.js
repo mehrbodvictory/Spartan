@@ -204,6 +204,32 @@ function lonBuild(){const M=MAPS.London,a=[],vv=M._v=[];EST.sd=23;EST.cols=[];ES
  for(const[x,z]of[[13,25],[18,25],[17,32],[24,24]])eSpot(x,3.9,z,0xffb866,.85,10,.8,erand()*9);
  /* the Tube station: ticket barriers and machines */
  R(-7.6,43,-2.4,43.5,1.1,0x6b6f76,'metal');R(2.4,43,7.6,43.5,1.1,0x6b6f76,'metal');eSpot(0,5,46,0xcfe0ff,1.15,15,.95,.3);eSpot(0,5,52,0xcfe0ff,1,13,.9,.8);bk.tor(0,3.6,40.35,.8,.12,RED,'m',0,0,0,24);bk.bot(0,3.3,40.4,2.4,.28,.12,0x1c3f94,'e');
+ /* ---- the Tube station, built out: a platform with a yellow edge, a track bed with rails and sleepers, a lit train waiting at the platform, tunnel mouths, tiled pilasters, steel ceiling beams with strip lights, benches, ad boxes and a ticket machine. The spawn points (+-4,44) (+-5,48) and the gate route stay clear. ---- */
+ {const TRN=0xc9ccd2,GRY=0x8a8d92,DK=0x1d1e22,WIN=0xffe6b4;
+  col(0,52.15,15.4,3.1,6);
+  bk.bot(0,0,52.15,15.4,.06,3.1,0x35322d,'s');for(let x=-7.3;x<=7.4;x+=.62)bk.bot(x,.05,52.15,.22,.08,2.5,0x4a3a2a,'w');
+  bk.bot(0,.12,51.43,15.4,.14,.1,0x9a9da2,'m');bk.bot(0,.12,52.87,15.4,.14,.1,0x9a9da2,'m');bk.bot(0,.09,50.98,15.4,.06,.08,0x6a5a3a,'m');
+  bk.bot(0,.005,50.3,15.4,.025,.55,0xe8c11c,'s');bk.bot(0,.006,50.02,15.4,.024,.08,0xf4f2ea,'s');
+  /* the train: silver body, red doors, a blue stripe, lit windows, a dark cab at the east end with headlights */
+  bk.bot(0,.2,52.15,12.6,.3,2.2,DK,'m');bk.bot(0,.45,52.15,13,3.0,2.7,TRN,'m');bk.bot(0,3.45,52.15,13,.15,2.5,GRY,'m');
+  for(const x of[-4.2,-1.4,1.4,4.2])bk.bot(x,3.55,52.15,.9,.12,.8,GRY,'m');
+  bk.bot(0,.95,50.77,13,.18,.03,0x1c3f94,'m');
+  for(const x of[-5.2,-2.6,0,2.6,5.2])bk.bot(x,1.75,50.77,1.6,.95,.04,WIN,'e');
+  for(const x of[-3.9,-1.3,1.3,3.9]){bk.bot(x,.6,50.76,1.1,2.5,.05,RED,'m');bk.bot(x,1.5,50.73,.8,1.0,.03,WIN,'e');bk.bot(x,.6,50.72,.04,2.5,.03,DK,'m')}
+  bk.bot(6.55,.5,52.15,.12,2.8,2.4,0x15161a,'m');bk.bot(6.62,.9,51.5,.05,.25,.4,0xfff4cc,'e');bk.bot(6.62,.9,52.8,.05,.25,.4,0xfff4cc,'e');bk.bot(-6.55,.5,52.15,.12,2.8,2.4,0x15161a,'m');
+  eSpot(0,2.6,50.2,0xffe2b0,.75,9,.9,1.1);
+  /* the tunnel mouths on the end walls */
+  for(const sx of[-1,1]){bk.bot(sx*7.66,0,52.15,.05,3.9,3.3,0x07080a,'s');bk.bot(sx*7.62,3.9,52.15,.12,.45,3.9,GRY,'s');bk.bot(sx*7.62,0,50.4,.12,3.9,.3,GRY,'s');bk.bot(sx*7.62,0,53.9-.3,.12,3.9,.3,GRY,'s')}
+  /* walls: tiled pilasters with a red band, and ad light-boxes */
+  for(const z of[42,46,50])for(const sx of[-1,1]){bk.bot(sx*7.5,0,z,.4,5.4,.5,0xc9c2ae,'s');bk.bot(sx*7.3,1.35,z,.05,.22,.54,RED,'m')}
+  for(const[x,c]of[[-6.2,0x2a6fd0],[-4.2,0xe8742a],[4.2,0xb03aa8],[6.2,0x2aa86a]]){bk.bot(x,1.3,40.34,1.4,1.9,.05,0x1c1d20,'m');bk.bot(x,1.38,40.3,1.24,1.74,.05,c,'e')}
+  for(const[z,c]of[[44,0xd8c02a],[48.2,0x2a9ad8]]){bk.bot(7.62,1.3,z,.05,1.9,1.4,0x1c1d20,'m');bk.bot(7.58,1.38,z,.05,1.74,1.24,c,'e');bk.bot(-7.62,1.3,z,.05,1.9,1.4,0x1c1d20,'m');bk.bot(-7.58,1.38,z,.05,1.74,1.24,c==0xd8c02a?0xd8402a:0x9a3ad8,'e')}
+  /* ceiling: steel beams with long strip lights between them */
+  for(let z=41;z<=52.6;z+=2){bk.bot(0,5.05,z,15.4,.4,.3,0x5c6066,'m');bk.bot(0,4.97,z+1,11,.07,.4,0xeaf6ff,'e')}
+  /* benches, bins, a ticket machine */
+  for(const sx of[-1,1]){const x=sx*6.9,z=46.3;bk.bot(x,.45,z,.7,.07,2.2,0x3a2a1c,'w');bk.bot(x,0,z-.9,.6,.45,.12,DK,'m');bk.bot(x,0,z+.9,.6,.45,.12,DK,'m');col(x,z,.8,2.3,.9);bk.cyl(sx*5.3,0,41.3,.28,.28,.8,0x2a2f35,'m',10);col(sx*5.3,41.3,.6,.6,.8)}
+  bk.bot(-7.1,0,41.6,.8,2,1.2,0x1c3f94,'m');bk.bot(-6.69,.5,41.6,.04,1.3,.9,0xaee4ff,'e');col(-7.1,41.6,.9,1.3,2);
+ }
  /* substation: transformers, pipes, hazard stripes */
  for(const[x,z]of[[34,-22],[34,-14],[41,-13]]){R(x-1.4,z-1.4,x+1.4,z+1.4,3.4,0x4a5058,'metal');bk.cyl(x-.8,3.4,z,.18,.18,.8,0xcfd2d6,'m',6);bk.cyl(x+.8,3.4,z,.18,.18,.8,0xcfd2d6,'m',6)}
  for(let i=0;i<10;i++)bk.bot(31+i*1.5,.02,-18+.1,.7,.01,.5,i%2?0xd7b92a:0x1c1d20,'f');eSpot(36,5,-18,0xff8a40,.8,12,.7,1);
@@ -247,7 +273,7 @@ function lonKill(b){const E=LONEGG;if(E.boil>0&&Math.hypot(b.x-16,b.z+38)<18)E.k
 function lonFinish(){const E=LONEGG;E.boil=0;E.done=1;zq.tea=1;burst(V(16,2,-33),50,0xffd890,7,1.4,.14);EST.lt.flash=1;[196,147,98,196].forEach((f,i)=>setTimeout(()=>{beep(f,1.2,'sine',.12);beep(f*2,.9,'triangle',.05)},i*520));popup('TIME FOR TEA','You unlocked The Brew. It is also in the Mystery Box now');lonGiveTea()}
 function lonGiveTea(){if(zq.teaGot)return;zq.teaGot=1;zGive('TEA')}
 /* items, the power switch and the tower door are built once the zombies pipeline has made the doors, machines and boxes */
-MAPS.London.objs=function(M){const E=LONEGG;E.got=[0,0,0];E.boil=0;E.kills=0;E.done=0;E.items=[];zq.power=0;zq.tea=0;zq.teaGot=0;
+MAPS.London.objs=function(M){const E=LONEGG;try{lonStn()}catch(e){console.warn('station',e)}E.got=[0,0,0];E.boil=0;E.kills=0;E.done=0;E.items=[];zq.power=0;zq.tea=0;zq.teaGot=0;
  /* machines start dark */
  lonMachFx(false);for(const s of EST.spots)if(Math.hypot(s.x,s.z)>0){for(const m of M.mc)if(m.t&&m.t!='rev'&&m.t!='wall'&&m.t!='ammo'&&m.t!='box'&&Math.hypot(s.x-m.x,s.z-m.z)<3.2){s.pw=1}}
  /* the power switch */
@@ -288,3 +314,18 @@ function lonPack(){const E=LONEGG;return typeof zq!='undefined'&&zq?[zq.power?1:
 function lonSync(d){if(!d.lo||sel.map!='London')return;const[p,g,dn,bo,k,t]=d.lo,E=LONEGG;if(p&&!zq.power)lonPowerOn();for(let i=0;i<3;i++){const h=(g>>i)&1;if(h&&!E.got[i]){E.got[i]=1;lonItemFx(i)}}if(t)zq.tea=1;E.boil=bo;E.kills=k;if(dn&&!E.done){E.done=1;zq.tea=1;lonGiveTea()}}
 /* every map is registered now: build the Zombies map screen */
 if(typeof zMapScreen=='function')zMapScreen();
+
+/* ---------- the Tube station: signs, the departure board and the sound of trains ---------- */
+var LST={bd:null,t:0,nx:25,mins:[2,5]};
+function lonStn(){const g=(typeof zG!='undefined'&&zG)?zG:S,cv=(w,h,f)=>{const c=document.createElement('canvas');c.width=w;c.height=h;f(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);return{t,c}},
+ pl=(t,w,h,x,y,z,ry,rx)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}));m.position.set(x,y,z);m.rotation.y=ry||0;if(rx)m.rotation.x=rx;g.add(m);return m},
+ name=cv(512,96,(c,w,h)=>{c.fillStyle='#f4f2ea';c.fillRect(0,0,w,h);c.fillStyle='#b3121b';c.fillRect(0,6,w,6);c.fillRect(0,h-12,w,6);c.fillStyle='#1c3f94';c.fillRect(0,26,w,44);c.fillStyle='#fff';c.font='700 46px Teko,Impact,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('WESTMINSTER',w/2,49)});
+ for(const[x,z,ry]of[[-5.2,40.33,0],[5.2,40.33,0],[7.64,44.9,-Math.PI/2],[-7.64,44.9,Math.PI/2]])pl(name.t,3.2,.6,x,3.3,z,ry);
+ const exit=cv(512,96,(c,w,h)=>{c.fillStyle='#16a34a';c.fillRect(0,0,w,h);c.fillStyle='#fff';c.font='700 52px Teko,Impact,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('WAY OUT  ▲',w/2,50)});pl(exit.t,2.4,.45,0,4.5,40.33,0);
+ const gap=cv(512,64,(c,w,h)=>{c.fillStyle='#f6d21c';c.font='700 54px Teko,Impact,sans-serif';c.textAlign='center';c.textBaseline='middle';c.letterSpacing='8px';c.fillText('MIND THE GAP',w/2,34)});for(const x of[-3.2,3.2])pl(gap.t,3.6,.45,x,.04,49.6,0,-Math.PI/2);
+ const bd=cv(512,160,()=>{});LST.bd=bd;LST.bm=pl(bd.t,2.6,.8,7.64,3.9,48.6,-Math.PI/2);LST.t=0;LST.nx=20+Math.random()*10;LST.mins=[2,5];lonBoard(true)}
+function lonBoard(force){const b=LST.bd;if(!b)return;const c=b.c.getContext('2d'),w=512,h=160;c.fillStyle='#08090b';c.fillRect(0,0,w,h);c.fillStyle='#ffb020';c.font='700 38px Teko,Impact,sans-serif';c.textBaseline='middle';c.textAlign='left';
+ const rows=[['1','Stratford',LST.mins[0]],['2','Morden',LST.mins[1]]];rows.forEach((r,i)=>{const y=40+i*56;c.fillText(r[0]+'   '+r[1],24,y);c.textAlign='right';c.fillText(r[2]<=0?'DUE':r[2]+' min',w-24,y);c.textAlign='left'});
+ c.fillStyle='#ffffff14';for(let y=0;y<h;y+=4)c.fillRect(0,y,w,1);b.t.needsUpdate=true}
+{const _t=LX.tick;LX.tick=function(dt){_t.call(this,dt);try{if(mode=='Zombies'&&sel.map=='London'&&LST.bd&&run&&!paused){LST.t+=dt;if(LST.t>=1){LST.t=0;LST.mins[0]=LST.mins[0]<=0?4+(Math.random()*3|0):LST.mins[0]-(Math.random()<.25?1:0);LST.mins[1]=LST.mins[1]<=0?5+(Math.random()*4|0):LST.mins[1]-(Math.random()<.2?1:0);lonBoard()}
+ LST.nx-=dt;if(LST.nx<=0){LST.nx=38+Math.random()*30;const d=Math.hypot(P.x,P.z-46);if(d<46){const g=Math.max(.15,1-d/46);flNoise(4.2,200,55,.07*g,'lowpass',.5,.35);flTone(62,48,3.6,.05*g,.2,'triangle',300);setTimeout(()=>flNoise(1.1,3200,900,.025*g,'bandpass',2,0),2600);shake=Math.max(shake,.12*g);LX.fx.pulse=Math.max(LX.fx.pulse,.1*g)}}}}catch(e){}}}

@@ -466,7 +466,8 @@ var TSN={geo:null,mat:null,gh:new Map(),ar:[],root:null,t:0,chk:0,fade:0};
 function tsHeld(){if(mode!='Zombies'||!zq||P.dead||!run||paused)return false;if(typeof CG!='undefined'&&CG.th>0)return true;if(typeof MV!='undefined'&&MV.eq)return zq.mel&&(zq.mel.pap||0)>=3;const w=cw();return !!w&&(w.pap||0)>=3}
 function tsMake(){if(TSN.geo)return;const G=HV.G(),parts=[],a=(g,sx,sy,sz,x,y,z,rx)=>parts.push({g,sx,sy,sz,x,y,z,rx:rx||0,ry:0,rz:0});
  a(G.sp,.12,.14,.13,0,1.78,.02);a(G.cu,.24,.58,.15,0,1.38,0);a(G.cu,.2,.3,.13,0,.98,0);a(G.cu,.095,.9,.095,-.11,.5,0);a(G.cu,.095,.9,.095,.11,.5,.04);a(G.cu,.06,.62,.06,-.3,1.4,.22,1.3);a(G.cu,.06,.62,.06,.3,1.4,.24,1.3);
- TSN.geo=HV.merge(parts);TSN.mat=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uA:{value:1},uC:{value:new THREE.Vector3(1,.1,.07)}},
+ TSN.geo=HV.merge(parts);{const hp=[],h=(g,sx,sy,sz,x,y,z,rx)=>hp.push({g,sx,sy,sz,x,y,z,rx:rx||0,ry:0,rz:0});/* a four-legged silhouette that matches the hound model (it faces +z) */
+  h(G.sp,.2,.22,.3,0,.58,.18);h(G.sp,.18,.2,.26,0,.55,-.2);h(G.cu,.15,.3,.14,0,.57,0,Math.PI/2);h(G.sp,.1,.09,.12,0,.74,.66);h(G.bx,.075,.06,.17,0,.7,.79);h(G.cu,.03,.34,.03,0,.64,-.44,-.9);for(const s of[-1,1]){h(G.cu,.05,.45,.05,s*.12,.23,.34);h(G.cu,.05,.45,.05,s*.12,.23,-.28)}TSN.hgeo=HV.merge(hp)}TSN.mat=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uA:{value:1},uC:{value:new THREE.Vector3(1,.1,.07)}},
   vertexShader:'varying vec3 vN;void main(){vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
   fragmentShader:'varying vec3 vN;uniform float uA;uniform vec3 uC;void main(){float r=pow(1.-abs(vN.z),2.2);gl_FragColor=vec4(uC,(.07+.8*r)*uA);}'});
  TSN.root=new THREE.Group();S.add(TSN.root);
@@ -480,8 +481,8 @@ function tsTick(dt){const on=tsHeld();TSN.fade+=((on?1:0)-TSN.fade)*Math.min(1,d
  for(const[d,b]of near){
   if(TSN.chk<=0||b.tsL==null){b.tsL=navLos(P.x,P.z,b.x,b.z)}
   const v=V(b.x,(b.y||0)+1,b.z).project(C),off=v.z>1||Math.abs(v.x)>1.02||Math.abs(v.y)>1.02;
-  if(!b.tsL||(typeof CG!='undefined'&&CG.th>0)){let g=TSN.gh.get(b);if(!g){g=new THREE.Mesh(TSN.geo,TSN.mat);g.frustumCulled=false;g.renderOrder=40;TSN.root.add(g);TSN.gh.set(b,g)}
-   g.visible=true;g.position.set(b.x,b.y||0,b.z);g.rotation.y=b.ry||0;const s=b.big?1.28:1;g.scale.set(s,s*(1+.012*Math.sin(TSN.t*3+b.i)),s);used.add(b)}
+  if(!b.tsL||(typeof CG!='undefined'&&CG.th>0)){let g=TSN.gh.get(b);if(!g){g=new THREE.Mesh(b.hound?TSN.hgeo:TSN.geo,TSN.mat);g.frustumCulled=false;g.renderOrder=40;TSN.root.add(g);TSN.gh.set(b,g)}
+   g.visible=true;g.position.set(b.x,b.y||0,b.z);g.rotation.y=b.ry||0;const s=b.hound?1.65:b.big?1.28:1;g.scale.set(s,s*(1+.012*Math.sin(TSN.t*3+b.i)),s);used.add(b)}
   if(off&&arrows.length<6)arrows.push([d,b])}
  if(TSN.chk<=0)TSN.chk=.16;
  for(const[b,g]of TSN.gh)if(!used.has(b)||!b.al){g.visible=false;if(!b.al||!bots.includes(b)){TSN.root.remove(g);TSN.gh.delete(b)}}
@@ -570,7 +571,7 @@ function hhModel(){const G=HV.G(),T=THREE,cone=HH.cone||(HH.cone=new T.ConeGeome
  const legs=[];for(const[x,z,fr]of[[-.14,.3,1],[.14,.3,1],[-.14,-.3,0],[.14,-.3,0]]){const up=new T.Group(),lo=new T.Group();up.position.set(x,.5,z);body.add(up);lo.position.set(0,-.26,0);up.add(lo);
   hhPart(up,'leg'+(fr?'f':'r'),(a)=>{const{cu}=G;a('fur',cu,.06,.28,.06,0,-.13,0,fr?-.1:.25);a('fur2',cu,.075,.14,.075,0,-.03,0)});hhPart(lo,'paw'+(fr?'f':'r'),(a)=>{const{cu,bx}=G;a('fur',cu,.04,.26,.04,0,-.13,fr?.02:-.04,fr?.15:-.2);a('fur2',bx,.07,.04,.12,0,-.255,.04);for(let i=-1;i<=1;i++)a('teeth',cone,.008,.03,.008,i*.022,-.26,.11,Math.PI/2)});legs.push({up,lo,fr});}
  const flames=[];for(const[x,y,z,s]of[[0,.9,.3,.7],[0,.88,-.05,.8],[0,.85,-.3,.6],[0,.4,.72,.5]]){const sp_=new T.Sprite(new T.SpriteMaterial({map:(JX.h&&JX.h.flareTex)||null,color:0xff7a22,transparent:true,opacity:.85,depthWrite:false,blending:T.AdditiveBlending,fog:false}));sp_.position.set(x,y,z);sp_.scale.set(s,s,1);body.add(sp_);flames.push(sp_)}
- g.userData.hh={body,head,jaw,tail,legs,flames};g.scale.setScalar(1.12);g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g}
+ g.userData.hh={body,head,jaw,tail,legs,flames};g.scale.setScalar(1.65);g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g}
 /* ---- the hit volumes of a hound: a low head and a long body ---- */
 {const _hp=hitPts;hitPts=function(b){if(!b.hound)return _hp(b);const ry=b.ry==null?0:b.ry,fx=Math.sin(ry),fz=Math.cos(ry),y=b.y||0;return[V(b.x+fx*.7,y+.78,b.z+fz*.7),V(b.x,y+.58,b.z),.26,.46]}}
 /* ---- spawning a hound out of a lightning strike ---- */
@@ -581,24 +582,18 @@ function hhStrike(x,z){const top=V(x+(Math.random()-.5)*8,60,z+(Math.random()-.5
 function hhSpawn(x,z){const z_=zq,r=z_.r,hp=Math.round(zHp(r)*.38)+50;
  /* made through mkZombie so the game's own bot registry knows it, then given the body and brain of a hound */
  const b=mkZombie(x,z,0);if(b.m&&b.m.parent)b.m.parent.remove(b.m);const m=hhModel();m.position.set(x,0,z);(typeof zG!='undefined'&&zG?zG:S).add(m);
- Object.assign(b,{m,rig:null,x,z,y:0,hp,mhp:hp,sh:0,msh:0,hound:1,nm:'Cinder Hound',big:0,run:1,sp:Math.min(12.5,9.4+r*.07),dm:Math.round(24+r*1.2),ac:1,vp:.6,rise:0,riseD:0,riseY:0,ry:0,tyaw:0,
+ Object.assign(b,{m,rig:null,x,z,y:0,hp,mhp:hp,sh:0,msh:0,hound:1,nm:'Cinder Hound',big:0,run:1,sp:Math.min(7.6,5.6+r*.05),dm:Math.round(24+r*1.2),ac:1,vp:.6,rise:0,riseD:0,riseY:0,ry:0,tyaw:0,
   hs:{ph:0,st:'rush',t:0,cd:1.4+Math.random()*.6,leap:0,vy:0,bite:0,stuck:0,lx:x,lz:z,spawnT:.45,side:Math.random()<.5?-1:1}});
  hhStrike(x,z);const pl=zPlayers()[0];if(pl)zvSay('howl',{x,z,vp:.6,big:1},Math.hypot(x-pl.x,z-pl.z));return b}
 /* ---- hound AI: it runs at where you are GOING, not where you are; at close range it leaps; it bites when it lands or when you are adjacent ---- */
 function hhAI(b,dt){if(b.stun>0){b.stun-=dt;b.m.position.set(b.x,b.y,b.z);return}const h=b.hs,pls=zPlayers().filter(p=>!(p.me&&P.dead)),M=MAPS[sel.map];let pl=null,bd=1e9;for(const p of pls){const d=Math.hypot(p.x-b.x,p.z-b.z);if(d<bd){bd=d;pl=p}}
- if(h.spawnT>0){h.spawnT-=dt;b.m.position.set(b.x,0,b.z);b.m.scale.setScalar(1.12*(.4+.6*(1-h.spawnT/.45)));return}b.m.scale.setScalar(1.12);if(!pl)return;
+ if(h.spawnT>0){h.spawnT-=dt;b.m.position.set(b.x,0,b.z);b.m.scale.setScalar(1.65*(.4+.6*(1-h.spawnT/.45)));return}b.m.scale.setScalar(1.65);if(!pl)return;
  h.t+=dt;h.cd-=dt;h.bite-=dt;const vx=pl.me?(P.mx||0):0,vz=pl.me?(P.mz||0):0,lead=Math.min(.7,bd/14),tx=pl.x+vx*lead,tz=pl.z+vz*lead,dx=tx-b.x,dz=tz-b.z,D=Math.hypot(dx,dz)||1,ry=Math.atan2(dx,dz);
- let mvx=0,mvz=0;
- if(h.st=='leap'){h.leap-=dt;h.vy-=26*dt;b.y=Math.max(0,b.y+h.vy*dt);mvx=h.lvx;mvz=h.lvz;if(b.y<=0&&h.leap<.1||h.leap<=0){b.y=0;h.st='rush';h.cd=1.5+Math.random()*.6;
-   const D2=Math.hypot(pl.x-b.x,pl.z-b.z);if(D2<1.9&&Math.abs((pl.y||0)-0)<1.7){if(pl.me){if(!(zq.dash&&zq.dash.t>0)){hurt(b.dm,b);kick+=.04;shake=Math.max(shake,.5);LX.fx.dmg=Math.max(LX.fx.dmg,.45);burst(V(P.x,1.1,P.z),10,0x8a1010,4,.4,.08);flNoise(.12,900,300,.2,'lowpass')}}}h.bite=.6}}
- else{ if(D>1.5){const sp=b.sp*(D>14?1.08:1);let ang=ry;
-   if(D>6&&D<22){ang+=h.side*Math.min(.6,(D-6)/16)*.35}  /* swing wide and come in from the side */
-   mvx=Math.sin(ang)*sp;mvz=Math.cos(ang)*sp;
-   if(h.stuck>.25){const o=h.stuck%.6<.3?1.0:-1.0;ang=ry+o;mvx=Math.sin(ang)*sp;mvz=Math.cos(ang)*sp}
-   if(bd<5.8&&bd>2.6&&h.cd<=0&&zSees(b,pl)){h.st='leap';h.leap=.52;h.vy=7;const sp2=Math.min(15,bd/.5+3);h.lvx=dx/D*sp2;h.lvz=dz/D*sp2;flNoise(.18,700,1900,.06,'bandpass',1.2);if(bd<20)zvSay('snarl',{x:b.x,z:b.z,vp:.6,big:1},bd)}}
-  else if(h.bite<=0&&Math.abs((pl.y||0))<1.7){h.bite=.85;if(pl.me&&!(zq.dash&&zq.dash.t>0)){hurt(Math.round(b.dm*.7),b);kick+=.03;shake=Math.max(shake,.35);LX.fx.dmg=Math.max(LX.fx.dmg,.3);burst(V(P.x,1.2,P.z),6,0x8a1010,3,.3,.07)}b.hs.jawT=.25;flNoise(.1,1200,400,.08,'lowpass')}}
- const ox=b.x,oz=b.z;mv(b,mvx*dt,mvz*dt,.4);const moved=Math.hypot(b.x-ox,b.z-oz),want=Math.hypot(mvx,mvz)*dt;h.stuck=want>.001&&moved<want*.3?h.stuck+dt:Math.max(0,h.stuck-dt*2);
- b.ry=b.ry+angD(ry,b.ry)*Math.min(1,dt*14);b.tyaw=b.ry;b.m.rotation.y=b.ry;b.m.position.set(b.x,b.y,b.z);h.ph+=Math.hypot(b.x-ox,b.z-oz)*2.2;
+ let face=ry;const ox=b.x,oz=b.z;
+ /* the zombies' own pathfinding (the flow field to the player), only bigger and slower; no leaps: it closes in and bites */
+ if(D>2.1){navMove(b,dt,pl.x,pl.z,b.sp*(D>16?1.06:1),zfls[pl.id]);if(b.mva!=null&&D>3.5)face=b.mva}
+ else if(h.bite<=0&&Math.abs((pl.y||0))<1.7){h.bite=.9;if(pl.me&&!(zq.dash&&zq.dash.t>0)){hurt(Math.round(b.dm*.8),b);kick+=.04;shake=Math.max(shake,.4);LX.fx.dmg=Math.max(LX.fx.dmg,.35);burst(V(P.x,1.2,P.z),8,0x8a1010,3,.3,.07)}b.hs.jawT=.25;flNoise(.12,1200,400,.09,'lowpass')}
+ b.y=0;b.ry=b.ry+angD(face,b.ry)*Math.min(1,dt*10);b.tyaw=b.ry;b.m.rotation.y=b.ry;b.m.position.set(b.x,0,b.z);h.ph+=Math.hypot(b.x-ox,b.z-oz)*1.5;
  if(Math.random()<dt*.5&&t0-HH.lastBark>.5){HH.lastBark=t0;hhBark(bd)}}
 function hhBark(d){flNoise(.1,700,1100,.1/(1+d*.08),'bandpass',1.6);flTone(300,160,.12,.08/(1+d*.07),0,'sine');flNoise(.1,800,500,.07/(1+d*.08),'bandpass',1.6,.18);flTone(280,150,.12,.07/(1+d*.07),.18,'sine')}
 /* ---- the body animation: a gallop, a leap pose, a bite ---- */

@@ -552,15 +552,16 @@ for(const n of Object.keys(LANES)){const M=MAPS[n];if(!M||!M.b)continue;const _b
    (and crate steps onto the container roofs in the corners). Each corner is a different container stack, a control hut on stilts overlooks the north east, and a gantry crane and a ring of bollards frame the quay.
    Everything is within a sprint of everything else: it is built for fast, close fights. ===================== */
 MAPS['Dry Dock']={d:'Tiny shipyard at golden hour: a hull on blocks with a tunnel under it and a deck on top, container stacks and a control hut. The smallest map',H:17,open:1,sky:0xf2b27a,gr:0x6a6a68,gt:'concrete',bc:0x9a8f80,hemi:.9,hemiC:0xffe2c0,hemiG:0x5a5048,sunI:1.05,sunC:0xffc890,fogF:120,
- fb:[[-12.6,0],[12.6,0]],zn:[[-8,-9.5],[0,10],[8.5,-3]],inside:(x,z)=>Math.abs(x)<14.6&&Math.abs(z)<14.6,
- lights:[[-9,5.4,-10.5,0xffb060,1.3,26],[9.5,5.4,10.5,0xffb060,1.3,26],[0,5,0,0xffe0b0,.6,18],[10.5,3.6,-10.5,0xfff0c0,.9,12]],
+ fb:[[-12.6,-2.4],[12.6,-2.4]],zn:[[-6.15,-8.9],[1.85,10.1],[9.85,-5.15]],inside:(x,z)=>Math.abs(x)<14.6&&Math.abs(z)<14.6,
+ lights:[[0,1.5,0,0xffb870,.8,9],[-9,5.4,-10.5,0xffb060,1.3,26],[9.5,5.4,10.5,0xffb060,1.3,26],[0,5,0,0xffe0b0,.6,18],[10.5,3.6,-10.5,0xfff0c0,.9,12]],
  b(){const a=[],vv=(MAPS['Dry Dock']._v=MAPS['Dry Dock']._v||[]);vv.length=0;const B=(x,z,w,d,h,y0,c,k)=>a.push([x,z,w,d,h,y0||0,c,k]),V=(x,z,w,d,h,y0,c,s,t)=>vv.push([x,z,w,d,h,y0||0,c,s||'b',t]),
   RED=0xa83a2c,BLUE=0x2f5f9e,GRN=0x3a7a4a,ORG=0xd08a2a,GRY=0x7a8087,YEL=0xd7b02a,HULL=0x46607a,DECK=0x8a7a60,WOOD=0x7a5a3a,CONC=0x9a968a,rnd=MK.rnd(23);
   /* the hull: keel blocks, two side plates (a tunnel between them), the deck, a bow and a stern, rails with gaps, stairs at both ends */
   for(let i=-4;i<=4;i++){B(i*2.1,-3.1,.7,.7,.7,0,WOOD,'plank');B(i*2.1,3.1,.7,.7,.7,0,WOOD,'plank')}
-  for(const s of[-1,1]){B(0,s*3.1,18.2,.45,2,.7,HULL,'metal');B(0,s*3.1,18.4,.12,2.05,.65,0x2a3a4a,'metal')}
+  /* the side plates have two doorways each (between the keel blocks, 1.4 m wide) so the tunnel under the hull can be entered; before, it was sealed */
+  for(const s of[-1,1])for(const[x0,x1]of[[-9.1,-5.95],[-4.55,4.55],[5.95,9.1]]){B((x0+x1)/2,s*3.1,x1-x0,.45,2,.7,HULL,'metal');B((x0+x1)/2,s*3.1,x1-x0+.1,.12,2.05,.65,0x2a3a4a,'metal')}
   B(0,0,18.6,7,2.4,2,DECK,'plank');
-  for(const s of[-1,1]){B(-9.35,s*1.6,.5,3,1.8,.7,HULL,'metal');B(9.35,s*1.6,.5,3,1.8,.7,HULL,'metal')}
+  B(-9.35,0,.5,6.2,1.8,.7,HULL,'metal');B(9.35,0,.5,6.2,1.8,.7,HULL,'metal');
   for(const[rx,rz,rw,rd]of[[-6.4,-3.2,5.2,.14],[3.6,-3.2,9.6,.14],[-3.2,3.2,9.6,.14],[6.8,3.2,4.4,.14],[-9.2,-1,.14,4.2],[-9.2,2.4,.14,1.6],[9.2,-2.4,.14,1.6],[9.2,1,.14,4.2]])B(rx,rz,rw,rd,3.3,2.4,0xc8c2b0,'metal');
   MK.stairs(B,-9.3,0,2.6,8,'w',0x6a655a,'metal',.3,.55,0);MK.stairs(B,9.3,0,2.6,8,'e',0x6a655a,'metal',.3,.55,0);
   B(-3.4,1.7,1.8,1,3.4,2.4,0x6a4a2a,'plank');B(3.8,-1.5,1,1.8,3.4,2.4,0x6a4a2a,'plank');B(0.4,-2.4,.9,.9,3.2,2.4,RED,'metal');
