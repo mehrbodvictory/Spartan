@@ -152,7 +152,17 @@ var PAPC=['Haunted Mahogany','Gilded Wraith'];
 function zPapMat(t){const n=PAPC[Math.min(2,t)-1];if(!rfm[n])rfm[n]=new THREE.ShaderMaterial({uniforms:{t:{value:0},k:{value:t>1?1:0}},vertexShader:CAMO_VS,fragmentShader:PAP_FS});return rfm[n]}
 function zPapCamo(k){const w=typeof cw=='function'?cw():null;return zomOn()&&w&&w.k==k&&w.pap?zPapMat(w.pap):null}
 /* the bare hands (and Nitrogen gauntlets) pick up the same camo once the melee weapon is Pack-a-Punched */
-function zPaintHands(){if(typeof lockboxFirstPerson==='function')lockboxFirstPerson(mode==='Zombies'&&!!MAPS[sel.map]?.lockbox);const t=zq&&zq.mel?zq.mel.pap||0:0;for(const s of['r','l']){const a=fpArm[s];if(!a||!a.hand)continue;a.hand.traverse(o=>{if(!o.isMesh)return;if(!o.userData.m0)o.userData.m0=o.material;o.material=t?zPapMat(t):o.userData.m0})}}
+function zPaintHands(){
+ const tier=mode==='Zombies'?zq?.mel?.pap||0:0;
+ for(const arm of Object.values(fpArm))for(const item of arm.hand.children){
+  if(item===arm.active?.glove)continue;
+  item.traverse(mesh=>{
+   if(!mesh.isMesh)return;
+   mesh.userData.m0||=mesh.material;
+   mesh.material=tier?zPapMat(tier):mesh.userData.m0;
+  });
+ }
+}
 
 /* ---------- melee: Fists by default, Nitrogen Fists from the box, a Katana off the wall. All of them can be Pack-a-Punched (tier I and II). ---------- */
 var zMelKey=()=>zq&&zq.mel?zq.mel.k:'Fists';
@@ -178,7 +188,7 @@ function zDash(){const d=zq.dash,t=zq.mel.pap||0;d.t=ZD.dur;d.cd=[6,4.5,3.2][t];
  noise(.5,500,.5);beep(120,.35,'sawtooth',.12);beep(90,.5,'square',.08);fk=Math.max(fk,2.4);shake=Math.max(shake,.55);LX.fx.speed=1;LX.fx.ca=1;LX.fx.pulse=Math.max(LX.fx.pulse,.6);
  const f=V(-Math.sin(yaw),0,-Math.cos(yaw));for(let i=0;i<3;i++)burst(V(P.x-f.x*.4,.9,P.z-f.z*.4),14,i?0xffffff:0x55ccff,8,.5,.12);if(typeof haptic=='function')haptic(.9,200,.9,'both');popup('NITRO DASH','Smash through them')}
 {const _mc=moveCalc;moveCalc=function(){const r=_mc.apply(this,arguments);if(zq&&mode=='Zombies'&&zq.dash&&zq.dash.t>0&&!P.dead){r.f=1;r.s=0;r.spt=false;r.spd=ZD.sp}return r}}
-function zDashTick(dt){const d=zq.dash;if(d.cd>0)d.cd=Math.max(0,d.cd-dt);if(d.t<=0)return;d.t-=dt;const f=V(-Math.sin(yaw),0,-Math.cos(yaw)),pap=zq.mel.pap||0;
+function zDashTick(dt){const d=zq.dash;if(d.cd>0)d.cd=Math.max(0,d.cd-dt);if(d.t<=0)return;d.t-=dt;zQuestTool('dash',P.x,P.y,P.z);const f=V(-Math.sin(yaw),0,-Math.cos(yaw)),pap=zq.mel.pap||0;
  d.fi=(d.fi||0)-dt;if(d.fi<=0){d.fi=.1;FI.d=.14;FI.t=.14;FI.side^=1}
  burst(V(P.x-f.x*.9,.6+Math.random()*.8,P.z-f.z*.9),3,Math.random()<.5?0x55ccff:0xffffff,3,.35,.1);
  for(const b of bots){if(!b.zom||!b.al||d.hit.has(b.i)||b.rise>0)continue;const dx=b.x-P.x,dz=b.z-P.z,D=Math.hypot(dx,dz);if(D>ZD.r+(b.big?.5:0)||Math.abs((b.y||0)-(P.y||0))>2.2)continue;
@@ -385,7 +395,7 @@ function zomTick(dt){const z=zq;if(!z||mode!='Zombies')return;const M=MAPS[sel.m
  else if(!zQuestActive()){z.spT-=dt;if(z.toSpawn>0&&z.spT<=0){const room=Math.min(24,6+z.r*2)-alive;if(room>0){const n=Math.min(room,z.toSpawn,2+(z.r>3?1:0)+(z.r>8?1:0));for(let i=0;i<n;i++){const big=z.brutes>0&&(z.toSpawn-i<=z.brutes||Math.random()<.2);if(big)z.brutes--;zSpawn(M,big)}z.toSpawn-=n;z.spT=Math.max(1.2,3.2-z.r*.12)}else z.spT=.4}
   if(z.toSpawn<=0&&alive<=0)zEndRound()}
  z.fl-=dt;if(z.fl<=0&&zgr){z.fl=.35;zfls={};for(const pl of zPlayers())zfls[pl.id]=zFlow(pl)}
- zMove(dt);zCommon(dt);zboxes.forEach((o,i)=>zBoxTick(o,i,dt,1));
+ if(!z.main?.fight)zMove(dt);zCommon(dt);zboxes.forEach((o,i)=>zBoxTick(o,i,dt,1));
  if(netOn){zbT+=dt;if(zbT>.1){zbT=0;netSend({t:'zb',bw:z.barricade?.count,brw:z.barricade?.reinforced,bl:(typeof EST!='undefined'&&EST.bx?EST.bx.loc:-1),lo:(typeof lonPack=='function'?lonPack():0),mq:zQuestPack(z.main),r:z.r,l:bots.filter(b=>b.zom&&b.al).map(b=>[b.i,+b.x.toFixed(1),+b.z.toFixed(1),b.big?1:0,b.atk?b.atype+1:0,b.tear||0,b.tearY||0,b.crossing||0,b.zquestBoss?[b.tyaw||0,b.rise,b.riseY,b.riseD,b.at,b.atd]:null])})}
   zsT+=dt;if(zsT>.5){zsT=0;netSend({t:'zs',r:z.r,st:z.st,tm:Math.ceil(z.tm),br:z.brutes,rm:z.rm|0})}
   if(!zPlayers().length&&!over){z.ad+=dt;if(z.ad>6)endGame('You reached round '+z.r)}else z.ad=0}
@@ -600,7 +610,7 @@ function zdCam(dt){const z=ZX;z.u+=dt;const u=z.u,k=z.kind,e=zdEl(),fw=[-Math.si
  else{ /* spirit */
   const T=1.7,a=zdE(u/T);if(u<T){y=zdL(z.eye0,.26,zdE(u/1.3));pit=zdL(z.pitch0,-.7,zdE((u-.5)/1.2));roll=zdL(0,.35,a);gr=0;vig=.5;z.hb-=dt;if(z.hb<=0){zdHeart(.24);z.hb=.9}
    evt(.9,()=>{shake=.7;zdTone(60,30,.5,.3)})}
-  else{if(!z.body){const g=new THREE.Group();g.position.set(P.x,0,P.z);try{mkHuman(g,{helm:1,shirt:0x3b4a5a})}catch(x){}const m=new THREE.Group();m.add(g);g.rotation.x=-Math.PI/2;g.position.y=.22;m.position.set(P.x,0,P.z);m.rotation.y=z.yaw0;S.add(m);z.body=m;burst(V(P.x,.4,P.z),40,0xbfe8ff,2.5,1.6,.1);zdTone(330,330,3,.03,0);zdTone(495,495,3,.025,.2);zdTone(660,660,3,.02,.4);zdTone(220,220,4,.03,0);zdNoise(2.8,600,2400,.05,'bandpass',.5)}
+  else{if(!z.body){const g=new THREE.Group();g.position.set(P.x,0,P.z);try{mkHuman(g,{operator:passOperator()})}catch(x){}const m=new THREE.Group();m.add(g);g.rotation.x=-Math.PI/2;g.position.y=.22;m.position.set(P.x,0,P.z);m.rotation.y=z.yaw0;S.add(m);z.body=m;burst(V(P.x,.4,P.z),40,0xbfe8ff,2.5,1.6,.1);zdTone(330,330,3,.03,0);zdTone(495,495,3,.025,.2);zdTone(660,660,3,.02,.4);zdTone(220,220,4,.03,0);zdNoise(2.8,600,2400,.05,'bandpass',.5)}
    const w=zdC((u-T)/(z.dur-T),0,1),R=zdL(.9,5.6,zdE(w)),H=zdL(.5,6.4,zdE(w)),an=z.yaw0+Math.PI+(u-T)*.55;px=P.x+Math.sin(an)*R;pz=P.z+Math.cos(an)*R;y=H;
    const dx=P.x-px,dz=P.z-pz,dh=Math.hypot(dx,dz);yw=Math.atan2(-dx,-dz);pit=-Math.atan2(H-.3,dh);roll=0;vig=zdC(.35+w*.55,0,1);gr=.25+w*.3;
    z.spawn-=dt;if(z.spawn<=0){z.spawn=.07;burst(V(P.x+(Math.random()-.5)*.5,.4,P.z+(Math.random()-.5)*.5),1,Math.random()<.5?0xbfe8ff:0xffffff,1.4+Math.random(),1.6,.09)}

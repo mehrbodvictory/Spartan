@@ -3,7 +3,6 @@ var StormwatchCitadel = (() => {
  const cdn='https://cdn.jsdelivr.net/npm/';
  const reactFile=cdn+'react@18.3.1/umd/react.production.min.js';
  const domFile=cdn+'react-dom@18.3.1/umd/react-dom.production.min.js';
- const zustandFile=cdn+'zustand@4.5.7/esm/vanilla.mjs';
  const elements=['Kinetic','Aether','Scorch','Frost','Volt'];
  const stats=['Vitality','Impact','Toughness','Aptitude'];
  const departments=['Field Medicine','Armory','Shieldworks','Engineering','Rescue','Recon','Sentinel','Research'];
@@ -57,10 +56,9 @@ var StormwatchCitadel = (() => {
   scripts.set(url,promise);return promise;
  }
  async function libraries(){
-  if(!services)services=Promise.all([
-   loadScript(reactFile,'React').then(async React=>[React,await loadScript(domFile,'ReactDOM')]),
-   import(zustandFile)
-  ]).then(([[React,ReactDOM],{createStore}])=>({React,ReactDOM,createStore})).catch(error=>{services=null;throw error});
+  if(!services)services=loadScript(reactFile,'React').then(async React=>({
+   React,ReactDOM:await loadScript(domFile,'ReactDOM')
+  })).catch(error=>{services=null;throw error});
   return services;
  }
  function openDB(){
@@ -143,6 +141,11 @@ var StormwatchCitadel = (() => {
   switch(action.type){
    case 'field-report':fileReport(state,action);break;
    case 'claim-operation':claimOperation(state,action.id);break;
+   case 'field-loadout':{
+    if(![0,1].includes(action.slot)||action.id!==''&&entry?.kind!=='weapon')throw Error('Invalid loadout slot');
+    state.fieldLoadout ||= ['',''];state.fieldLoadout[action.slot]=action.id;
+    break;
+   }
    case 'lead':
     if(!operatives[action.id])throw Error('Invalid operative');
     if(squad.supports.includes(action.id))squad.supports[squad.supports.indexOf(action.id)]=squad.lead;
@@ -335,10 +338,16 @@ var StormwatchCitadel = (() => {
  }
 
  async function open(){
-  const lib=await libraries(),db=await openDB();
+  const db=await openDB();
   let profile;
   try{profile=await read(db)}catch(error){db.close();throw error}
-  const store=lib.createStore(()=>({profile,pending:0,notice:''}));
+  let value={profile,pending:0,notice:''};
+  const listeners=new Set();
+  const store={
+   getState:()=>value,
+   setState(fn){value={...value,...(typeof fn==='function'?fn(value):fn)};for(const f of listeners)f(value)},
+   subscribe(fn){listeners.add(fn);return ()=>listeners.delete(fn)}
+  };
   let tail=Promise.resolve(),closed=false;
   function dispatch(action){
    if(closed)return Promise.resolve(false);
@@ -350,7 +359,9 @@ var StormwatchCitadel = (() => {
    tail=pending;return pending;
   }
   return {snapshot:()=>store.getState().profile,
-   mount:node=>mountUI(lib,node,store,dispatch),dispatch,
+   async prepareUI(){const lib=await libraries();return node=>mountUI(lib,node,store,dispatch)},
+   async refresh(){await tail;if(!closed)store.setState({profile:await read(db)})},
+   dispatch,
    close(){closed=true;tail.finally(()=>db.close())}};
  }
  return {open,blank,rating,tune,components,emptyBag,classes};

@@ -29,13 +29,13 @@ function dsUnit(side,rm,mags){const u=new THREE.Group(),k=gunKit(u,rm),M=k.M,bod
  mags.push(k.box(.036,.125,.058,0,-.105,.285,dk,.05));mags.push(k.box(.042,.014,.064,0,-.172,.282,gm,.05));
  k.box(.05,.014,.05,0,-.045,.255,gm);
  mkSights(u,'DS',{yt:.102,yb:.057,yf:.052,zr:.04,zf:.33});
- return u}
+ u.userData.muzzle={x:0,y:.006,z:.558};return u}
 MODELS.DS=function(g,rm){const mags=[],units=[];for(const side of[-1,1]){const u=dsUnit(side,rm,mags);u.position.x=side*.105;u.rotation.y=-side*.035;g.add(u);units.push(u)}
  /* units[0] is the gun on the shooter's right (a character facing +z has its right hand on -x) */
  g.userData.a={r:[-.105,-.09,.01],l:[.105,-.09,.01],m:[0,-.17,.0]};g.userData.mags=mags;g.userData.units=units;return g};
 /* the guns fire in turn (or the one you chose with the controller triggers); each kicks back on its own */
-function dsShot(w){const pad=PG&&PG.on&&(DS.L||DS.R);let h;if(pad&&DS.L!=DS.R)h=DS.L?1:0;else{DS.h^=1;h=DS.h}DS.k[h]=1;gf.position.x=h?-.1:.1;
- if(pad&&DS.L!=DS.R)nf=t0+w.r*2*zfr()}
+function dsShot(w){const pad=PG&&PG.on&&(DS.L||DS.R);let h;if(pad&&DS.L!=DS.R)h=DS.L?1:0;else{DS.h^=1;h=DS.h}DS.k[h]=1;
+ if(pad&&DS.L!=DS.R)nf=t0+w.r*2*zfr();return h}
 {const _fu=fpUpdate;fpUpdate=function(dt){const w=cw(),a=curAnch(),u=fpG.userData&&fpG.userData.units;
   if(w&&w.dual&&a&&u){if(!a.b0)a.b0={r:a.r.slice(),l:a.l.slice()};for(let i=0;i<2;i++)DS.k[i]=Math.max(0,DS.k[i]-dt*8);
    const kr=DS.k[0],kl=DS.k[1];a.r=[a.b0.r[0],a.b0.r[1],a.b0.r[2]+kr*.04];a.l=[a.b0.l[0],a.b0.l[1],a.b0.l[2]+kl*.04];
@@ -345,8 +345,8 @@ var hasWC=n=>Array.isArray(L.wc)&&L.wc.includes(n),tacName=i=>i==1?(L.t===undefi
 function eqDmg(b,d,head,name){src=name||'Equipment';srcK='';try{hitBot(b,d,head)}catch(e){}}
 function eqSlot(i){if(i==0)return{n:LG(),get c(){return gc},set c(v){gc=v},k:'L'};if(i==2)return{n:tacName(1),get c(){return ST.tN},set c(v){ST.tN=v},k:'T'};
  if(hasWC('Danger Zone')&&L.g2)return{n:L.g2,get c(){return EQ.lc[1]},set c(v){EQ.lc[1]=v},k:'L'};if(hasWC('Strategist')&&L.t2)return{n:L.t2,get c(){return EQ.tc[1]},set c(v){EQ.tc[1]=v},k:'T'};return null}
-function eqInit(){for(const l of[EQ.P,EQ.FZ,EQ.MN,EQ.CH,EQ.PD,EQ.RG,EQ.AR])for(const o of l){try{S.remove(o.m)}catch(e){}}EQ.P=[];EQ.FZ=[];EQ.MN=[];EQ.CH=[];EQ.PD=[];EQ.RG=[];EQ.AR=[];
- if(EQ.hand){C.remove(EQ.hand.m);EQ.hand=null}const z=mode=='Zombies',a=eqN(LG()),b=eqN(tacName(1));gc=z?Math.max(gc,a):a;ST.tN=z?Math.max(ST.tN,b):b;EQ.lc[1]=hasWC('Danger Zone')?eqN(L.g2):0;EQ.tc[1]=hasWC('Strategist')?eqN(L.t2):0}
+function eqRefill(){if(EQ.hand){C.remove(EQ.hand.m);EQ.hand=null}const z=mode=='Zombies',a=eqN(LG()),b=eqN(tacName(1));gc=z?Math.max(gc,a):a;ST.tN=z?Math.max(ST.tN,b):b;EQ.lc[1]=hasWC('Danger Zone')?eqN(L.g2):0;EQ.tc[1]=hasWC('Strategist')?eqN(L.t2):0}
+function eqInit(){for(const l of[EQ.P,EQ.FZ,EQ.MN,EQ.CH,EQ.PD,EQ.RG,EQ.AR])for(const o of l){try{S.remove(o.m)}catch(e){}}EQ.P=[];EQ.FZ=[];EQ.MN=[];EQ.CH=[];EQ.PD=[];EQ.RG=[];EQ.AR=[];eqRefill()}
 /* ---- unique sounds ---- */
 var eqS={
  osc(ty,f0,f1,d,g0,lp,dl){try{ac=ac||new AudioContext();const t=ac.currentTime+(dl||0),o=ac.createOscillator(),g=ac.createGain();o.type=ty;o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+d);g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(g0*vol,t+.005);g.gain.exponentialRampToValueAtTime(.0001,t+d);let n=o;if(lp){const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=lp;o.connect(f);n=f}n.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+d+.03)}catch(e){}},
@@ -714,7 +714,7 @@ function bhHot(x,z){if(x==null)return;BHS.hot.push({x,z,r:24,u:t0+28,d:28});if(B
 function spawnPt(minD,team){const M=MAPS[sel.map],tm=team&&teamMode(),lo=tm&&team=='B'?H/3:-H,hi=tm&&team=='A'?-H/3:H,pT=typeof pTeam=='function'?pTeam():null,foes=[],allies=[];
  for(const b of bots){if(!b.al||b.zom)continue;if(b.team===team||(tm&&b.team===team))allies.push(b);else foes.push(b)}
  const meFoe=!P.dead&&!(tm&&pT===team),cand=[];
- for(let i=0;i<220&&cand.length<70;i++){const x=lo+3+Math.random()*(hi-lo-6),z=(Math.random()*2-1)*(H-3);if(M.inside&&!M.inside(x,z))continue;if(typeof navOK=='function'&&!navOK(x,z))continue;if(bx.some(b=>b.h>.5&&x>b.x0-1.2&&x<b.x1+1.2&&z>b.z0-1.2&&z<b.z1+1.2))continue;
+ for(let i=0;i<220&&cand.length<70;i++){const x=lo+3+Math.random()*(hi-lo-6),z=(Math.random()*2-1)*(H-3);if(M.inside&&!M.inside(x,z)||M.groundHeight?.(x,z)<-.3)continue;if(typeof navOK=='function'&&!navOK(x,z))continue;if(bx.some(b=>b.h>.5&&x>b.x0-1.2&&x<b.x1+1.2&&z>b.z0-1.2&&z<b.z1+1.2))continue;
   let dE=1e9;for(const f of foes){const d=Math.hypot(f.x-x,f.z-z);if(d<dE)dE=d}if(meFoe)dE=Math.min(dE,Math.hypot(P.x-x,P.z-z));if(dE===1e9)dE=70;
   let sc=Math.min(dE,70);if(dE<minD)sc-=250;for(const hs of BHS.hot)if(t0<hs.u&&Math.hypot(hs.x-x,hs.z-z)<hs.r)sc-=110*(hs.u-t0)/hs.d;
   if(tm&&allies.length){let dA=1e9;for(const a of allies){const d=Math.hypot(a.x-x,a.z-z);if(d<dA)dA=d}sc-=Math.abs(dA-20)*.35}
@@ -1279,7 +1279,7 @@ function emoShow(){const w=document.getElementById('emw');if(!w)return;for(const
 function emoPick(){const L=Math.hypot(EMO.vx,EMO.vy);if(L<26){if(EMO.sel!=-1){EMO.sel=-1;emoShow()}return}const ang=(Math.atan2(EMO.vx,-EMO.vy)+6.2832)%6.2832,s=Math.floor(ang/.7854+.5)%8;if(s!=EMO.sel){EMO.sel=s;emoShow();flTone(1500+s*60,1400,.03,.025,0,'sine')}}
 function emoOpen(){if(EMO.open||!run||paused||over||P.dead||document.getElementById('chatbox')&&document.activeElement&&document.activeElement.tagName=='INPUT')return;EMO.open=1;EMO.sel=-1;EMO.vx=EMO.vy=0;emoWheel(true)}
 function emoClose(play){if(!EMO.open)return;EMO.open=0;emoWheel(false);if(play&&EMO.sel>=0)emoStart(EMO.sel===7?passEmote():EMO.sel)}
-function emoStart(id){if(!run||P.dead||paused)return;const idOp=mode==='Zombies'?null:passOperator();if(!EMO.av||EMO.av.operator!==idOp){if(EMO.av)S.remove(EMO.av.g);const g=new THREE.Group(),rig=mkHuman(g,idOp?{operator:idOp}:undefined);try{g.children[0].material.color.setHex(typeof myTeam!='undefined'&&myTeam=='red'?0xb83a3a:0x2e5aa8)}catch(e){}g.visible=false;S.add(g);EMO.av={g,rig,operator:idOp}}
+function emoStart(id){if(!run||P.dead||paused)return;const idOp=passOperator();if(!EMO.av||EMO.av.operator!==idOp){if(EMO.av)S.remove(EMO.av.g);const g=new THREE.Group(),rig=mkHuman(g,idOp?{operator:idOp}:undefined);if(teamMode())markOperatorTeam(rig,myTeam);g.visible=false;S.add(g);EMO.av={g,rig,operator:idOp}}
  EMO.cur={id,t:0,dur:EMLEN[id],hp:P.hp,nb:0,sw:0};EMO.av.g.visible=true;flNoise(.18,400,1800,.04,'bandpass',1.2);flTone(380,620,.14,.04,0,'triangle')}
 function emoEnd(){const c=EMO.cur;EMO.cur=null;if(EMO.av){EMO.av.g.visible=false;EMO.av.rig.legL.rotation.z=0;EMO.av.rig.legR.rotation.z=0}if(c){try{if(!P.dead)gun.visible=true}catch(e){}}}
 /* before the frame is drawn: the wheel's controller input, the third-person camera and the character's pose */

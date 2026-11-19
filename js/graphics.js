@@ -6,7 +6,7 @@
    Visual-only extras (map._v and map.deco) are [x,z,w,d,h,y0,colour,shape,texture] with shape b box, e glow box, g glass box, s sphere, c cylinder, k cone. ---------- */
 var gfxQ=LX.q,skyM=null,skyC=null,gfxL=[],gt_=0;
 R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFShadowMap;
-var SHMAX=(()=>{try{return R.capabilities.maxTextureSize||2048}catch(e){return 2048}})(),SHS=2048;
+const SHS=2048;
 sun.shadow.mapSize.set(SHS,SHS);{const k=sun.shadow.camera;k.left=k.bottom=-46;k.right=k.top=46;k.near=1;k.far=150}sun.shadow.bias=-.0004;sun.shadow.normalBias=.04;S.add(sun.target);
 function setGfx(q){gfxQ=q;LX.setQuality(q);sun.castShadow=q!='low'}setGfx(gfxQ);
 /* the shadow texel in world units (used to keep shadow edges from shimmering) */
@@ -65,12 +65,14 @@ function gfxDispose(g){try{g.traverse(o=>{if(o.geometry&&o.geometry!==sg&&o.geom
  const m=o.material;if(m&&skyM&&(m===skyM.material||(skyC&&m===skyC.material))){if(m.map)m.map.dispose();m.dispose()}});}catch(e){}}
 /* build everything visible for a map: ground, sky, merged textured boxes, extras, lights */
 function gfxMap(M,list){
- const fx=LX.setMap(sel.map);
+ LX.setMap(sel.map);
  hemi.intensity=(M.hemi||.85)*(LX.pbr?.55:1);hemi.color.setHex(M.hemiC||0xffffff);hemi.groundColor.setHex(M.hemiG||0x445566);sun.intensity=(M.sunI==null?.7:M.sunI)*(LX.pbr?1.2:1);sun.color.setHex(M.sunC||0xffffff);
  const gk=M.gt||(M.skyk=='night'?'concrete':'grass'),gs=TS[gk]||4,GS=H*2+(M.open?360:0);let gm;
  if(LX.pbr){const t=LX.texRep(gk,GS/gs,GS/gs);gm=LX.patch(new THREE.MeshStandardMaterial({color:M.gr,map:t.map,normalMap:t.normalMap,roughnessMap:t.roughnessMap,roughness:1,metalness:0,normalScale:new THREE.Vector2(.9,.9),envMapIntensity:.5}),{macro:true})}
  else{const gt=gTex(gk).clone();gt.needsUpdate=true;gt.repeat.set(GS/gs,GS/gs);gm=new THREE.MeshLambertMaterial({color:M.gr,map:gt})}
- const f=new THREE.Mesh(new THREE.PlaneGeometry(GS,GS),gm);f.rotation.x=-Math.PI/2;f.receiveShadow=true;mapG.add(f);
+ const f=new THREE.Mesh(M.groundGeometry?M.groundGeometry():new THREE.PlaneGeometry(GS,GS),gm);
+ if(!M.groundGeometry)f.rotation.x=-Math.PI/2;
+ f.receiveShadow=true;mapG.add(f);
  gfxSky(M);
  const accs={},acc=(key,mat)=>accs[key]||(accs[key]={mat,p:[],n:[],u:[],i:[],c:[]});
  for(const e of list){const[x,z,w,d,h,y0=0,col,kind]=e;if(kind=='n')continue;const c=col==null?new THREE.Color(M.bc).offsetHSL(0,0,(h-2)*.025).getHex():col;
@@ -104,7 +106,7 @@ function gfxTick(dt){gt_+=dt;LX.tick(dt);if(skyM)skyM.position.copy(C.position);
    Canyon: sunset with a huge low sun and long glowing cloud streaks.                  Suburbia: friendly summer sky, small clouds and a jet contrail.
    Boomtown: ochre dust storm, thick dust bands, a dark storm wall, smoke columns.     Rust: bleached desert noon, heat haze, mesas, an oil flare plume.
    Decay: heavy green-grey overcast, smoke columns and a ruined skyline.              Hollow Estate: night with a huge moon, stars, thin moonlit cloud, bats and a red horizon glow. ---------- */
-var SKY_SUN={Blockfort:[.45,.75,-.35],Pillars:[-.2,.92,.3],Canyon:[-.86,.2,.3],Suburbia:[.3,.7,.5],Boomtown:[.6,.5,-.4],Rust:[.1,.85,-.5],Decay:[-.3,.45,.2],London:[.38,.6,.5],'Dry Dock':[.55,.3,-.45],'Hollow Estate':[-.5,.55,.4]};
+var SKY_SUN={Blockfort:[.45,.75,-.35],Pillars:[-.2,.92,.3],Canyon:[-.86,.2,.3],Suburbia:[.3,.7,.5],Boomtown:[.6,.5,-.4],Rust:[.1,.85,-.5],Decay:[-.3,.45,.2],London:[.38,.6,.5],'Dry Dock':[.55,.3,-.45],'Hollow Estate':[-.5,.55,.4],Shardworks:[-.61,.39,-.44],'Practice Range':[.19,.85,-.49]};
 const skyDirections=new Map();
 function skyDir(){
  const key=sel.map;
@@ -174,7 +176,31 @@ function gfxSky(M){const W=1024,Hh=512,c=document.createElement('canvas');c.widt
   g.strokeStyle='#6f89a6';g.lineWidth=2;g.beginPath();g.arc(W*.52,hy-30,28,0,7);g.stroke();for(let i=0;i<12;i++){const a=i/12*6.283;g.beginPath();g.moveTo(W*.52,hy-30);g.lineTo(W*.52+Math.cos(a)*28,hy-30+Math.sin(a)*28);g.stroke()}
   for(let k=0;k<4;k++){const bx=rnd()*W,by=hy*(.4+rnd()*.3);for(let i=0;i<5;i++)bird(bx+i*14+rnd()*8,by+Math.abs(i-2)*5+rnd()*5,5+rnd()*2)}
   haze('rgba(222,234,246,A)',70,.78)}
- else{grad([[0,'#02040a'],[.2,'#070c1c'],[.4,'#0f1a30'],[.5,hz],[1,hz]]);stars(380,1);
+ else if(name==='Shardworks'){
+  grad([[0,'#286382'],[.25,'#56869a'],[.40,'#8faeac'],[.5,hz],[1,hz]]);
+  glow(sx,sy,260,[[0,'rgba(255,249,211,1)'],[.045,'rgba(255,235,186,.98)'],[.18,'rgba(252,209,153,.38)'],[1,'rgba(230,165,109,0)']]);
+  for(let i=0;i<12;i++)streak(rnd()*W,hy*(.26+rnd()*.61),210+rnd()*250,9+rnd()*12,.38,'rgba(255,227,185,A)');
+  const terraces=(offset,amplitude)=>x=>{
+   const t=x/W*Math.PI*2;
+   const land=.5+.31*Math.sin(t*4+offset)+.16*Math.cos(t*9-offset);
+   return 9+Math.floor(Math.max(0,land)*amplitude/6)*6;
+  };
+  sil('#aaa692',terraces(.3,49));
+  sil('#8d8d78',terraces(2.7,35));
+  sil('#736f62',terraces(4.1,23));
+  haze('rgba(229,197,150,A)',43,.75);
+ }else if(name==='Practice Range'){
+  grad([[0,'#2664a4'],[.25,'#498ec8'],[.425,'#9bc8e1'],[.5,hz],[1,hz]]);
+  glow(sx,sy,168,[[0,'rgba(255,255,244,1)'],[.06,'rgba(255,253,224,.94)'],[.18,'rgba(255,250,219,.32)'],[1,'rgba(239,246,240,0)']]);
+  for(const [x,y,w] of [[.08,.66,130],[.32,.45,158],[.57,.64,101],[.8,.7,175],[.98,.32,120]])
+   puff(x*W,y*hy,w,38,.78,'rgba(255,255,255,A)','rgba(144,183,210,A)');
+  const hills=(offset,amplitude)=>x=>{
+   const t=x/W*Math.PI*2;
+   return amplitude*(.54+.27*Math.sin(3*t+offset)+.17*Math.sin(7*t-offset));
+  };
+  sil('#84a6ae',hills(.55,53));sil('#64888d',hills(2.5,39));sil('#577678',hills(5,22));
+  haze('rgba(198,230,236,A)',37,.64);
+ }else{grad([[0,'#02040a'],[.2,'#070c1c'],[.4,'#0f1a30'],[.5,hz],[1,hz]]);stars(380,1);
   glow(sx,sy,260,[[0,'rgba(235,242,255,.9)'],[.1,'rgba(190,205,255,.45)'],[.4,'rgba(130,150,220,.15)'],[1,'rgba(110,130,200,0)']]);
   g.save();g.beginPath();g.arc(sx,sy,34,0,7);g.clip();const mg=g.createRadialGradient(sx-8,sy-8,2,sx,sy,36);mg.addColorStop(0,'#fbfdff');mg.addColorStop(1,'#c9d4ea');g.fillStyle=mg;g.fillRect(sx-40,sy-40,80,80);g.fillStyle='rgba(120,135,170,.4)';for(let i=0;i<9;i++){g.beginPath();g.arc(sx+(rnd()-.5)*50,sy+(rnd()-.5)*50,2+rnd()*7,0,7);g.fill()}g.restore();
   for(let i=0;i<12;i++)streak(rnd()*W,hy*(.15+rnd()*.7),260+rnd()*320,10+rnd()*14,.32,'rgba(150,170,220,A)');

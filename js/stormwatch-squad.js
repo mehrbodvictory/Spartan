@@ -1,0 +1,184 @@
+/* PeerJS discovery is shared with the private-match service. A Stormwatch
+   party keeps its connections while its host changes operations. */
+var StormwatchSquad=(()=>{
+ const prefix='sd-stormwatch-';
+ const clean=value=>String(value||'Operator').trim().slice(0,20)||'Operator';
+ const address=code=>prefix+code.toLowerCase();
+ function open(name,update,config){
+  let peer=null,host=null,room='',isHost=false,publicRoom=false,starting=false,locked=false,round=0,sequence=0;
+  let message='Deploy solo or open a squad.',timer=0,search=0,attempt=0,closed=false,queued=null;
+  const members=new Map(),removed=new Set(),received=new Map();
+  const listeners=new Set();
+  function emit(data,from){for(const callback of listeners)callback(data,from)}
+  function status(line=message){
+   message=line;
+   update({room,isHost,publicRoom,message,starting,locked,connected:!!(isHost&&peer?.open||host?.open),
+    members:host?.open&&roster?roster:[{id:peer?.id||'local',name,host:isHost},...Array.from(members.values()).filter(m=>m.name).map(m=>({id:m.link.peer,name:m.name}))]});
+  }
+  let roster=null;
+  const stamp=data=>data.type!=='launch'&&data.round===round?{...data,sequence:++sequence}:data;
+  function fresh(data,id){
+   if(data.round!==round||!Number.isSafeInteger(data.sequence)||data.sequence<=(received.get(id)||0))return false;
+   received.set(id,data.sequence);return true;
+  }
+  function send(data){const packet=stamp(data);if(isHost){for(const {link,name} of members.values())if(name&&link.open)link.send(packet)}else if(host?.open)host.send(packet)}
+  function direct(id,data){const link=members.get(id)?.link;if(link?.open)link.send(stamp(data))}
+  function publish(){
+   const list=[{id:peer.id,name,host:true},...Array.from(members.values()).filter(m=>m.name).map(m=>({id:m.link.peer,name:m.name}))];
+   send({type:'roster',list,locked});status(list.length+' / 4 in squad'+(locked?' · Locked':''));
+  }
+  function reset(){
+   clearTimeout(timer);clearTimeout(search);timer=search=0;const old=peer;peer=null;host=null;members.clear();roster=null;
+   removed.clear();received.clear();room='';isHost=false;starting=false;publicRoom=false;locked=false;round=sequence=0;queued=null;
+   old?.destroy();
+  }
+  function leave(){attempt++;reset();status('Deploy solo or open a squad.')}
+  function fail(line){reset();status(line)}
+  function peersAvailable(){
+   if(window.Peer)return true;
+   status('The matchmaking service library could not load. Solo deployment is available.');return false;
+  }
+  function arm(p,fn){clearTimeout(timer);timer=setTimeout(()=>{if(peer===p)fn()},12500)}
+  function accept(link,p){
+   if(removed.has(link.peer)||peer!==p||!isHost||locked||starting||members.size>=3||members.has(link.peer)){
+    link.on('open',()=>{link.send({type:removed.has(link.peer)?'removed':locked?'locked':'busy'});setTimeout(()=>link.close(),300)});return;
+   }
+   const item={link,name:null};members.set(link.peer,item);
+   const hello=setTimeout(()=>{if(!item.name)link.close()},8500);
+   peerPackets(link,'type',d=>{
+    if(peer!==p||members.get(link.peer)!==item)return;
+    if(d.type==='hello'&&!item.name&&typeof d.name==='string'){
+     if(locked){link.send({type:'locked'});setTimeout(()=>link.close(),300);return}
+     clearTimeout(hello);item.name=clean(d.name);publish();
+     if(queued&&!search)launch(queued);return;
+    }
+    if(item.name&&starting&&['pose','action','withdraw'].includes(d.type)&&fresh(d,link.peer))emit(d,link.peer);
+   },()=>remove(link.peer));
+   link.on('close',()=>{
+    clearTimeout(hello);if(peer!==p||members.get(link.peer)!==item)return;
+    members.delete(link.peer);received.delete(link.peer);emit({type:'left'},link.peer);publish();
+   });
+   link.on('error',()=>link.close());
+  }
+  function remove(id){
+   const item=members.get(id);
+   if(!isHost||!item)return;
+   removed.add(id);members.delete(id);
+   if(item.link.open)item.link.send({type:'removed'});
+   emit({type:'left'},id);publish();
+   setTimeout(()=>item.link.close(),300);
+  }
+  function toggleLock(){
+   if(!isHost||!peer?.open||publicRoom)return;
+   locked=!locked;
+   publish();
+  }
+  function create(code,spec,onTaken){
+   isHost=true;publicRoom=!!spec;room=code;status(spec?'Opening a public squad…':'Opening a private squad…');
+   const p=peer=new Peer(address(code),config);
+   arm(p,()=>fail('Could not register with matchmaking. Try again.'));
+   p.on('open',()=>{
+    if(peer!==p)return;
+    clearTimeout(timer);publish();
+    if(spec){
+     status('Searching for squadmates…');
+     queued=spec;
+     search=setTimeout(()=>{
+      search=0;
+      if(peer!==p||starting)return;
+      if([...members.values()].some(m=>m.name))launch(spec);
+      else status('Waiting for squadmates in this operation…');
+     },11000);
+    }
+   });
+   p.on('connection',link=>accept(link,p));
+   p.on('error',error=>{
+    if(peer!==p)return;
+    if(error.type==='unavailable-id'&&onTaken){reset();onTaken();return}
+    fail('Could not open a squad · '+(error.type||'connection error'));
+   });
+  }
+  function connect(code,spec,onMissing){
+   room=code;publicRoom=!!spec;status(spec?'Searching for a public squad…':'Joining squad '+code+'…');
+   const p=peer=new Peer(undefined,config);
+   arm(p,()=>fail('The squad did not respond. Check the code and connection.'));
+   p.on('open',()=>{
+    if(peer!==p)return;
+    const link=host=p.connect(address(code),{reliable:true,serialization:'json'});
+    link.on('open',()=>{if(peer===p)link.send({type:'hello',name})});
+    peerPackets(link,'type',d=>{
+     if(peer!==p)return;
+     if(d.type==='removed'){emit({type:'lost'},link.peer);fail('You were removed from the squad.');return}
+     if(d.type==='locked'){fail('The host has locked this squad.');return}
+     if(d.type==='busy'){
+      if(onMissing){const next=onMissing;reset();next(true)}
+      else fail('The squad is full or already deployed.');
+      return;
+     }
+     if(d.type==='roster'){
+      if(!Array.isArray(d.list)||d.list.length<1||d.list.length>4||
+         !d.list.every(m=>m&&typeof m.id==='string'&&typeof m.name==='string'))return;
+      clearTimeout(timer);roster=d.list;locked=d.locked===true;status(locked?'Squad locked to new players.':'Connected · waiting for the host');return;
+     }
+     if(d.type==='launch'){
+      if(!Number.isSafeInteger(d.round)||d.round<=round||!d.spec||
+         typeof d.spec.region!=='string'||typeof d.spec.mission!=='string'||!Number.isInteger(d.spec.seed))return;
+      round=d.round;sequence=0;received.clear();starting=true;status('Deploying with squad…');
+     }else if(!roster||!starting||!fresh(d,link.peer))return;
+     emit(d,link.peer);
+    },()=>link.close());
+    link.on('close',()=>{if(peer!==p)return;emit({type:'lost'},link.peer);fail('The host disconnected.')});
+    link.on('error',()=>{if(peer===p)fail('The squad connection dropped.')});
+   });
+   p.on('error',error=>{
+    if(peer!==p)return;
+    if(error.type==='peer-unavailable'&&onMissing){const next=onMissing;reset();next(false);return}
+    fail(error.type==='peer-unavailable'?'No squad found with that code.':'Matchmaking error · '+(error.type||'connection failed'));
+   });
+  }
+  function launch(spec){
+   if(!isHost||!peer?.open||starting)return false;
+   clearTimeout(search);search=0;queued=null;starting=true;
+   const data={type:'launch',round:++round,spec:{...spec,seed:crypto.getRandomValues(new Uint32Array(1))[0]}};
+   sequence=0;received.clear();
+   send(data);emit(data,peer.id);status('Squad deployed');return true;
+  }
+  return {
+   get id(){return peer?.id||'local'},get host(){return isHost},get room(){return room},
+   get size(){return isHost?1+[...members.values()].filter(m=>m.name).length:roster?.length||1},
+   get names(){return isHost?new Map([...members].filter(([,m])=>m.name).map(([id,m])=>[id,m.name])):new Map((roster||[]).map(m=>[m.id,m.name]))},
+   subscribe(fn){listeners.add(fn);return ()=>listeners.delete(fn)},send,direct,launch,leave,status,remove,toggleLock,
+   create(){
+    if(!peersAvailable())return;
+    leave();const code=Array.from(crypto.getRandomValues(new Uint8Array(6)),n=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[n&31]).join('');
+    create(code);
+   },
+   join(value){
+    const code=value.trim().toUpperCase();
+    if(!/^[A-Z2-9]{6}$/.test(code)){status('Enter the six-character squad code.');return}
+    if(peersAvailable()){leave();connect(code)}
+   },
+   quick(spec){
+    if(!peersAvailable())return;
+    leave();const token=attempt;
+    function find(slot){
+     if(closed||attempt!==token)return;
+     if(slot>=5){fail('All squads for this operation are deployed. Try again.');return}
+     const code='q-'+spec.region+'-'+spec.mission+'-'+Number(!!spec.alert)+'-'+slot;
+     connect(code,spec,busy=>{
+      if(busy){find(slot+1);return}
+      create(code,spec,()=>connect(code,spec,()=>find(slot+1)));
+     });
+    }
+    find(0);
+   },
+   returns(){
+    if(!starting)return;
+    starting=false;
+    if(publicRoom)leave();else status(isHost?'Squad ready for another mission':'Connected · waiting for the host');
+   },
+   close(){closed=true;reset();listeners.clear()}
+  };
+ }
+ return {open};
+})();

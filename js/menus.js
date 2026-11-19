@@ -6,8 +6,9 @@ try{LSL.slots=JSON.parse(localStorage.getItem('sd-slots'))||[];LSL.cur=+localSto
 var CLS={AR:'ASSAULT RIFLE',MVR:'ASSAULT RIFLE',TRB:'ASSAULT RIFLE',TUR:'ASSAULT RIFLE',SMG:'SUBMACHINE GUN',VMP:'SUBMACHINE GUN',BR:'BATTLE RIFLE',SG:'SHOTGUN',MG:'PISTOL',MP:'MACHINE PISTOL',CT:'PISTOL',CY:'SHOTGUN',SN:'SNIPER RIFLE',RL:'LAUNCHER',RG:'SPECIAL'};
 var WDS={AR:'Full-auto rifle. Reliable all-rounder with a steady rate of fire.',TRB:'Three-round burst assault rifle. Tight, accurate bursts; two bursts kill. Unlocks at level 22.',TUR:'Fast firing automatic rifle with a turbine core. Light and mobile, best at medium range. Unlocks at level 26.',MVR:'Slow firing, hard hitting assault rifle. Three body shots kill. Excellent accuracy and range, heavy kick.',SMG:'Light submachine gun. Very fast firing, best up close.',BR:'Semi-auto battle rifle. Heavy hits at range.',SG:'Pump shotgun. Devastating at close range.',MG:'Six-shot magnum revolver. Slow, powerful, accurate.',MP:'Fully automatic machine pistol. Extreme close-range volume.'};
 CLS.CY='LIGHT MACHINE GUN';CLS.RG='SPECIAL';CLS.MG='REVOLVER';
-Object.assign(CLS,{VA:'ASSAULT RIFLE',BP:'PUMP SHOTGUN',KTS:'TACTICAL SHOTGUN',RD:'SUBMACHINE GUN',HC:'HEAVY PISTOL',OH:'MARKSMAN RIFLE',SW:'ASSAULT RIFLE',LT:'SUBMACHINE GUN',PD:'MARKSMAN RIFLE'});
+Object.assign(CLS,{VA:'ASSAULT RIFLE',BP:'PUMP SHOTGUN',KTS:'TACTICAL SHOTGUN',RD:'SUBMACHINE GUN',HC:'HEAVY PISTOL',OH:'MARKSMAN RIFLE',TEA:'POWER WEAPON',SW:'ASSAULT RIFLE',LT:'SUBMACHINE GUN',PD:'MARKSMAN RIFLE'});
 Object.assign(WDS,{
+ TEA:'Hold fire to pour a scalding stream. Vent after overheating. Effective within 38 metres in Multiplayer.',
  SW:'A compact bullpup with rear-fed magazines and low horizontal recoil. Unlocks at level 21.',
  LT:'A fast submachine gun with a top-mounted cassette. Excels in close quarters. Unlocks at level 28.',
  PD:'A deliberate semi-auto rifle with narrow spread and a short nine-round magazine. Unlocks at level 38.',
@@ -214,7 +215,7 @@ function ldRender(){
  prepareLoadoutModels();
 }
 function sanitizeMe(){if(!MEL[L.me])L.me='Katana'}
-function slotStore(){try{LSL.slots[LSL.cur]=Object.assign(LSL.slots[LSL.cur]||{},{L:JSON.parse(JSON.stringify(L))});localStorage.setItem('sd-slots',JSON.stringify(LSL.slots));localStorage.setItem('sd-slot',LSL.cur)}catch(e){}}
+function slotStore(){try{LSL.slots[LSL.cur]=Object.assign(LSL.slots[LSL.cur]||{},{L:JSON.parse(JSON.stringify(menuLoadoutSnapshot||L))});localStorage.setItem('sd-slots',JSON.stringify(LSL.slots));localStorage.setItem('sd-slot',LSL.cur)}catch(e){}}
 /* every redraw of the loadout also refreshes the screen and saves into the active slot */
 {const _ui=ui;ui=function(){sanitizeMe();_ui();ldRender();slotStore()}}
 document.addEventListener('click',e=>{
@@ -855,7 +856,7 @@ function passFinishMatch(result){
  MST.season={earned,reward,tiers:passTier()-oldTier};
 }
 /* Stormwatch uses the same renderer, locker, loadout and season ledger. */
-let stormwatch=null;
+let stormwatch=null,stormwatchHub=null;
 function stormwatchGear(){
  const look=idrLocal(),{model,rig}=studioHuman(look.operator);
  function weapon(k,list=[]){
@@ -874,8 +875,8 @@ function stormwatchGear(){
   attApply(gun,k,attachments,1);
   addPassCharm(gun,look.charm);
   const barrel=attMuzzle(gun,1),muzzle=new THREE.Group();
-  const tip=Number.isFinite(barrel.tip)?barrel.tip:W[k].len;
-  muzzle.position.set(gun.userData.muzzle?.x||0,Number.isFinite(barrel.y)?barrel.y:.025,tip+(attachments.includes('Long Barrel')?.15:.025));
+  const exit=weaponMuzzleLocal(gun),tip=exit.z;
+  muzzle.position.set(exit.x,exit.y,exit.z+.012);
   const fit=gun.userData.fit;
   if(!Number.isFinite(fit.s+fit.gz+fit.mz)){
    const anchor=gun.userData.a||{},rz=anchor.r?.[2]||0,lz=anchor.l?.[2]||rz+.4;
@@ -893,7 +894,15 @@ function stormwatchGear(){
  const avatar={m:model,rig,i:0,net:true,em:-1};
  const emote=passOwns('emote',pass.emote)?pass.emote:0;
  return {
-  model,weapons,loot,weapon,canForge:key=>hasOwn(W,key),tracer:PASS_TRACERS[look.tracer]?.color,emoteLength:EMLEN[emote],
+  model,weapons,loot,weapon,operator:look.operator,
+  teammate(id){
+   const {model,rig}=studioHuman(operatorId(id)),mate={m:model,rig,i:11,net:true,em:-1};
+   return {model,pose(pos,angle,moving,dt){
+    Object.assign(mate,{x:pos.x,y:pos.y,z:pos.z,tyaw:angle+Math.PI,ry:angle+Math.PI});
+    animBot(mate,Math.max(.001,dt));model.rotation.y-=angle;
+   }};
+  },
+  canForge:key=>hasOwn(W,key),tracer:PASS_TRACERS[look.tracer]?.color,emoteLength:EMLEN[emote],
   profile:idrPlate(look,hname(),PASS_TITLES[look.title]?.name),
   pose(input,weapon,dt,grip){
    avatar.x=input.pos.x;avatar.y=input.pos.y;avatar.z=input.pos.z;
@@ -923,42 +932,49 @@ function stormwatchGear(){
   }
  };
 }
-function stormwatchOpen(settings={}){
- if(stormwatch)return;
- let cleared=0,bonusAwarded=false;
+function stormwatchGoHome(focus=true){
  const home=$('#home'),menu=$('#menu');
- home.inert=menu.inert=true;
- document.body.classList.add('stormwatch-open');
- try{
-  stormwatch=Stormwatch.mount({
-   renderer:R,gear:stormwatchGear(),tier:passTier(),region:settings.region,mission:settings.mission,alert:settings.alert,
-   config:{sensitivity:+$('#sn').value,quality:gfxQ,pad:PG.pref,vibration:!!HAP.on},
-   award(wave,bonus){
-    if(wave!==cleared+1||wave>5)return;
-    const bonusEarned=bonus&&!bonusAwarded;
-    const xp=100+wave*20+(bonusEarned?100:0)+(wave===5?200:0);
-    const old=pass.xp,next=Math.min(PASS_TRACK.length*PASS_XP,old+xp);
-    const saved=next===old||passSave(passGrant({...pass,xp:next}));
-    cleared=wave;
-    if(saved&&bonusEarned)bonusAwarded=true;
-    return {saved,xp:saved?next-old:0,tier:passTier()};
-   },
-   leave(action,values){
-    stormwatch.close();stormwatch=null;
-    document.body.classList.remove('stormwatch-open');
-    home.inert=menu.inert=false;
-    if(action==='pass'){setApp('mp');openMenuPanel('pass')}
-    else if(action==='region')stormwatchOpen(values);
-    else if(action==='retry')stormwatchOpen(values||settings);
-    else $('#hsw').focus({preventScroll:true});
+ stormwatch?.close();stormwatch=null;stormwatchHub?.close();stormwatchHub=null;
+ if(partyActive&&partyOperationOpen){partyOperationOpen=false;partyStatus()}
+ document.body.classList.remove('stormwatch-open');home.inert=menu.inert=false;
+ if(focus)$('#hsw').focus({preventScroll:true});
+}
+function stormwatchOpen(){
+ if(stormwatchHub)return;
+ const home=$('#home'),menu=$('#menu');
+ home.inert=menu.inert=true;document.body.classList.add('stormwatch-open');
+ stormwatchHub=StormwatchHub.mount({
+  name:$('#nm').value.trim()||'Operator',peerConfig:PCFG,canEquip:key=>hasOwn(W,key),exit:stormwatchGoHome,
+  connectSquad:partyActive?partyStormwatchAdapter:null,
+  clearMission(){stormwatch?.close();stormwatch=null},
+  deploy(settings,back){
+   let cleared=0,bonusAwarded=false;
+   try{
+    stormwatch=Stormwatch.mount({
+     ...settings,hub:true,renderer:R,gear:stormwatchGear(),tier:passTier(),
+     config:{sensitivity:+$('#sn').value,quality:gfxQ,pad:PG.pref,vibration:!!HAP.on},
+     award(wave,bonus){
+      if(wave!==cleared+1||wave>5)return;
+      const bonusEarned=bonus&&!bonusAwarded;
+      const xp=100+wave*20+(bonusEarned?100:0)+(wave===5?200:0);
+      const old=pass.xp,next=Math.min(PASS_TRACK.length*PASS_XP,old+xp);
+      const saved=next===old||passSave(passGrant({...pass,xp:next}));
+      cleared=wave;
+      if(saved&&bonusEarned)bonusAwarded=true;
+      return {saved,xp:saved?next-old:0,tier:passTier()};
+     },
+     leave(action){
+      stormwatch?.close();stormwatch=null;
+      if(action==='pass'){stormwatchGoHome();setApp('mp');openMenuPanel('pass');return}
+      back();
+     }
+    });
+   }catch(error){
+    document.querySelector('#stormwatch-mode')?.remove();
+    back();console.error('Stormwatch deployment',error);
    }
-  });
- }catch(error){
-  document.querySelector('#stormwatch-mode')?.remove();
-  document.body.classList.remove('stormwatch-open');
-  home.inert=menu.inert=false;
-  throw error;
- }
+  }
+ });
 }
 $('#hsw').disabled=!!window.SD_SPLIT;
 $('#hsw').onclick=()=>stormwatchOpen();
@@ -1205,10 +1221,10 @@ class SplitLink extends SplitEvents{
 class SplitPeer extends SplitEvents{
  constructor(id){
   super();
-  this.host=!!id;this.id=id||'local-seat-2';this.links=new Map();
+  this.host=!!id;this.id=id||'local-seat-2';this.links=new Map();this.open=false;
   this.channel=new BroadcastChannel('spartan-split:'+sdSplit.room);
   this.channel.onmessage=event=>this.receive(event.data);
-  queueMicrotask(()=>this.emit('open',this.id));
+  queueMicrotask(()=>{this.open=true;this.emit('open',this.id)});
  }
  post(type,to,packet){this.channel.postMessage({type,from:this.id,to,packet})}
  receive({type,from,to,packet}){
@@ -1233,7 +1249,7 @@ class SplitPeer extends SplitEvents{
   this.post('join',id);return link;
  }
  reconnect(){}
- destroy(){for(const link of this.links.values())link.close();this.channel.close()}
+ destroy(){this.open=false;for(const link of this.links.values())link.close();this.channel.close()}
 }
 function bootSplitSeat(){
  document.body.classList.add('split-seat');
@@ -1611,21 +1627,24 @@ function lobbyStageRender(){
  chRoll();
  const players=lobbySeats(),daily=chActive().d,done=daily.filter(([id])=>CHST.done['d:'+id]).length;
  lobbyStudioKey=players.map(p=>operatorId(p.look.operator)).join('|');
- const connected=!!net,code=$('#code').textContent.trim(),peerCount=connected?Math.max(1,Object.keys(names).length):1;
- const selectedMode=connected&&isHost?$('#pmode').value:sel.rm?'Random mode':sel.mode;
- const selectedMap=connected&&isHost?$('#pm').value:sel.rp?'Random map':sel.map;
+ const privateLobby=!!net&&!partyActive,code=$('#code').textContent.trim(),peerCount=Object.keys(names).length;
+ const selectedMode=privateLobby&&isHost?$('#pmode').value:sel.rm?'Random mode':sel.mode;
+ const selectedMap=privateLobby&&isHost?$('#pm').value:sel.rp?'Random map':sel.map;
  const title=selectedMode==='Private'?'Players-only FFA':selectedMode==='?'?'Random mode':selectedMode;
- const action=connected?(isHost?'Start match':'Waiting for host'):'Find match';
+ const waiting=!!net&&!isHost,action=waiting?(partyActive?'Waiting for leader':'Waiting for host'):privateLobby?'Start match':partyActive?'Find match with party':'Find match';
+ const label=partyActive?'Party · '+peerCount+'/4':privateLobby?'Private lobby':'Multiplayer';
  section.innerHTML=`<div class="lobby-summary">
-  <div class="deploy-copy"><div class="mode-label"><i></i> ${connected?'Private lobby':'Multiplayer'}</div>
-   <h2>${esc(connected&&!isHost?'Private match':title)}</h2><p>${esc(connected&&!isHost?'The host selects the mode and map.':selectedMap==='?'?'Random map':selectedMap)}</p>
-   <div class="deploy-actions"><button class="big action-arrow" data-initial-focus data-lobby="deploy"${connected&&(!isHost||peerCount<2)?' disabled':''}>${action}</button>
-   <button class="big alt" data-lobby="${connected?'priv':'play'}">${connected?'Lobby settings':'Match setup'}</button></div>
-   ${connected&&isHost&&code?`<p class="deploy-record">Match code · ${esc(code)}</p>`:''}
+  <div class="deploy-copy"><div class="mode-label"><i></i> ${label}</div>
+   <h2>${esc(waiting&&privateLobby?'Private match':title)}</h2><p>${esc(waiting?'Waiting for the '+(partyActive?'leader':'host')+' to deploy.':selectedMap==='?'?'Random map':selectedMap)}</p>
+   <div class="deploy-actions"><button class="big action-arrow" data-initial-focus data-lobby="deploy"${waiting||privateLobby&&peerCount<2?' disabled':''}>${action}</button>
+   <button class="big alt" data-lobby="${privateLobby?'priv':'play'}">${privateLobby?'Lobby settings':'Match setup'}</button></div>
+   ${privateLobby&&isHost&&code?`<p class="deploy-record">Match code · ${esc(code)}</p>`:''}
   </div>
   <div class="lobby-roster">${players.map((p,i)=>idrPlate(idrRead(p.look),p.nm,i===0?'You':'In party')).join('')}</div></div>
   <div class="lobby-links">
+   ${!net&&!window.SD_SPLIT?'<button data-lobby="practice"><span><b>Practice range</b><small>Test your loadout on moving targets</small></span><span aria-hidden="true">↗</span></button>':''}
    <button data-lobby="priv"><span><b>Private match</b><small>Online lobbies and local split screen</small></span><span aria-hidden="true">↗</span></button>
+   <button data-lobby="record"><span><b>Combat record</b><small>Results and stats from recent matches</small></span><span aria-hidden="true">↗</span></button>
    <button data-lobby="chal"><span><b>Daily challenges</b><small>${done} / ${daily.length} completed</small></span><span aria-hidden="true">↗</span></button>
    <button data-lobby="pass"><span><b>After the Signal</b><small>Battle Pass · Tier ${passTier()} of ${PASS_TRACK.length}</small></span><span aria-hidden="true">↗</span></button>
   </div>`;
@@ -1635,7 +1654,8 @@ $('#nav [data-p=lobby]').addEventListener('click',lobbyStageRender);
 $('#p-lobby').addEventListener('click',e=>{
  const action=e.target.closest('[data-lobby]')?.dataset.lobby;
  if(!action)return;
- if(action==='deploy')return $(net?'#startnet':'#go').click();
+ if(action==='deploy')return $(net&&!partyActive?'#startnet':'#go').click();
+ if(action==='practice')return $('#practice-start').click();
  openMenuPanel(action);
 });
 $('#nm').addEventListener('input',lobbyStageRender);

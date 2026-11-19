@@ -8,11 +8,24 @@
 </head>
 <body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <script src="js/stormwatch-engineering.js"></script>
 <script src="js/stormwatch-physics.js"></script>
 <script src="js/stormwatch-operations.js"></script>
 <script src="js/stormwatch-citadel.js"></script>
+<script src="js/net-safety.js"></script>
+<script src="js/stormwatch-squad.js"></script>
+<script src="js/stormwatch-hub.js"></script>
 <script src="js/stormwatch.js"></script>
-<script>Stormwatch.mount()</script>
+<script>
+let operation;
+StormwatchHub.mount({
+ exit:()=>location.assign('index.html'),
+ clearMission(){operation?.close();operation=null},
+ deploy(settings,back){
+  operation=Stormwatch.mount({...settings,hub:true,leave(){operation.close();operation=null;back()}});
+ }
+});
+</script>
 </body>
 </html>

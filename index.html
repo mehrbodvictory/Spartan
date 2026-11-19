@@ -30,15 +30,18 @@ PROJECT RULES (kept here so every future session starts from them)
    <button data-p="identity" class="mp" data-primary>Locker</button>
    <button data-p="pass" class="mp" data-primary>Battle Pass</button>
    <button data-p="chal" class="mp" data-primary>Challenges</button>
+   <button data-p="record" class="mp" data-secondary>Combat record</button>
    <button data-p="zplay" class="zm" data-primary>Play</button>
    <button data-p="identity" class="zm" data-primary>Locker</button>
    <button data-p="cust" class="zm" data-primary>Weapon Camos</button>
    <button data-p="chew" class="zm" data-primary>Chewables</button>
+   <button data-p="record" class="zm" data-secondary>Combat record</button>
    <button data-p="play" class="mp" data-secondary>Match setup</button>
    <button data-p="priv" class="mp" data-secondary>Private match</button>
    <button data-p="priv" class="zm" data-secondary>Co-op lobby</button>
   </nav>
   <div class="menu-utility">
+   <button class="party-open btn alt" type="button">Party</button>
    <button id="back" class="utility-icon" type="button" aria-label="Switch game mode" title="Switch game mode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4 3 9l5 5M3 9h13a4 4 0 0 1 0 8h-3"/></svg></button>
    <button id="settings-open" class="utility-icon" type="button" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6m-6 0v6"/></svg></button>
    <button id="profile-open" class="profile-open" aria-label="Player profile" aria-controls="prof" aria-expanded="false"><span id="profile-initial" aria-hidden="true"></span><b id="profile-name">Player</b><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button>
@@ -50,8 +53,9 @@ PROJECT RULES (kept here so every future session starts from them)
   <section id="p-play" class="pn" aria-label="Match setup">
    <header class="panel-head setup-head">
     <div><button class="text-button back-link" data-panel="lobby">Back to Play</button><h2>Match setup</h2></div>
-    <button id="go" class="big action-arrow" data-initial-focus>Find match</button>
+    <div class="setup-actions"><button id="practice-start" class="btn alt">Practice range</button><button id="go" class="big action-arrow" data-initial-focus>Find match</button></div>
    </header>
+   <p id="practice-note" role="status"></p>
    <div class="setup-shell">
     <section class="setup-playlists" aria-labelledby="setup-playlist-title">
      <div class="section-line"><h3 id="setup-playlist-title">Playlist</h3></div>
@@ -91,7 +95,7 @@ PROJECT RULES (kept here so every future session starts from them)
    <div class="party-setup"><div class="card2"><h3>Host a match</h3><div class="party-fields">
     <label id="pmodeL">Game mode<select id="pmode"></select></label><label id="pmL">Map<select id="pm"></select></label><label id="pbL">Bots <b id="pbv">6</b><input id="pbots" type="range" min="0" max="12" step="1" value="6"></label></div>
     <button id="host" class="big">Create lobby</button>
-    <div id="hostbox" style="display:none"><div class="party-code"><span>Match code</span><strong id="code"></strong></div><button id="startnet" class="big">Start match</button></div></div>
+    <div id="hostbox" style="display:none"><div class="party-code"><span>Match code</span><strong id="code"></strong><button class="btn alt sm" data-room-lock hidden type="button"></button></div><button id="startnet" class="big">Start match</button></div></div>
     <div class="card2"><h3>Join a match</h3><label for="jc">Match code</label><input id="jc" type="text" maxlength="5" placeholder="ABCDE" autocapitalize="characters" autocomplete="off"><button id="join" class="big alt">Join lobby</button></div></div>
    <div class="party-status"><p id="lb" role="status"></p><ul id="plist"></ul><button id="leave" class="big alt" style="display:none">Leave lobby</button></div>
    <div class="split-entry"><div><h3>Local split screen</h3><small id="split-help">Connect two controllers and press a button on each.</small></div><button id="split-start" class="btn alt" disabled>Start split screen</button></div>
@@ -99,6 +103,14 @@ PROJECT RULES (kept here so every future session starts from them)
   <section id="p-load" class="pn" aria-label="Loadout"><div id="ld"></div></section>
   <section id="p-pass" class="pn" aria-label="Battle Pass"></section>
   <section id="p-chal" class="pn" aria-label="Challenges"></section>
+  <section id="p-record" class="pn" aria-labelledby="record-title">
+   <header class="panel-head"><div><button class="text-button back-link" data-panel="deployment">Back to Play</button><h2 id="record-title">Combat record</h2></div></header>
+   <div id="record-tabs" class="segmented" aria-label="Record category">
+    <button type="button" data-record-filter="mp" aria-pressed="true">Multiplayer</button>
+    <button type="button" data-record-filter="zm" aria-pressed="false">Zombies</button>
+   </div>
+   <div id="combat-record"></div>
+  </section>
   <section id="p-identity" class="pn" aria-labelledby="idr-title">
    <header class="panel-head idr-header"><div><h2 id="idr-title">Locker</h2></div><div id="idr-equipped"></div></header>
    <div class="locker-toolbar" aria-label="Locker categories">
@@ -119,7 +131,7 @@ PROJECT RULES (kept here so every future session starts from them)
      <div class="mode-label"><i></i> Zombies</div>
      <h2 id="z-location">Hollow Estate</h2>
      <p id="z-description"></p>
-     <div class="deploy-actions"><button id="zdeploy" class="big" data-initial-focus>Deploy solo</button><button class="big alt" data-panel="priv">Co-op lobby</button></div>
+     <div class="deploy-actions"><button id="zdeploy" class="big" data-initial-focus>Deploy solo</button><button class="big alt" data-panel="priv">Co-op lobby</button><button class="big alt" data-panel="record">Combat record</button></div>
      <p id="zbest" class="deploy-record"></p>
     </div>
    </div>
@@ -143,6 +155,10 @@ PROJECT RULES (kept here so every future session starts from them)
  <section id="p-set" class="pn"><h2>Settings</h2>
    <label>Aim assist<select id="aa"><option value="0">Off</option><option value="0.6">Light</option><option value="1">Strong</option><option value="1.5" selected>Very strong</option></select></label>
    <label>Look sensitivity<input id="sn" type="range" min="0.3" max="2.5" step="0.1" value="1.4"></label>
+   <label class="aim-option">Aim-down-sights sensitivity<input data-aim-option="ads" id="ads-sensitivity" type="range" min="25" max="150" step="5" value="55"><output data-aim-value="ads">55%</output></label>
+   <label>Crosshair shape<select data-aim-option="shape" id="reticle-shape"><option value="weapon">Weapon default</option><option value="dot">Dot</option><option value="cross">Cross</option><option value="off">Hidden</option></select></label>
+   <label>Crosshair color<input data-aim-option="color" type="color" value="#f8f8ed"></label>
+   <label class="aim-option">Crosshair size<input data-aim-option="size" type="range" min="50" max="200" step="10" value="100"><output data-aim-value="size">100%</output></label>
    <label>Field of view<input id="fv" type="range" min="60" max="110" step="1" value="80"></label>
    <label>Brightness<input id="br" type="range" min="0.6" max="1.6" step="0.05" value="1"></label>
    <label id="vrL" style="display:none">VR headset mode<select id="vrm"><option value="0">Off</option><option value="1">On (enter VR when a match starts)</option></select></label>
@@ -159,21 +175,42 @@ PROJECT RULES (kept here so every future session starts from them)
 <div id="home">
  <header class="home-header"><div class="wordmark"><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M18 2 33 9v10c0 7-7 12-15 15C10 31 3 26 3 19V9z"/><path d="m10 20 8-10 8 10m-13 5 5-6 5 6"/></svg><h1>Spartan <b>Drill</b></h1></div></header>
  <div class="home-content">
+  <button class="party-open btn alt" type="button">Party</button>
   <h2>Choose a mode</h2>
   <div id="hbtns">
    <button id="hmp" class="hb" data-map-art="Dry Dock" type="button"><span class="home-art" aria-hidden="true"></span><span class="home-mode"><b>Multiplayer</b><span>Matchmaking and private lobbies</span><i id="hms"></i></span><span class="home-arrow" aria-hidden="true">↗</span></button>
    <button id="hz" class="hb" data-map-art="Hollow Estate" type="button"><span class="home-art" aria-hidden="true"></span><span class="home-mode"><b>Zombies</b><span>Round-based solo or co-op survival</span><i id="hzs"></i></span><span class="home-arrow" aria-hidden="true">↗</span></button>
-   <button id="hsw" class="hb" type="button"><span class="home-art" aria-hidden="true"></span><span class="home-mode"><b>Stormwatch</b><span>Harvest, build and defend the ATLAS</span><i>Solo PvE · Battle Pass XP</i></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+   <button id="hsw" class="hb" type="button"><span class="home-art" aria-hidden="true"></span><span class="home-mode"><b>Stormwatch</b><span>Harvest, build and defend the ATLAS</span><i>Solo and co-op · Battle Pass XP</i></span><span class="home-arrow" aria-hidden="true">↗</span></button>
   </div>
  </div>
 </div>
+<dialog id="game-party" aria-labelledby="party-title">
+ <header><h2 id="party-title">Party</h2><button id="party-close" type="button" aria-label="Close party">×</button></header>
+ <p id="party-status" role="status">Create a party or join with a friend’s code.</p>
+ <div id="party-connected" hidden>
+  <div class="party-code"><span>Party code</span><strong id="party-code"></strong><button id="party-copy" type="button">Copy</button></div>
+  <ul id="party-members"></ul><div class="party-actions"><button data-room-lock hidden type="button"></button><button id="party-leave" type="button">Leave party</button></div>
+ </div>
+ <form id="party-join-form">
+  <button id="party-create" type="button">Create party</button>
+  <label for="party-join-code">Friend’s party code</label>
+  <div class="party-join-row"><input id="party-join-code" maxlength="5" placeholder="ABCDE" required autocomplete="off" autocapitalize="characters"><button>Join</button></div>
+ </form>
+</dialog>
 <div id="pause"><div class="card"><h2 id="pt">Paused</h2><button id="resume" class="big">Resume</button>
  <label>Aim assist<select id="aa2"><option value="0">Off</option><option value="0.6">Light</option><option value="1">Strong</option><option value="1.5">Very strong</option></select></label>
  <label>Look sensitivity<input id="sn2" type="range" min="0.3" max="2.5" step="0.1"></label>
+ <label class="aim-option">Aim-down-sights sensitivity<input data-aim-option="ads" type="range" min="25" max="150" step="5" value="55"><output data-aim-value="ads">55%</output></label>
  <label>Field of view<input id="fv2" type="range" min="60" max="110" step="1"></label>
  <label>Brightness<input id="br2" type="range" min="0.6" max="1.6" step="0.05"></label>
  <label>Volume<input id="vl" type="range" min="0" max="1" step="0.05" value="1"></label>
  <label>Screen shake<input id="sk" type="range" min="0" max="1" step="0.1" value="1"></label>
+ <button id="practice-reset" class="big alt" hidden>Reset targets and ammo</button>
+ <details id="next-loadout" class="pause-options" hidden>
+  <summary>Choose next-life loadout</summary><div id="next-loadout-list"></div><p id="next-loadout-status" role="status"></p>
+ </details>
+ <button class="big alt" data-room-lock hidden type="button"></button>
+ <ul id="match-moderation" class="peer-list" aria-label="Connected players" hidden></ul>
  <button id="exit" class="big alt">Exit match</button></div></div>
 <div id="end"><div class="card"><div id="et"></div><br><button class="big" id="again">Play again</button><button class="big alt" id="tomenu">Main menu</button></div></div>
 <div id="fin"><div id="fbl"></div>
@@ -228,7 +265,7 @@ PROJECT RULES (kept here so every future session starts from them)
  }
  window.__SD_STORAGE=storage;
  /* Hash the complete game script. The build check compares peers running the same code. */
- const F=['lumen','core','maps','systems','graphics','interface','controls','stormwatch-engineering','stormwatch-physics','stormwatch-operations','stormwatch-citadel','stormwatch','menus','zombies','estate','juice','extras','london','lockbox-actors','lockbox','streaks'];
+ const F=['lumen','core','maps','shardworks','systems','operator-models','graphics','net-safety','interface','controls','stormwatch-engineering','stormwatch-physics','stormwatch-operations','stormwatch-citadel','stormwatch-squad','stormwatch-hub','stormwatch','menus','party','zombies','estate','juice','extras','london','zombies-quests','lockbox-actors','lockbox','practice','match-features','streaks'];
  const ready=()=>dispatchEvent(new Event('sd-ready'));
  const classic=()=>{let i=0;const next=()=>{if(i>=F.length){ready();return}const s=document.createElement('script');s.src='js/'+F[i++]+'.js';s.async=false;s.onload=next;s.onerror=next;document.body.appendChild(s)};next()};
  const local=location.hostname==='localhost'||location.hostname==='127.0.0.1';

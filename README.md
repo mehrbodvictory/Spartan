@@ -26,17 +26,19 @@ The home screen opens Multiplayer, Zombies, or Stormwatch. Back returns to mode 
 
 ## Stormwatch
 
-Stormwatch uses the equipped Spartan Drill operator, weapons, and locker cosmetics. Cleared waves and completed siege stages award XP to the same Battle Pass.
+Stormwatch opens at Command. Choose one of four regions on the World Map, then pan its sector grid and select a mission marker. **Deploy Solo** launches locally. **Find Squad** looks for players queuing for that operation. **Squad** also supports private codes for up to four players. Teammates share the objective and fortifications. Use **F** near a downed teammate to revive them.
+
+The **Inventory** tab shows stored salvage and recovered blueprints, and lets you set a Stormwatch-specific primary and secondary weapon. Salvage and loadout choices carry over on the same browser and origin. Equipped operators and locker cosmetics come from Spartan Drill. Cleared waves and completed stages award Battle Pass XP.
 
 - **ATLAS Defense** gives you 60 seconds to fortify before the first of five waves. **Seal the Breach** asks you to collect three Flux Crystals and bring them to the Rift Anchor before a four-minute siege.
 - **Clear the Nests** sends you to five marked sites. Scan each nest, defeat its guardians, and break the exposed core. **Secure the Payload** starts with a 40-second landing countdown and ends after 145 seconds defending the recovery pod inside a contracting storm.
-- **Region** selects a new procedural layout in Timbervale, Ironridge, Canyonlands, or Obsidian Peaks. Citadel Power controls access.
+- Timbervale, Ironridge, Canyonlands, and Obsidian Peaks each generate field layouts. Citadel Power controls deployment access.
 - **Q** opens building. **1–4** select Wall, Floor, Ramp, or Cap. **RMB** changes material. **B** edits an aimed structure and **G** repairs or reinforces it. **Tab** opens the Field Kit for trap recipes and ammo crafting.
-- **F** opens chests, equips their weapon rewards, and scans nests. **5–8** activate the lead operative's abilities. On a controller, click **RS** to edit, use **View** for the Field Kit, and use **D-pad left/right** and **RB** to select and activate abilities in combat.
+- **F** opens chests, equips their weapon rewards, scans nests, and revives teammates. **5–8** activate the lead operative's abilities. On a controller, click **RS** to edit, use **View** for the Field Kit, and use **D-pad left/right** and **RB** to select and activate abilities in combat.
 - **Field fabrication** uses mission components and building materials to equip a weapon from a Citadel blueprint.
 - **Citadel → Operations** tracks a rotating daily contract, a weekly contract for distinct mission wins, and the Field Index. The highlighted Alert on the deployment board opts into a mission modifier with a once-daily salvage reward.
 
-The structure grid uses cubic cells with integer contact coordinates for support checks. Edits share their geometry with Rapier collision and Hollow routing. Terrain and settled fortifications use instanced meshes where geometry and materials match. The Citadel uses React, Zustand, and IndexedDB on the current browser origin. Its saves are separate from Multiplayer and Zombies profiles. The Rapier and Citadel libraries load from jsDelivr.
+The structure grid uses cubic cells with integer contact coordinates for support checks. Edits share their geometry with Rapier collision and Hollow routing. Terrain and settled fortifications use instanced meshes where geometry and materials match. The Citadel management screen uses React and the profile is saved to IndexedDB on the current browser origin. Its saves are separate from Multiplayer and Zombies profiles. The Rapier and Citadel libraries load from jsDelivr.
 
 Epic's front-end notes, mission variety, and progression references informed the operation board, alert rotation, and Field Index. [Front End reorganization](https://www.fortnite.com/patch-notes/v6-30) · [Seasonal mission modifiers](https://www.fortnite.com/news/save-the-worlds-newest-update-7-21-2020) · [Mission Alert rewards](https://www.fortnite.com/news/changes-coming-to-fortnite-save-the-worlds-daily-reward-system-in-v25-10) · [Collection Book](https://www.epicgames.com/help/c-39719500/c-36066936/a25876301)
 
@@ -59,8 +61,10 @@ Two teams of five compete for three zones (A, B, C) per map. Stand in a zone wit
 Blockfort, Pillars, Canyon, Boomtown and Suburbia: two crossing streets with sidewalks, driveways with cars, houses with garages, picket fences you can mantle, backyard pools, sheds and trees. Flat ground pieces (streets, driveways, decks) are walkable and ignored by spawning.
 
 ## Random picks and private lobbies
-The Play screen has a Random mode card and a Random map card. Pick them and a new combination is rolled every time you select Find Match. Matchmaking normally takes 12–18 seconds before Deploy is available. The private match host also has Random mode and Random map in the dropdowns.
-Private lobbies are persistent: after a match everybody (host and guests) goes back to the Private match screen still connected to the same code. The host picks a mode and map again and presses Start match. Use Leave lobby to disconnect. Exit match from the pause menu leaves the lobby.
+The Play screen has a Random mode card and a Random map card. Pick them and a new combination is rolled every time you select Find Match. Matchmaking normally takes 12–18 seconds before Deploy is available. The private match host also has Random mode and Random map in the dropdowns. Multiplayer matchmaking fills unused seats with game bots.
+Private lobbies stay connected after a match. The host picks a mode and map again and presses Start match. Use Leave lobby to disconnect.
+
+**Party** on the home screen or menu creates a reusable five-character code for up to four players. The leader can switch between modes and deploy everyone together into the same Multiplayer, Zombies, or Stormwatch session. Teammates stay together in team-based Multiplayer modes. Returning from a match keeps the party connected.
 
 ## Zombies
 
@@ -75,6 +79,13 @@ Survive endless rounds in the Hollow Estate, an abandoned and half-collapsed man
 - Perk machines (soda machines): red Vitality Cola +50 health (2500), green Quick Fizz reloads and rebuilds window boards twice as fast (3000), yellow Double Pop double damage with bullet weapons and faster fire (2000), blue Revive Soda self-revives once, doubles teammate revive speed, and doubles health regeneration after 2 seconds (500, four purchases per match), purple Stamin Fizz run 20% faster (2000), orange Mule Soda third weapon slot (4000).
 - Down: you lie on the floor (low camera, slow crawl; no ragdoll) and you lose all your perks and any third weapon. With Revive Soda you get back up by yourself after 4 seconds. In solo, going down otherwise ends the run.
 
+### Main quests
+
+- **Hollow Estate — The Last Testament.** Read the ledger in the Foyer and break the gauntlet stasis in the Study. Nitro-dash through the seals as they open, defend their ritual rings, then enter the Court Below from the Crypt. The Hollow Steward encounter unlocks Estate Warden.
+- **London — The Thirteenth Hour.** Read the maintenance docket in the Tube station, restore power, and recover the Abbey escapement. Unlock The Brew and use it to vent the condensers around Westminster. Enter the Unwound Belfry from the Palace Yard to fight the Bellkeeper for Belfry Sentinel.
+
+The three ritual stages open on rounds 6, 10, and 15. Each has its own hold time and marked kill target. Both arena fights use the map’s quest weapon again when the boss shields go up.
+
 ### Co-op (up to 4 players)
 In the Zombies menu choose Co-op lobby: the host creates a code, up to 3 friends join, the host presses Start match. The host simulates every zombie, round and door; guests see the zombies, their hits count, and the kill points come back to them. Points, perks and weapons belong to each player; doors, boxes and the Revive Soda stock are shared. Teammates cannot hurt each other.
 - When a player goes down everyone else gets a PLAYER DOWN alert with a sound, a kill-feed line and a red marker with distance over the body. A teammate can revive you: hold E next to them for 2 seconds (the reviver earns 100 points). You have 45 seconds.
@@ -86,7 +97,13 @@ In the Zombies menu choose Co-op lobby: the host creates a code, up to 3 friends
 Two separate tracks, both usable in both modes. Multiplayer camos are earned with kills (Weapon mastery menu). Zombie camos are earned with zombie kills per weapon (Rotted 25, Bile 75, Bone 150, Blood 225, Rust 300, Toxic 375), three global camos for your best round (Graveyard round 10, Wasteland round 15, Hellscape round 20) and the three animated finishers (Inferno 500 zombie kills, Necrotic 500 zombie kills on every weapon of that type, Abyss 500 zombie kills on every weapon). Any unlocked camo from either track can be picked on any weapon from either menu.
 The final three of each track are live shaders that animate on the weapon: Gold (molten gold), Diamond (prismatic ice), Dark Matter (swirling nebula), Inferno (flames and lava cracks), Necrotic (toxic plasma), Abyss (a void with glowing rifts).
 
+## Shardworks
+
+Shardworks is a Multiplayer quarry made from individually destructible voxels. Gunfire chips through blocks, explosions open larger gaps, and structures collapse when they lose their last ground connection. The host shares the damage in online games, and each match starts with the quarry rebuilt.
+
 ## Weapons
+
+**The Brew** is a Multiplayer primary at level 38. It fires a heat-based stream that can pass through one extra opponent within 38 metres. It still vents and cools between bursts.
 New: the Coyote, a 60 round LMG (unlocks at level 34), modelled on the reference picture with a drum magazine that really comes out when you reload.
 
 ## Open maps
@@ -191,7 +208,7 @@ Each bundle contains the source sections named in the "######## name.js ########
 - **HUD:** the match info at the top is rendered as a scoreboard bar (team panels with progress, a centre badge, status chips) from the text the game modes already produce.
 - **RayGun ADS:** the power cell and cap no longer block the sight picture while aiming.
 - **VR:** in the main menu the headset stays at a fixed spot facing the arena (the old code followed the orbiting menu camera, so you drifted away from the panel). Weapon and arm meshes are forced hidden outside matches.
-- **Anti-cheat (end of js/streaks.js, in a closure):** progress is signed; edits made from outside the game (console scripts, hack menus, edited storage) flag the profile and reset levels, unlocks, camos and weapon progress the next time the game is opened. Also catches god mode, double damage, edited weapon tables, replaced game functions and impossible hits. The dev menu works only from real clicks. Existing profiles that used the dev "unlock everything" are reset on first load. This is client-side protection against copy-paste exploits; real security needs a server.
+- **Anti-cheat (end of js/streaks.js, in a closure):** progress is signed; edits made from outside the game (console scripts, hack menus, edited storage) flag the profile and reset levels, unlocks, camos and weapon progress the next time the game is opened. Also catches god mode, double damage, edited weapon tables, replaced game functions and impossible hits. The secret menu works only from real clicks. Its signed edits carry over to online play. This is client-side protection against copy-paste exploits; real security needs a server.
 
 
 ## Update notes (second pass)
@@ -209,7 +226,7 @@ Each bundle contains the source sections named in the "######## name.js ########
 - **Chat:** Enter opens chat (team channel in team modes, Tab switches), Z opens quick chat (1-8, the first two also drop a ping). Commands: /help /clear /mute name /unmute name /team /all. Rate limited on both ends. Can be turned off in Settings.
 - **Killcam and death recap:** after you die you watch your killer from an over-the-shoulder camera with their name, weapon, distance and health, plus a recap of the damage you took and dealt. Press the interact key to skip after a second. Can be turned off in Settings.
 - **Anti-cheat fix:** health and damage checks now pause during Juggernaut and Goliath (the Goliath suit has 520 health, over the old 400 cap). Gameplay detections (health, damage, weapon numbers) no longer reset a profile on the first hit: they end the match with a warning and only repeated detections (3) count as a strike. Tampering with progress, the weapon table or game functions is still an immediate strike.
-- **Secret menu:** click the S of SPARTAN five times, then type "ohio". Change level, prestige, Prestige Master level, tokens, individual unlocks, weapon kills and prestige, unlock every camo, zombies best round, or reset. Only real clicks and key presses work. Edits are signed so the anti-cheat accepts them, and the profile is marked as a dev profile (which relaxes the progress plausibility checks, not the gameplay ones).
+- **Secret menu:** click the S of SPARTAN five times, then type "ohio". Change level, prestige, Prestige Master level, tokens, individual unlocks, weapon kills and prestige, unlock every camo, zombies best round, or reset. Only real clicks and key presses work. Edits are signed so the anti-cheat accepts them, and the profile can join online matches.
 
 
 ## Update notes (fourth pass)

@@ -193,34 +193,144 @@ function deathCam(dt){
 var PCFG={debug:0,config:{iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302','stun:stun2.l.google.com:19302','stun:global.stun.twilio.com:3478','stun:stun.cloudflare.com:3478']},
  {urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turn:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}],iceCandidatePoolSize:4,sdpSemantics:'unified-plan'}};
 var hostPid='',hostBye=0,rcTry=0,rcTimer=0;var grace={};
-var net=null,myId='',myName='',conns=[],isHost=0,netOn=0,scores={},names=Object.create(null),lastAtk='',nacc=0,bacc=0,oacc=0,pn=0,soloMode=null,maxP=0;
+var net=null,myId='',myName='',conns=[],isHost=0,netOn=0,scores={},names=Object.create(null),lastAtk='',nacc=0,bacc=0,oacc=0,soloMode=null,maxP=0;
 const peerLooks=new Map();
+let partyActive=false,partyCode='',partyReady=false;
 let lastAttackHead=false;
-var CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',lobby=t=>$('#lb').textContent=t;
+let roomLocked=false,roomTicket='',roomRound=0,latestRoomRound=0,roomSequence=0;
+const roomTickets=new Map(),roomReceived=new Map();
+const roomControlPackets=new Set(['hi','bye','identity','roster','admitted','removed','full','room-policy','room-denied',
+ 'start','party-queue','party-sw','party-sw-launch']);
+function syncRoomLockControls(){
+ for(const button of document.querySelectorAll('[data-room-lock]')){
+  button.hidden=!(isHost&&net?.open&&!window.SD_SPLIT);
+  button.textContent=roomLocked?'Unlock room':'Lock room';
+  button.setAttribute('aria-pressed',String(roomLocked));
+ }
+}
+function toggleRoomLock(){
+ if(!isHost||!net?.open||window.SD_SPLIT)return;
+ roomLocked=!roomLocked;
+ netSend({t:'room-policy',locked:roomLocked});
+ lobby(roomLocked?'Room locked to new players.':'Room open to players with the code.');
+ syncRoomLockControls();
+}
+for(const button of document.querySelectorAll('[data-room-lock]'))button.onclick=toggleRoomLock;
+function setRoomRound(round){
+ roomRound=round;roomSequence=0;roomReceived.clear();hitRate={};
+ for(const link of conns){
+  link.markAfter=0;
+  if(link.vt)Object.assign(link.vt,{last:null,dmg:[],zd:[],nk:0});
+ }
+}
+function gamePacket(data){
+ if(roomControlPackets.has(data.t))return data;
+ if(!roomRound)return null;
+ return {...data,round:roomRound,sequence:++roomSequence};
+}
+function acceptRoomPacket(data,link){
+ if(roomControlPackets.has(data.t))return true;
+ if(!netOn||!roomRound||data.round!==roomRound||!Number.isSafeInteger(data.sequence)||
+    data.sequence<=(roomReceived.get(link.peer)||0))return false;
+ roomReceived.set(link.peer,data.sequence);return true;
+}
+var CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',lobby=t=>{
+ $('#lb').textContent=t;
+ if(partyActive)partyStatus(t);
+};
 function lobbyList(){$('#plist').innerHTML=Object.entries(names).map(([id,nm])=>{
  const row={nm,look:app==='mp'?(id===myId?idrLocal():peerLooks.get(id)):null};
  return `<li>${idrBoardName(row,id===myId?' (you)':'')}</li>`;
- }).join('');$('#leave').style.display=net?'inline-block':'none';lobbyStageRender()}
+ }).join('');
+ for(const [index,id] of Object.keys(names).entries())appendPeerRemoval($('#plist').children[index],id);
+ updateMatchModeration();syncRoomLockControls();
+ $('#leave').style.display=net?'inline-block':'none';lobbyStageRender();if(partyReady)partyStatus()}
+var removedPeers=new Set();
+function appendPeerRemoval(row,id){
+ if(!row||!isHost||id===myId||window.SD_SPLIT||!conns.some(c=>c.peer===id&&c.open&&!c.blocked))return;
+ const button=document.createElement('button');
+ button.type='button';button.className='btn alt sm';button.textContent='Remove';
+ button.setAttribute('aria-label','Remove '+names[id]);
+ button.onclick=()=>removeRoomPeer(id);
+ row.classList.add('peer-controls');row.append(button);
+}
+function removeRoomPeer(id){
+ if(!isHost||id===myId||window.SD_SPLIT)return;
+ const link=conns.find(c=>c.peer===id&&c.open&&!c.blocked);
+ if(link)bhKick(link,'removed by the host');
+}
+function updateMatchModeration(){
+ const list=$('#match-moderation');
+ if(!list)return;
+ list.replaceChildren();
+ if(netOn)for(const id of Object.keys(names)){
+  const row=document.createElement('li');row.textContent=names[id];
+  appendPeerRemoval(row,id);
+  if(row.children.length)list.append(row);
+ }
+ list.hidden=!list.children.length;
+}
 function broadcastRoster(){
  const looks=Object.fromEntries([[myId,idrLocal()],...peerLooks]);
  netSend({t:'roster',r:{...names},looks});
 }
-function netSend(m){m.id=myId;for(const c of conns)if(c.open)c.send(m)}
-function fwd(d,from){for(const c of conns)if(c!==from&&c.open)c.send(d)}
-function netClose(){clearTimeout(rcTimer);rcTry=0;for(const k in grace){clearTimeout(grace[k]);delete grace[k]}for(const c of conns)try{if(c.open)c.send({t:'bye',id:myId})}catch(e){}for(const c of conns)try{c.close()}catch(e){}conns=[];if(net)try{net.destroy()}catch(e){}net=null;netOn=0;isHost=0;names=Object.create(null);peerLooks.clear();scores={};document.body.classList.remove('net');$('#hostbox').style.display='none';lobbyList();if(soloMode!=null){sel.mode=soloMode;soloMode=null;ui()}}
+function netSend(m){const packet=gamePacket({...m,id:myId});if(packet)for(const c of conns)if(c.open)c.send(packet)}
+function sendMatchPacket(link,data){const packet=gamePacket({...data,id:myId});if(packet&&link.open)link.send(packet)}
+function fwd(d,from){const packet=gamePacket(d);if(packet)for(const c of conns)if(c!==from&&c.open)c.send(packet)}
+function netClose(){
+ if(partyActive)partyClosed();
+ removedPeers.clear();
+ roomLocked=false;roomTicket='';roomTickets.clear();latestRoomRound=0;setRoomRound(0);
+ partyActive=false;partyCode='';
+ clearTimeout(rcTimer);rcTry=0;for(const k in grace){clearTimeout(grace[k]);delete grace[k]}for(const c of conns)try{if(c.open)c.send({t:'bye',id:myId})}catch(e){}for(const c of conns)try{c.close()}catch(e){}conns=[];if(net)try{net.destroy()}catch(e){}net=null;netOn=0;isHost=0;names=Object.create(null);peerLooks.clear();scores={};document.body.classList.remove('net');$('#hostbox').style.display='none';lobbyList();if(soloMode!=null){sel.mode=soloMode;soloMode=null;ui()}}
 /* a match ended: everybody stays connected and returns to the same lobby; only leaving the lobby disconnects */
-function netEnd(){netOn=0;scores={};pn=0;document.body.classList.remove('net');if(soloMode!=null){sel.mode=soloMode;soloMode=null;ui()}lobbyList();lobby(isHost?'Match over. Everyone is still here. Pick a mode and map, then press Start match.':'Match over. Waiting for the host to start the next one…')}
+function netEnd(){netOn=0;setRoomRound(0);scores={};document.body.classList.remove('net');if(soloMode!=null){sel.mode=soloMode;soloMode=null;ui()}lobbyList();lobby(partyActive?(isHost?'Party ready for another match.':'Waiting for the leader to deploy.'):isHost?'Match over. Everyone is still here. Pick a mode and map, then press Start match.':'Match over. Waiting for the host to start the next one…')}
 function createMatchPeer(id){return window.SD_SPLIT?new SplitPeer(id):new Peer(id,PCFG)}
-function hostMatch(localCode){netClose();maxP=app=='zm'?4:0;myName=$('#nm').value||'Host';let c=typeof localCode==='string'?localCode:'';while(c.length<5)c+=CH[Math.random()*CH.length|0];lobby('Connecting…');
- net=createMatchPeer('sdrill-'+c);net.on('disconnected',()=>{try{net.reconnect()}catch(e){}});net.on('open',id=>{myId=id;isHost=1;names[id]=myName;$('#code').textContent=c;$('#hostbox').style.display='block';lobby('Share this code. Press Start when everyone has joined.');lobbyList()});
- net.on('connection',cn=>reg(cn));net.on('error',e=>lobby('Network error: '+e.type+(e.type=='unavailable-id'?' (try again)':'')))}
-function joinMatch(){const c=$('#jc').value.trim().toUpperCase();if(c.length<5)return lobby('Enter the 5-letter code');netClose();myName=$('#nm').value||'Guest';lobby('Connecting…');
- hostBye=0;rcTry=0;hostPid='sdrill-'+c;net=createMatchPeer();net.on('disconnected',()=>{try{net.reconnect()}catch(e){}});net.on('open',id=>{myId=id;names[id]=myName;reg(net.connect(hostPid,{reliable:true,serialization:'json'}))});net.on('error',e=>lobby(e.type=='peer-unavailable'?'No match found with that code':'Network error: '+e.type))}
+function hostMatch(localCode,wantsParty=false){
+ netClose();partyActive=wantsParty===true;maxP=partyActive||app==='zm'?4:0;
+ myName=$('#nm').value||'Host';
+ let code=typeof localCode==='string'?localCode:'';
+ while(code.length<5)code+=CH[Math.random()*CH.length|0];
+ if(partyActive)partyCode=code;
+ const peer=net=createMatchPeer((partyActive?'sd-party-':'sdrill-')+code);
+ lobby('Connecting…');
+ peer.on('disconnected',()=>{if(net===peer)try{peer.reconnect()}catch(e){}});
+ peer.on('open',id=>{
+  if(net!==peer)return;
+  myId=id;isHost=1;names[id]=myName;$('#code').textContent=code;$('#hostbox').style.display='block';
+  lobby(partyActive?'Share this code. The leader controls deployment.':'Share this code. Press Start when everyone has joined.');lobbyList();
+ });
+ peer.on('connection',cn=>{if(net===peer)reg(cn);else cn.close()});
+ peer.on('error',e=>{
+  if(net!==peer)return;
+  const line='Network error: '+e.type+(e.type==='unavailable-id'?' (try again)':'');
+  if(partyActive&&!isHost){netClose();partyStatus(line)}else lobby(line);
+ });
+}
+function joinMatch(value,wantsParty=false){
+ const code=(typeof value==='string'?value:$('#jc').value).trim().toUpperCase();
+ if(!/^[A-Z2-9]{5}$/.test(code)){
+  if(wantsParty)partyStatus('Enter the five-character party code.');else lobby('Enter the 5-letter code');
+  return;
+ }
+ netClose();partyActive=wantsParty===true;
+ if(partyActive)partyCode=code;
+ myName=$('#nm').value||'Guest';hostBye=0;rcTry=0;
+ hostPid=(partyActive?'sd-party-':'sdrill-')+code;
+ const peer=net=createMatchPeer();
+ lobby('Connecting…');
+ peer.on('disconnected',()=>{if(net===peer)try{peer.reconnect()}catch(e){}});
+ peer.on('open',id=>{if(net===peer){myId=id;names[id]=myName;reg(peer.connect(hostPid,{reliable:true,serialization:'json'}))}});
+ peer.on('error',e=>{
+  if(net!==peer)return;
+  const line=e.type==='peer-unavailable'?'No '+(partyActive?'party':'match')+' found with that code.':'Network error: '+e.type;
+  if(partyActive&&!conns.some(c=>c.open)){netClose();partyStatus(line)}else lobby(line);
+ });
+}
 /* ---------- BUILD HANDSHAKE ----------
    Before a single game message is accepted, both ends of a connection prove they run the SAME, UNMODIFIED build:
    each side sends a random challenge together with its build id (the SHA-256 of all the game files, computed by the loader in index.html) and its play mode; the other side answers with a proof that mixes the challenge,
-   the build id and the source text of nineteen core game functions as they are currently running. An older build (it does not speak this protocol at all), an edited file, a console-patched function, a dev profile
-   or a build running outside the closure all fail it, and the connection is closed with a message. (Nothing that runs on a player's own machine can be made unforgeable; this makes casual and copy-pasted cheats
+   the build id and the source text of nineteen core game functions as they are currently running. An older build (it does not speak this protocol at all), an edited file, a console-patched function or a build running outside the closure fails it, and the connection is closed with a message. (Nothing that runs on a player's own machine can be made unforgeable; this makes casual and copy-pasted cheats
    unable to join, and the host also vets every message a guest sends, below.) ---------- */
 var BHK={ver:typeof __BUILD!='undefined'?__BUILD:'raw',mode:typeof __MODE!='undefined'?__MODE:'raw'};
 var bhFns=()=>[hurt,takeDmg,shoot,eff,hitBot,boom,die,respawn,startGame,featKill,giveXP,wkill,addBot,onMsg,zDamage,zHit,mkHuman,useStreak,skAward];
@@ -228,23 +338,55 @@ async function bhSha(s){try{if(window.crypto&&crypto.subtle){const b=await crypt
  let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return(h2>>>0).toString(16)+(h1>>>0).toString(16)}
 var bhProof=n=>bhSha([n,BHK.ver,BHK.mode,...bhFns().map(f=>Function.prototype.toString.call(f))].join('\u0001'));
 var bhNonce=()=>{try{const a=new Uint32Array(4);crypto.getRandomValues(a);return[...a].join('-')}catch(e){return Math.random()+'-'+Date.now()}};
-function bhReject(cn,why){try{cn.send({t:'bhx',w:why})}catch(e){}lobby(why);setTimeout(()=>{try{cn.close()}catch(e){}},350)}
-function bhStart(cn){cn.vf=0;cn.sent=0;cn.theirs=0;cn.mn=bhNonce();cn.send({t:'bh1',v:BHK.ver,m:BHK.mode,d:(typeof prof!='undefined'&&prof.dev)?1:0,n:cn.mn});
+const resumeProof=(ticket,nonce)=>ticket?bhSha('rejoin\u0001'+nonce+'\u0001'+ticket):Promise.resolve('');
+function bhReject(cn,why){cn.blocked=true;try{cn.send({t:'bhx',w:why})}catch(e){}lobby(why);setTimeout(()=>{try{cn.close()}catch(e){}},350)}
+function bhStart(cn){cn.vf=0;cn.sent=0;cn.theirs=0;cn.mn=bhNonce();cn.send({t:'bh1',v:BHK.ver,m:BHK.mode,n:cn.mn});
  setTimeout(()=>{if(!cn.vf&&cn.open){bhReject(cn,'Could not verify the game version: both players need the same, unmodified, up-to-date build (reload the page to update)')}},7000)}
 function bhMsg(d,cn){
- if(d.t=='bhx'){lobby(String(d.w||'Version check failed').slice(0,140));return}
- if(d.t=='bh1'){if(typeof d.v!='string'||d.v!==BHK.ver||d.m!==BHK.mode){bhReject(cn,'Incompatible game version: update to the latest build (reload the page) and join again');return}
-  if(d.d||(typeof prof!='undefined'&&prof.dev)){bhReject(cn,'Dev profiles cannot play online');return}
-  bhProof(String(d.n).slice(0,64)).then(p=>{try{cn.send({t:'bh2',p});cn.sent=1;bhDone(cn)}catch(e){}});return}
- if(d.t=='bh2'){bhProof(cn.mn).then(p=>{if(typeof d.p=='string'&&d.p===p){cn.theirs=1;bhDone(cn)}else bhReject(cn,'This game build does not match the host\'s (modified or out of date): you cannot join')})}}
-function bhDone(cn){if(cn.vf||!(cn.sent&&cn.theirs))return;cn.vf=1;const pq=cn.pq||[];cn.pq=null;regOpen(cn);for(const m of pq){if(isHost&&!hostVet(m,cn))continue;try{onMsg(m,cn)}catch(e){}}}
+ if(d.t=='bhx'){if(!isHost)lobby(String(d.w||'Version check failed').slice(0,140));return}
+ if(d.t=='bh1'){if(cn.challenge)return;cn.challenge=true;
+  if(typeof d.v!='string'||d.v!==BHK.ver||d.m!==BHK.mode||typeof d.n!=='string'||d.n.length>64){bhReject(cn,'Incompatible game version: update to the latest build (reload the page) and join again');return}
+  Promise.all([bhProof(d.n),resumeProof(isHost?'':roomTicket,d.n)]).then(([p,resume])=>{
+   if(cn.blocked||!cn.open)return;
+   try{cn.send({t:'bh2',p,resume});cn.sent=1;bhDone(cn)}catch{}
+  });return;
+ }
+ if(d.t=='bh2'&&!cn.answer){
+  cn.answer=true;
+  const ticket=isHost?roomTickets.get(cn.peer):null;
+  Promise.all([bhProof(cn.mn),resumeProof(ticket,cn.mn)]).then(([p,resume])=>{
+   if(cn.blocked||!cn.open)return;
+   if(typeof d.p==='string'&&d.p===p){
+    cn.reclaimed=ticket&&d.resume===resume?ticket:null;
+    cn.theirs=1;bhDone(cn);
+   }else bhReject(cn,'This game build does not match the host’s (modified or out of date).');
+  });
+ }
+}
+function bhDone(cn){
+ if(cn.blocked||!cn.open||cn.vf||!(cn.sent&&cn.theirs))return;
+ const pending=cn.pq||[];cn.pq=null;cn.vf=1;
+ if(!regOpen(cn))return;
+ for(const message of pending)acceptGamePacket(message,cn);
+}
 /* ---------- the host vets everything a guest sends before it acts on it or relays it ---------- */
-var HVS={hostOnly:new Set(['start','end','roster','z','b','f','feed','pop','full','zs','zb','zbt','zbl','zbs','zd','zg','zk','zlon','zpc','zpg','zpu','zrev','zmaincue','zmainnote','zmainhit','zmainwin']),
- guest:new Set(['s','hit','bh','dead','sh','bsh','ob','chat','sko','skh','skx','nuke','kd','kg','oi','bye','hi','identity','zqb','zqd','zqe','zqh','zqp','zqw','zqr','zqv','zdn','zmainuse'])};
-function bhKick(cn,why){feed((names[cn.peer]||'A player')+' was removed: '+why);try{cn.send({t:'bhx',w:'Removed from the match: '+why})}catch(e){}setTimeout(()=>{try{cn.close()}catch(e){}},250)}
-function hostVet(d,cn){if(!d||typeof d.t!='string'||!HVS.guest.has(d.t))return false;const t=d.t,n=performance.now(),v=cn.vt||(cn.vt={w:n,c:0,dmg:[],last:null,nk:0,sko:[],bad:0,zd:[],chat:[],bt:n}),bad=()=>{if(n-v.bt>15000){v.bad=Math.max(0,v.bad-Math.floor((n-v.bt)/15000));v.bt=n}if(++v.bad>=10)bhKick(cn,'sending impossible game data');return false};
+const guestPacketTypes=new Set(['s','hit','bh','dead','sh','chat','mark','sko','skh','skx','nuke','oi','bye','hi','identity',
+ 'zqb','zqd','zqe','zqh','zqp','zqw','zqr','zqv','zdn','zmainuse','party-sw','party-bench','vox-shots','vox-blast']);
+function bhKick(cn,why){
+ if(cn.blocked)return;
+ cn.blocked=true;cn.bye=true;removedPeers.add(cn.peer);
+ const name=names[cn.peer]||'A player';
+ conns=conns.filter(c=>c!==cn);
+ if(grace[cn.peer]){clearTimeout(grace[cn.peer]);delete grace[cn.peer]}
+ if(cn.vf)dropPeer(cn.peer);
+ if(cn.vf)lobby(name+' was removed.');
+ try{cn.send({t:'removed',w:'Removed from the room ('+why+').'})}catch{}
+ setTimeout(()=>cn.close(),300);
+}
+function hostVet(d,cn){if(!guestPacketTypes.has(d.t))return false;const t=d.t,n=performance.now(),v=cn.vt||(cn.vt={w:n,c:0,dmg:[],last:null,nk:0,sko:[],bad:0,zd:[],chat:[],bt:n}),bad=()=>{if(n-v.bt>15000){v.bad=Math.max(0,v.bad-Math.floor((n-v.bt)/15000));v.bt=n}if(++v.bad>=10)bhKick(cn,'sending impossible game data');return false};
  if(n-v.w>1000){v.w=n;v.c=0}if(++v.c>150){if(v.c>700)bhKick(cn,'flooding the match');return false}
- if((t==='hi'||t==='identity'||d.id)&&d.id!==cn.peer)return bad();
+ if(d.id!==cn.peer||t==='dead'&&d.v!==cn.peer||t==='oi'&&d.out!==cn.peer)return bad();
+ if(t.startsWith('party-')&&(!partyActive||d.id!==cn.peer))return false;
  if(t=='hit'||t=='bh'){const dm=+d.d;if(!(dm>=0)||dm>300)return bad();v.dmg=v.dmg.filter(x=>n-x[0]<1000);v.dmg.push([n,dm]);if(v.dmg.reduce((a,x)=>a+x[1],0)>760)return bad()}
  else if(t=='zqh'){
   const dm=+d.d,Wk=W[d.k],meleeCap=sel.map==='Hollow Estate'?24000:16000;
@@ -254,21 +396,86 @@ function hostVet(d,cn){if(!d||typeof d.t!='string'||!HVS.guest.has(d.t))return f
   const hitLimit=sel.map==='London'?90:45;
   if(v.zd.length>hitLimit||v.zd.reduce((a,x)=>a+x[1],0)>60000)return bad();
  }
- else if(t=='s'){const x=+d.x,z=+d.z;if(!isFinite(x)||!isFinite(z)||!isFinite(+d.y)||Math.abs(x)>H+8||Math.abs(z)>H+8||+d.y<-8||+d.y>80)return bad();
-  if(v.last){const dt=(n-v.last.n)/1000;if(dt>.01&&dt<1.5&&Math.hypot(x-v.last.x,z-v.last.z)/dt>38){v.last.n=n;return bad()}}v.last={x,z,n}}
+ else if(t=='s'){
+  const x=+d.x,z=+d.z,q=mode==='Zombies'?zq?.main:null;
+  const inArena=!!q&&zQuestInArena(x,z),previousArena=!!q&&v.last&&zQuestInArena(v.last.x,v.last.z);
+  const credited=!!q?.credit.includes(cn.peer);
+  if(!Number.isFinite(x+z+(+d.y))||+d.y<-8||+d.y>80)return bad();
+  if(inArena?(!credited||!q.fight):(Math.abs(x)>H+8||Math.abs(z)>H+8))return bad();
+  const portal=credited&&v.last&&(inArena&&q.fight&&!previousArena||
+   previousArena&&!q.fight&&!inArena&&Math.hypot(x-q.entry.x,z-q.entry.z)<8);
+  if(!portal&&v.last){const dt=(n-v.last.n)/1000;if(dt>.01&&dt<1.5&&Math.hypot(x-v.last.x,z-v.last.z)/dt>38){v.last.n=n;return bad()}}
+  v.last={x,z,n};
+ }
  else if(t=='nuke'){const r=typeof board=='function'?board().find(r=>r.id==cn.peer):null;if(!r||r.k<20||v.nk++>0)return bad()}
  else if(t=='sko'){v.sko=v.sko.filter(x=>n-x<20000);if(v.sko.length>=8)return false;v.sko.push(n)}
- else if(t=='chat'){v.chat=v.chat.filter(x=>n-x<3000);if(v.chat.length>=5)return false;v.chat.push(n);if(typeof d.s=='string')d.s=d.s.slice(0,120)}
+ else if(t=='chat'){v.chat=v.chat.filter(x=>n-x<3000);if(v.chat.length>=4)return false;v.chat.push(n)}
  return true}
 var hitRate={};function hitRateOK(id,dm){const n=performance.now(),a=(hitRate[id]=(hitRate[id]||[]).filter(x=>n-x[0]<1000));a.push([n,dm]);return a.reduce((s,x)=>s+x[1],0)<=760}
-function regOpen(cn){cn.last=performance.now();if(grace[cn.peer]){clearTimeout(grace[cn.peer]);delete grace[cn.peer];feed((names[cn.peer]||'Player')+' reconnected')}rcTry=0;if(isHost&&maxP&&conns.length>=maxP-1){cn.send({t:'full'});setTimeout(()=>{try{cn.close()}catch(e){}},400);return}conns.push(cn);cn.send({t:'hi',id:myId,n:myName,look:idrLocal()});lobby(isHost?'Player joined':'Connected. Waiting for the host to start…')}
-function reg(cn){cn.last=performance.now();cn.vf=0;cn.on('open',()=>{cn.last=performance.now();bhStart(cn)});
- cn.on('data',d=>{cn.last=performance.now();if(d&&d.t=='ping'){if(cn.open)cn.send({t:'pong'});return}if(d&&d.t=='pong')return;if(d&&(d.t=='bh1'||d.t=='bh2'||d.t=='bhx')){bhMsg(d,cn);return}if(!cn.vf){(cn.pq=cn.pq||[]).length<40&&cn.pq.push(d);return}if(isHost&&!hostVet(d,cn))return;onMsg(d,cn)});
- cn.on('error',()=>{});cn.on('close',()=>netLost(cn))}
+function regOpen(cn){
+ if(isHost&&(removedPeers.has(cn.peer)||conns.some(c=>c.peer===cn.peer&&c.open))){
+  if(removedPeers.has(cn.peer))cn.send({t:'removed',w:'You were removed from this room.'});
+  cn.blocked=true;setTimeout(()=>cn.close(),350);return false;
+ }
+ const ticket=isHost?roomTickets.get(cn.peer):null;
+ if(isHost&&(ticket&&cn.reclaimed!==ticket||!ticket&&roomLocked)){
+  cn.send({t:'room-denied',w:ticket?'This connection could not reclaim its seat.':'The host has locked this room.'});
+  cn.blocked=true;setTimeout(()=>cn.close(),350);return false;
+ }
+ if(isHost&&maxP&&(conns.length>=maxP-1||partyActive&&(run||partyOperationOpen)&&!hasOwn(names,cn.peer))){
+  cn.send({t:'full'});cn.blocked=true;setTimeout(()=>cn.close(),400);return false;
+ }
+ cn.last=performance.now();rcTry=0;
+ if(grace[cn.peer]){clearTimeout(grace[cn.peer]);delete grace[cn.peer];feed((names[cn.peer]||'Player')+' reconnected')}
+ conns.push(cn);
+ if(isHost){
+  const key=ticket||Array.from(crypto.getRandomValues(new Uint8Array(16)),v=>v.toString(16).padStart(2,'0')).join('');
+  roomTickets.set(cn.peer,key);
+  cn.send({t:'admitted',ticket:key,locked:roomLocked});
+ }
+ cn.send({t:'hi',id:myId,n:myName,look:idrLocal()});
+ lobby(isHost?'Player joined':'Connected. Waiting for the host to start…');return true;
+}
+function acceptGamePacket(data,link){
+ if(link.blocked)return;
+ try{if(acceptRoomPacket(data,link)&&(!isHost||hostVet(data,link)))onMsg(data,link)}catch{}
+}
+function reg(cn){
+ const owner=net;
+ cn.last=performance.now();cn.vf=0;
+ cn.on('open',()=>{if(net===owner)bhStart(cn);else cn.close()});
+ peerPackets(cn,'t',d=>{
+  if(net!==owner||cn.blocked)return;
+  cn.last=performance.now();
+  if(d.t==='bh1'||d.t==='bh2'||d.t==='bhx'){if(!cn.vf)bhMsg(d,cn);return}
+  if(!cn.vf){
+   // The remote proof may complete while the local digest is still pending.
+   if(cn.answer&&(!isHost||d.t==='hi')){
+    const pending=cn.pq||=[];
+    if(pending.length<20)pending.push(d);
+   }
+   return;
+  }
+  if(d.t==='ping'){if(cn.open)cn.send({t:'pong'});return}
+  if(d.t!=='pong')acceptGamePacket(d,cn);
+ },()=>{
+  if(net!==owner)return;
+  if(isHost)bhKick(cn,'too many invalid network messages');
+  else cn.close();
+ });
+ cn.on('error',()=>{});cn.on('close',()=>{if(net===owner)netLost(cn)});
+}
 /* a connection ended. Players who say goodbye leave at once; anyone else gets 15 s to come back (flaky wifi, tab switches, ICE hiccups) before their body is removed */
 function netLost(cn){conns=conns.filter(x=>x!==cn);
- if(isHost){if(cn.bye){dropPeer(cn.peer);return}if(names[cn.peer]&&!grace[cn.peer]){if(run)feed(names[cn.peer]+' lost connection…');grace[cn.peer]=setTimeout(()=>{delete grace[cn.peer];dropPeer(cn.peer)},15000)}return}
- if(hostBye||!net){if(!conns.length)lobby('The host closed the lobby');return}
+ if(isHost){if(cn.blocked)return;if(cn.bye){dropPeer(cn.peer);return}if(cn.vf&&names[cn.peer]&&!grace[cn.peer]){if(run)feed(names[cn.peer]+' lost connection…');grace[cn.peer]=setTimeout(()=>{delete grace[cn.peer];dropPeer(cn.peer)},15000)}else if(cn.vf&&!names[cn.peer])roomTickets.delete(cn.peer);return}
+ if(hostBye||!net){
+  if(!conns.length){
+   if(partyActive){netClose();partyStatus('The leader closed the party.')}
+   else lobby('The host closed the lobby');
+  }
+  return;
+ }
+ if(partyActive&&partyOperationOpen)partyDispatch({type:'lost'},cn.peer);
  if(netOn||Object.keys(names).length>1)guestRetry()}
 function guestRetry(){if(!net||isHost||hostBye)return;if(conns.some(c=>c.open)){rcTry=0;return}if(rcTry++>=12){lobby('Lost connection to the host');if(netOn)setTimeout(()=>endGame('Disconnected'),300);return}
  lobby('Connection lost. Reconnecting… ('+rcTry+'/12)');if(run)msg('Reconnecting…',1.2);try{if(net.disconnected)net.reconnect()}catch(e){}
@@ -276,15 +483,39 @@ function guestRetry(){if(!net||isHost||hostBye)return;if(conns.some(c=>c.open)){
  clearTimeout(rcTimer);rcTimer=setTimeout(guestRetry,2500)}
 /* heartbeat: keeps NAT mappings open, and any link silent for 25 s is closed so it can be retried */
 setInterval(()=>{const n=performance.now();for(const c of conns)if(c.open){try{c.send({t:'ping'})}catch(e){}if(c.last&&n-c.last>25000){try{c.close()}catch(e){}}}},1000);
-function dropPeer(id){const i=bots.findIndex(b=>b.net&&b.id==id);if(i>=0){S.remove(bots[i].m);bots.splice(i,1)}if(!hasOwn(names,id))return;if(run)feed(names[id]+' left');delete names[id];peerLooks.delete(id);broadcastRoster();lobbyList()}
+function dropPeer(id){roomTickets.delete(id);roomReceived.delete(id);const i=bots.findIndex(b=>b.net&&b.id==id);if(i>=0){S.remove(bots[i].m);bots.splice(i,1)}if(!hasOwn(names,id))return;if(run)feed(names[id]+' left');delete names[id];peerLooks.delete(id);if(partyActive)partyMemberLeft(id);broadcastRoster();lobbyList()}
 var nmOf=k=>names[k]||(bots.find(b=>(b.hb||!b.net)&&('b'+b.i)==k)||{}).nm||'?';
 /* host-side scoring for kills made by someone other than the host's own hits */
 function credit(by){if(!isHost||mode=='Private')return;const kb=by==myId?P:bots.find(b=>(b.net?b.id:'b'+b.i)==by);if(!kb)return;const tm=kb===P?pTeam():kb.team;ts[tm]=(ts[tm]||0)+1;if(kb!==P)kb.k=(kb.k||0)+1}
 function announce(t,by,head){if(netOn&&isHost&&mode!='Private')netSend({t:'dead',v:'b'+t.i,by:by===P?myId:by.net?by.id:'b'+by.i,head:!!head})}
-function syncPuppets(l){const ids=new Set(l.map(e=>e[0]));for(let k=bots.length-1;k>=0;k--)if(bots[k].hb&&!ids.has(bots[k].i)){S.remove(bots[k].m);bots.splice(k,1)}
- for(const[i,team,al,x,z,nm,wk,rlo]of l){let b=bots.find(q=>q.hb&&q.i==i);if(!b){b=addBot(1e9,1,null,true);b.net=1;b.hb=1;b.i=i;b.id='b'+i;b.x=b.tx=x;b.z=b.tz=z;b.ty=0;b.yaw=0;b.m.children[0].material.color.setHex(team=='A'?0x3d6ad6:team=='B'?0xb5452e:new THREE.Color().setHSL((i*.15)%1,.6,.42).getHex())}
-  if(Math.hypot(x-b.tx,z-b.tz)>.05)b.yaw=Math.atan2(x-b.tx,z-b.tz)-Math.PI;b.team=team;b.nm=nm;b.al=al;setHeld(b,wk);b.rlOn=!!rlo;b.tx=x;b.tz=z}}
-function onMsg(d,cn){if(isHost&&d.t!='hi'&&d.t!='roster'&&d.t!='bye'&&d.t!='identity'&&d.t!='zmainuse')fwd(d,cn);
+function syncPuppets(l){
+ const ids=new Set(l.map(row=>row[0]));
+ for(let k=bots.length-1;k>=0;k--)if(bots[k].hb&&!ids.has(bots[k].i)){
+  S.remove(bots[k].m);bots.splice(k,1);
+ }
+ const replicas=new Map(bots.filter(b=>b.hb).map(b=>[b.i,b]));
+ for(const [i,team,al,x,z,nm,wk,rlo,y=0] of l){
+  let b=replicas.get(i);
+  if(!b){
+   b=addBot(1e9,1,botOperator(i),true);b.net=1;b.hb=1;b.i=i;b.id='b'+i;
+   b.x=b.tx=x;b.z=b.tz=z;b.y=b.ty=y;b.yaw=0;markOperatorTeam(b.rig,team);
+  }
+  if(Math.hypot(x-b.tx,z-b.tz)>.05)b.yaw=Math.atan2(x-b.tx,z-b.tz)-Math.PI;
+  b.team=team;b.nm=nm;b.al=al;setHeld(b,wk);b.rlOn=!!rlo;b.tx=x;b.tz=z;b.ty=y;
+ }
+}
+function hostChat(text,channel,sender){
+ if(!netOn||!isHost||!hasOwn(names,sender)||typeof text!=='string')return;
+ const team=teamMode()?mpTeams[sender]:null;
+ const message=text.replace(/[\u0000-\u001f\u007f<>]/g,'').trim().slice(0,120);
+ if(!message||!['all','team'].includes(channel)||(channel==='team'&&!['A','B'].includes(team)))return;
+ const packet=gamePacket({t:'chat',id:sender,m:message,ch:channel,tm:team||''});
+ if(!packet)return;
+ for(const link of conns)if(link.open&&link.vf&&!link.blocked&&link.peer!==sender&&
+    (channel==='all'||mpTeams[link.peer]===team))link.send(packet);
+ if(sender!==myId&&(channel==='all'||mpTeams[myId]===team))chatRecv(packet);
+}
+function onMsg(d,cn){if(isHost&&d.t!='hi'&&d.t!='roster'&&d.t!='bye'&&d.t!='identity'&&d.t!='zmainuse'&&d.t!='chat'&&d.t!='mark'&&!d.t.startsWith('party-')&&!d.t.startsWith('vox-'))fwd(d,cn);
  switch(d.t){
  case'oi':{const b=bots.find(q=>q.net&&q.id==d.out);if(b){b.out=1;b.al=0;b.m.visible=false;feed((names[d.out]||'A player')+' is out')}break}
  case'bye':if(isHost){cn.bye=1;dropPeer(d.id)}else hostBye=1;break;
@@ -292,7 +523,7 @@ function onMsg(d,cn){if(isHost&&d.t!='hi'&&d.t!='roster'&&d.t!='bye'&&d.t!='iden
   const id=cn.peer;
   names[id]=typeof d.n==='string'?(d.n.trim().slice(0,12)||'Player'):'Player';
   if(d.look)peerLooks.set(id,idrRead(d.look));
-  if(isHost)broadcastRoster();
+  if(isHost){broadcastRoster();voxelSync(cn)}
   lobbyList();break;
  }
  case'roster':{
@@ -309,17 +540,60 @@ function onMsg(d,cn){if(isHost&&d.t!='hi'&&d.t!='roster'&&d.t!='bye'&&d.t!='iden
   if(isHost)fwd({t:'identity',id,look},cn);
   lobbyList();break;
  }
- case'full':lobby('That lobby is full (4 players)');netClose();break;
- case'start':beginNet(d.map,d.mode,d.teams);break;
- case's':{const b=bots.find(b=>b.net&&b.id==d.id);if(b){b.tx=d.x;b.ty=d.y;b.tz=d.z;b.yaw=d.yaw;if(d.w)setHeld(b,d.w,d.cm,d.at);b.st=d.st||0;b.aj=d.aj||0;b.em=(d.em|0)>0&&(d.em|0)<=EMLEN.length?(d.em|0)-1:-1;b.pi=d.pi||0;b.rlOn=!!d.r;b.zpts=d.p;b.dn=d.dn;if(b.al&&!d.al)burst(V(b.x,1,b.z),16,0x3d6ad6,6,.8,.15);b.al=d.al}break}
+ case'full':{
+  const party=partyActive;netClose();
+  if(party)partyStatus('That party is full or in a match.');else lobby('That lobby is full (4 players)');
+  break;
+ }
+ case'admitted':
+  if(!isHost&&cn.peer===hostPid&&typeof d.ticket==='string'&&/^[0-9a-f]{32}$/.test(d.ticket)){
+   roomTicket=d.ticket;roomLocked=d.locked===true;syncRoomLockControls();
+  }
+  break;
+ case'room-policy':
+  if(!isHost&&cn.peer===hostPid&&typeof d.locked==='boolean'){
+   roomLocked=d.locked;lobby(roomLocked?'The host locked the room to new players.':'The host reopened the room.');
+  }
+  break;
+ case'room-denied':{
+  if(isHost||cn.peer!==hostPid)break;
+  const message=typeof d.w==='string'?d.w.slice(0,100):'This room is locked.';
+  hostBye=1;
+  if(run||fin)exitNetworkMatch();else netClose();
+  lobby(message);partyStatus(message);
+  break;
+ }
+ case'removed':{
+  if(isHost||cn.peer!==hostPid)break;
+  const party=partyActive,line=typeof d.w==='string'?d.w.slice(0,120):'Removed from the room.';
+  hostBye=1;
+  if(run||fin)exitNetworkMatch();else netClose();
+  if(party)partyStatus(line);else lobby(line);
+  break;
+ }
+ case'vox-update':case'vox-shots':case'vox-blast':voxelNet(d,cn);break;
+ case'party-sw-launch':case'party-sw':partyReadStormwatch(d,cn);break;
+ case'party-queue':if(partyActive&&!isHost&&cn.peer===hostPid)partyStatus(d.active?'The leader is queuing for '+String(d.mode).slice(0,32)+'.':'Waiting for the leader to deploy.');break;
+ case'party-return':if(partyActive&&!isHost&&cn.peer===hostPid&&netOn)exitNetworkMatch(true);break;
+ case'party-bench':if(partyActive&&isHost){const b=bots.find(b=>b.net&&b.id===cn.peer);if(b){b.al=0;b.m.visible=false}}break;
+ case'start':
+  if(!isHost&&cn.peer===hostPid&&Number.isSafeInteger(d.round)&&d.round>latestRoomRound&&
+     hasOwn(MAPS,d.map)&&(d.mode==='Private'||hasOwn(MODES,d.mode))&&d.teams&&hasOwn(d.teams,myId)){
+   if(partyActive)partyBeforeMatch(d.map,d.mode);
+   latestRoomRound=d.round;setRoomRound(d.round);
+   beginNet(d.map,d.mode,d.teams);
+  }
+  break;
+ case's':{const b=bots.find(b=>b.net&&b.id==d.id);if(b){b.tx=d.x;b.ty=d.y;b.tz=d.z;if(mode==='Zombies'&&Math.abs(b.x-b.tx)>150){b.x=b.tx;b.y=b.ty;b.z=b.tz}b.yaw=d.yaw;if(d.w)setHeld(b,d.w,d.cm,d.at);b.st=d.st||0;b.aj=d.aj||0;b.em=(d.em|0)>0&&(d.em|0)<=EMLEN.length?(d.em|0)-1:-1;b.pi=d.pi||0;b.rlOn=!!d.r;b.zpts=d.p;b.dn=d.dn;if(b.al&&!d.al)burst(V(b.x,1,b.z),16,0x3d6ad6,6,.8,.15);b.al=d.al}break}
  case'hit':if(d.to==myId&&run&&!P.dead){if(!(d.d>=0)||(d.d>300&&!SK.nk)||(!SK.nk&&!hitRateOK(d.id,d.d)))break;d.d=Math.min(d.d,10000);lastAtk=d.bot!=null?'b'+d.bot:d.id;lastAttackHead=d.head===true;try{hurt(d.d,bots.find(b=>b.net&&b.id==lastAtk))}finally{lastAtk='';lastAttackHead=false}}break;
  case'bh':if(isHost&&mode!='Private'){const t=bots.find(b=>!b.net&&b.i==d.i&&b.al),by=bots.find(b=>b.net&&b.id==d.id);if(t&&by)botHit(t,d.d,by,d.head===true)}break;
  case'dead':{const by=d.by;if(isHost&&mode=='Kill Confirmed')try{kcNetDeath(d)}catch(e){}if(by!=myId)feed(by?`${nmOf(by)} ▸ ${nmOf(d.v)}`:nmOf(d.v)+' died');
   if(mode=='Private'){if(by)scores[by]=(scores[by]||0)+1}else if(isHost&&by)credit(by);
   if(by==myId&&d.v!=myId){kills++;const b=bots.find(b=>b.net&&b.id==d.v);if(b){const head=d.head===true;featKill(b,head);juiceKill(b,head)}}break}
- case'sh':{const b=bots.find(b=>b.net&&b.id==d.id);if(b&&b.al)remoteShot(b,d.w,V(d.x,d.y,d.z));break}
+ case'sh':{const b=bots.find(b=>b.net&&b.id==d.id);if(b&&b.al)remoteShot(b,d.w,V(d.x,d.y,d.z),undefined,d.hand===1?1:0);break}
  case'bsh':if(!isHost){const b=bots.find(b=>b.hb&&b.i==d.i);if(b&&b.al)remoteShot(b,d.w,V(d.x,d.y,d.z),b.team=='A'?0x62a8ff:0xff5a3a)}break;
- case'ob':obText=d.s;break;case'chat':chatRecv(d);break;
+ case'ob':obText=d.s;break;case'chat':if(isHost)hostChat(d.m,d.ch,cn.peer);else if(cn.peer===hostPid)chatRecv(d);break;
+ case'mark':if(isHost)shareSquadMark(d.point,cn.peer,cn);else if(cn.peer===hostPid)receiveSquadMark(d);break;
  case'sko':skNetObjs(d);break;case'skh':skNetHit(d);break;case'skx':skNetFx(d);break;case'nuke':if(d.by!=myId&&run&&!over){if(isHost)NUKE_BY=d.by;skNukeSeq(d.by,0)}break;
  case'kd':case'kg':try{kcNetRecv(d)}catch(e){}break;
  case'z':if(!isHost){ds=d.ds;if(d.hp&&mode=='Hardpoint')hpApply(d.hp);else d.z.forEach((a,k)=>{const z=zones[k];if(!z)return;z.o=a[0];z.cp=a[1]})}break;
@@ -329,17 +603,26 @@ function onMsg(d,cn){if(isHost&&d.t!='hi'&&d.t!='roster'&&d.t!='bye'&&d.t!='iden
  case'pop':if(!isHost)popup(d.a,d.b);break;
  case'end':if(!isHost){let w=d.w;if(d.nk&&!teamMode())w=d.nk==myId?'Victory':(names[d.nk]||'A player')+' wins';if(teamMode())w=(w=='Victory')==(myTeam==d.ht)?'Victory':'Defeat';else if(w=='Victory')w=(names[d.id]||'Host')+' wins';netBd=d.bd||null;netSc=d.sc||null;endGame(w)}break;default:if(d.t&&d.t.length>1&&d.t[0]=='z')zNet(d,cn)}}
 function addNetBot(id,team){const b=addBot(1e9,1,peerLooks.get(id)?.operator||'recruit',true);b.net=1;b.id=id;b.al=0;b.m.visible=false;b.tx=b.ty=b.tz=b.x=b.z=b.yaw=0;b.team=team||id;b.nm=names[id]||'Player';b.k=0;
- b.m.children[0].material.color.setHex(b.team=='A'?0x3d6ad6:b.team=='B'?0xb5452e:new THREE.Color().setHSL((++pn*.17)%1,.6,.45).getHex())}
+ if(teamMode())markOperatorTeam(b.rig,b.team)}
 function hostStart(){let m=$('#pmode').value,map=$('#pm').value;PBOTS=Math.max(0,Math.min(12,+($('#pbots')&&$('#pbots').value)));if(isNaN(PBOTS))PBOTS=null;const pick=a=>a[Math.random()*a.length|0];
  if(m=='Zombies'){if(Object.keys(names).length>4)return lobby('Zombies supports up to 4 players');map=(()=>{const v=$('#pm')&&$('#pm').value;return MAPS[v]&&MAPS[v].zm?v:(MAPS[sel.zmap]&&MAPS[sel.zmap].zm?sel.zmap:Object.keys(MAPS).find(k=>MAPS[k].zm))})()}
  else{if(m=='?')m=pick(['Private',...Object.keys(MODES).filter(k=>k!='Zombies')]);if(map=='?'||MAPS[map].zm)map=pick(Object.keys(MAPS).filter(k=>!MAPS[k].zm))}
- const tm=m=='Team Deathmatch'||m=='Capture the Flag'||m=='Domination'||m=='Hardpoint'||m=='Kill Confirmed',teams={};Object.keys(names).forEach((id,k)=>teams[id]=m=='Zombies'?'A':tm?(k%2?'B':'A'):id);netSend({t:'start',map,mode:m,teams});beginNet(map,m,teams)}
-function beginNet(map,m,teams){if(soloMode==null)soloMode=sel.mode;sel.map=map;sel.mode=m;mpTeams=teams;myTeam=teams[myId]||'A';netOn=1;scores={};pn=0;document.body.classList.add('net');startGame();for(const id in names)if(id!=myId)addNetBot(id,teams[id]);
- if(!isHost&&!window.SD_SPLIT){paused=1;$('#pt').textContent='Match ready';$('#pause').style.display='block'}}
-function netShot(k,o,d,len){netSend({t:'sh',w:k,x:+(o.x+d.x*len).toFixed(1),y:+(o.y+d.y*len).toFixed(1),z:+(o.z+d.z*len).toFixed(1)})}
-function mpEnd(t){netSend({t:'end',w:t,ht:myTeam,nk:NUKE_BY||0,bd:board().map(r=>[r.id,r.nm,r.k,r.d,r.tm]),sc:teamMode()?(mode=='Capture the Flag'?cs:mode=='Domination'||mode=='Hardpoint'?ds:mode=='Kill Confirmed'?kc:{A:ts.A||0,B:ts.B||0}):null})}
-function netTick(dt){if(!run)return;nacc+=dt;if(nacc>.066){nacc=0;netSend({t:'s',x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),yaw:+yaw.toFixed(2),al:P.dead?0:1,w:cw().k,cm:fpG.userData.camo||'',at:fpG.userData.attachments||[],r:rel>0?1:0,p:zq?zq.pts:0,dn:zq&&zq.down?1:0,st:ST.slide>0?3:ST.dive>0?4:ST.prone?2:ST.crouch?1:0,aj:P.on?0:1,em:EMO.cur?EMO.cur.id+1:0,pi:+pitch.toFixed(2),sp:ST.tac>0||(P.spr||0)>.55?1:0})}
- if(isHost&&mode!='Private'){bacc+=dt;if(bacc>.1){bacc=0;if(mode!='Zombies')netSend({t:'b',l:bots.filter(b=>!b.net).map(b=>[b.i,b.team,b.al?1:0,+b.x.toFixed(1),+b.z.toFixed(1),b.nm,b.wk,b.rl>0?1:0])})}oacc+=dt;if(oacc>.25){oacc=0;netSend({t:'ob',s:$('#ob').textContent})}}
+ startNetworkMatch(map,m,partyActive);
+}
+function startNetworkMatch(map,m,asParty=false){
+ if(!isHost||!net?.open||(asParty&&run))return;
+ const team=['Team Deathmatch','Capture the Flag','Domination','Hardpoint','Kill Confirmed'].includes(m),teams={};
+ Object.keys(names).forEach((id,k)=>{teams[id]=m==='Zombies'||team&&asParty?'A':team?(k%2?'B':'A'):id});
+ if(asParty)partyBeforeMatch(map,m);
+ setRoomRound(++latestRoomRound);
+ netSend({t:'start',map,mode:m,teams,round:roomRound});beginNet(map,m,teams);
+}
+function beginNet(map,m,teams){if(soloMode==null)soloMode=sel.mode;sel.map=map;sel.mode=m;mpTeams=teams;myTeam=teams[myId]||'A';netOn=1;scores={};document.body.classList.add('net');startGame();for(const id in names)if(id!=myId)addNetBot(id,teams[id]);
+ if(!isHost&&!window.SD_SPLIT){paused=1;showPause();$('#pt').textContent='Match ready'}}
+function netShot(k,o,d,len,hand=0){netSend({t:'sh',w:k,hand,x:+(o.x+d.x*len).toFixed(1),y:+(o.y+d.y*len).toFixed(1),z:+(o.z+d.z*len).toFixed(1)})}
+function mpEnd(t){netSend({t:'end',w:t,ht:myTeam,nk:NUKE_BY||0,bd:board().map(r=>[r.id,r.nm,r.k,r.d,r.tm,r.operator]),sc:teamMode()?(mode=='Capture the Flag'?cs:mode=='Domination'||mode=='Hardpoint'?ds:mode=='Kill Confirmed'?kc:{A:ts.A||0,B:ts.B||0}):null})}
+function netTick(dt){if(!run)return;nacc+=dt;if(nacc>.066){nacc=0;netSend({t:'s',x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),yaw:+yaw.toFixed(2),al:P.dead?0:1,w:cw().k,cm:fpG.userData.camo||'',at:fpG.userData.attachments||[],r:rel>0?1:0,p:zq?zq.pts:0,dn:zq&&zq.down?1:0,st:ST.slide>0?3:ST.dive>0?4:ST.prone?2:ST.crouch?1:0,aj:P.on||P.swimming?0:1,em:EMO.cur?EMO.cur.id+1:0,pi:+pitch.toFixed(2),sp:ST.tac>0||(P.spr||0)>.55?1:0})}
+ if(isHost&&mode!='Private'){bacc+=dt;if(bacc>.1){bacc=0;if(mode!='Zombies')netSend({t:'b',l:bots.filter(b=>!b.net).map(b=>[b.i,b.team,b.al?1:0,+b.x.toFixed(1),+b.z.toFixed(1),b.nm,b.wk,b.rl>0?1:0,+b.y.toFixed(2)])})}oacc+=dt;if(oacc>.25){oacc=0;netSend({t:'ob',s:$('#ob').textContent})}}
  const k=Math.min(1,dt*12);for(const b of bots)if(b.net){b.x+=(b.tx-b.x)*k;b.y+=(b.ty-b.y)*k;b.z+=(b.tz-b.z)*k;b.m.position.set(b.x,b.y,b.z);b.tyaw=b.yaw+Math.PI;if(!b.al&&b.ry==null)b.m.rotation.y=b.tyaw;const lie=mode=='Zombies'&&!b.al&&b.dn;if(!b.al){b.m.rotation.y=b.tyaw}const pp=b.pp||0,ry_=b.ry==null?b.tyaw:b.ry,sf=lie?0:pp*.85;b.m.rotation.x=lie?-1.5:pp*(b.st==4?1.05:1.45);b.m.position.set(b.x-Math.sin(ry_)*sf,b.y+(lie?.16:pp*(b.st==4?.55:.17)),b.z-Math.cos(ry_)*sf);b.m.visible=!!b.al||!!lie;b.hp=1e9}
  if(!isHost&&mode=='Domination')for(const z of zones)zoneVis(z);
  if(!isHost&&mode=='Capture the Flag')for(const f of flags){f.m.position.set(f.x,0,f.z);f.m.visible=f.byk!=myId}}
@@ -373,7 +656,8 @@ function showMenuPanel(page){
  if(!panel)return;
  if(page!=='queue')clearMatchSearch();
  if(page==='play')renderMatchSetup();
- const primary={play:playPanel(),queue:'lobby',priv:playPanel(),zguide:'zplay',ks:'load',mast:'load',cust:app==='zm'?'cust':'load'}[page]||page;
+ if(page==='record')renderCombatRecord(app);
+ const primary={play:playPanel(),record:playPanel(),queue:'lobby',priv:playPanel(),zguide:'zplay',ks:'load',mast:'load',cust:app==='zm'?'cust':'load'}[page]||page;
  $$('#menu .pn').forEach(p=>p.classList.toggle('on',p===panel));
  for(const item of $$('#nav button')){
   const active=item.dataset.p===primary&&item.classList.contains(app);
@@ -384,6 +668,7 @@ function showMenuPanel(page){
  panel.scrollTop=0;toggleProfile(false);
 }
 function openMenuPanel(page,focus=true){
+ if(page==='priv'&&partyActive){openGameParty();return}
  if(page==='deployment')page=playPanel();
  const button=$('#nav [data-p="'+page+'"].'+app);
  if(button)button.click();else showMenuPanel(page);
@@ -392,7 +677,7 @@ function openMenuPanel(page,focus=true){
   (panel?.querySelector('[data-initial-focus]:not(:disabled)')||first||button)?.focus({preventScroll:true});
  }
 }
-for(const b of $$('#nav button[data-p]'))b.onclick=()=>showMenuPanel(b.dataset.p);
+for(const b of $$('#nav button[data-p]'))b.onclick=()=>{if(b.dataset.p==='priv'&&partyActive)openGameParty();else showMenuPanel(b.dataset.p)};
 $('#settings-open').onclick=()=>openMenuPanel('set');
 $('#menu').addEventListener('click',e=>{
  const b=e.target.closest('button[data-panel]');
@@ -449,7 +734,7 @@ function renderMatchSetup(){
 let matchSearch=null;
 function clearMatchSearch(){
  const previous=matchSearch;
- if(previous){clearTimeout(previous.timer);matchSearch=null}
+ if(previous){clearTimeout(previous.timer);matchSearch=null;if(partyActive&&isHost)netSend({t:'party-queue',active:false})}
  return previous;
 }
 function cancelMatchSearch(){
@@ -478,10 +763,12 @@ function showMatchSearchPhase(phase){
 }
 function beginMatchSearch(){
  if(matchSearch||app!=='mp'||run)return;
- if(net){openMenuPanel('priv');return}
+ if(net&&!partyActive){openMenuPanel('priv');return}
+ if(partyActive&&!isHost){openGameParty();return}
  const choose=keys=>keys[Math.floor(Math.random()*keys.length)];
  const mode=sel.rm?choose(Object.keys(MODES).filter(k=>k!=='Zombies')):sel.mode;
  const map=sel.rp?choose(Object.keys(MAPS).filter(k=>!MAPS[k].zm)):sel.map;
+ if(partyActive)netSend({t:'party-queue',active:true,mode});
  matchSearch={origin:$('#p-play').classList.contains('on')?'play':'lobby',choice:{mode,map},phase:0,timer:0};
  showMenuPanel('queue');showMatchSearchPhase(0);$('#queue-cancel').focus({preventScroll:true});
  matchSearch.timer=setTimeout(()=>{
@@ -494,8 +781,9 @@ function beginMatchSearch(){
 }
 $('#queue-cancel').onclick=cancelMatchSearch;
 $('#queue-accept').onclick=()=>{
- if(matchSearch?.phase!==2||run||net)return;
+ if(matchSearch?.phase!==2||run||net&&!partyActive||partyActive&&!isHost)return;
  const {choice}=clearMatchSearch();
+ if(partyActive){PBOTS=null;startNetworkMatch(choice.map,choice.mode,true);return}
  Object.assign(sel,choice);saveSet();
  openMenuPanel('lobby',false);
  startGame();
@@ -533,6 +821,7 @@ $('#gq').value=gfxQ;$('#gq').onchange=e=>setGfx(e.target.value);
 $('#hz').onclick=()=>setApp('zm');$('#hmp').onclick=()=>setApp('mp');$('#back').onclick=goHome;
 $('#zdeploy').onclick=()=>{
  if(!MAPS[sel.zmap]?.zm)return;
+ if(partyActive){if(isHost){PBOTS=null;startNetworkMatch(sel.zmap,'Zombies',true)}return}
  sel.mode='Zombies';sel.map=sel.zmap;fixZM();startGame();
 };
 $('#zmaps').onclick=e=>{const button=e.target.closest('[data-zm]');if(button)selectZMap(button.dataset.zm)};
@@ -543,11 +832,28 @@ function menuCam(dt){gfxTick(dt);if(fin){finTick(dt);return}hideFP();ma+=dt*.12;
 /* lobby */
 $('#leave').onclick=()=>{netClose();lobby('You left the lobby')};$('#host').onclick=hostMatch;$('#join').onclick=joinMatch;$('#startnet').onclick=()=>{if(conns.length<1)return lobby('Waiting for at least one friend to join');hostStart()};
 /* pause */
-function showPause(){for(const k in key)key[k]=false;trig=0;$('#pt').textContent=typeof netOn!='undefined'&&netOn?'Menu (the match keeps running)':'Paused';$('#aa2').value=String(AA);$('#sn2').value=sens;$('#fv2').value=fovBase;$('#pause').style.display='block'}
+function showPause(){for(const k in key)key[k]=false;trig=0;$('#pt').textContent=typeof netOn!='undefined'&&netOn?'Menu (the match keeps running)':'Paused';$('#aa2').value=String(AA);$('#sn2').value=sens;$('#fv2').value=fovBase;updateMatchModeration();syncRoomLockControls();renderNextLifeLoadouts();$('#pause').style.display='block'}
 function hidePause(){$('#pause').style.display='none';$('#pt').textContent='Paused'}
 $('#resume').onclick=()=>lockPtr();
 $('#aa2').onchange=e=>{AA=+e.target.value;$('#aa').value=e.target.value;saveSet()};$('#sn2').oninput=e=>{sens=+e.target.value;$('#sn').value=e.target.value;saveSet()};$('#vl').oninput=e=>vol=+e.target.value;$('#sk').oninput=e=>shk=+e.target.value;
-$('#exit').onclick=()=>{run=0;over=1;paused=0;document.exitPointerLock&&document.exitPointerLock();hidePause();$('#hud').style.display=$('#end').style.display='none';finStop();hideFP();endDeath();netClose();for(const b of bots)S.remove(b.m);bots=[];for(const g of grs)S.remove(g.m);grs=[];clearFlags();buildMap();$('#menu').style.display='block';showRank()};
+function exitNetworkMatch(keepParty=false){
+ run=0;over=1;paused=0;document.exitPointerLock?.();hidePause();resetLifeLoadouts();clearSquadMarks();
+ if(practiceSession){
+  delete MAPS[practiceName];sel.map=practiceSession.map;practiceSession=null;mode=sel.mode;
+  document.body.classList.remove('practice-range');
+  $('#practice-reset').hidden=true;
+ }
+ $('#hud').style.display=$('#end').style.display='none';finStop();hideFP();endDeath();
+ if(keepParty)netEnd();else netClose();
+ for(const b of bots)S.remove(b.m);bots=[];
+ for(const g of grs)S.remove(g.m);grs=[];
+ clearFlags();buildMap();$('#menu').style.display='block';showRank();
+ if(keepParty)openMenuPanel(playPanel(),false);
+}
+$('#exit').onclick=()=>{
+ if(partyActive&&netOn)netSend({t:isHost?'party-return':'party-bench'});
+ exitNetworkMatch(partyActive);
+};
 /* the old corner-click dev panel can no longer be opened */
 var hc=0,arm=0,buf='';
 $('#dev').onclick=e=>{const d=e.target.dataset.d;if(!d)return;
@@ -563,9 +869,9 @@ fovBase=+$('#fv').value||80;$('#fv').oninput=()=>{fovBase=+$('#fv').value;saveSe
 var fin=0,fs='',ft=0,fe=0,podG=null,figs=[],conf=[],fLab=[],netBd=null,netSc=null,finInfo=null;
 var esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),EMD=[2.4,2.6,3,2.6],TEAMC={A:'#62a8ff',B:'#ff5a3a'};
 /* one row per player: the host's numbers are used by everyone in a networked match */
-function board(){const looks=mode!=='Zombies',rows=[{id:myId||'me',nm:hname(),k:mode=='Private'?(scores[myId]||0):kills,d:deaths,tm:teamMode()?myTeam:'',me:1,look:looks?idrLocal():null}];
- for(const b of bots){if(b.zom||(b.nm=='Grunt'&&(!b.net||b.hb)))continue;rows.push({id:b.net?b.id:'b'+b.i,nm:b.nm||'Player',k:mode=='Private'?(scores[b.id]||0):(b.k||0),d:b.net?null:(b.dc||0),tm:teamMode()?b.team:'',me:0,look:looks&&b.net&&!b.hb?peerLooks.get(b.id):null})}return rows}
-function finRows(){const r=netOn&&!isHost&&netBd?netBd.map(([id,nm,k,d,tm])=>({id,nm,k,d,tm,me:id===myId,look:mode==='Zombies'?null:id===myId?idrLocal():peerLooks.get(id)})):board();return r.sort((a,b)=>b.k-a.k||(a.d==null?9e3:a.d)-(b.d==null?9e3:b.d)).slice(0,12)}
+function board(){const looks=mode!=='Zombies',rows=[{id:myId||'me',nm:hname(),k:mode=='Private'?(scores[myId]||0):kills,d:deaths,tm:teamMode()?myTeam:'',me:1,operator:passOperator(),look:looks?idrLocal():null}];
+ for(const b of bots){if(b.zom||(b.nm=='Grunt'&&(!b.net||b.hb)))continue;rows.push({id:b.net?b.id:'b'+b.i,nm:b.nm||'Player',k:mode=='Private'?(scores[b.id]||0):(b.k||0),d:b.net?null:(b.dc||0),tm:teamMode()?b.team:'',me:0,operator:b.m.userData.operator,look:looks&&b.net&&!b.hb?peerLooks.get(b.id):null})}return rows}
+function finRows(){const r=netOn&&!isHost&&netBd?netBd.map(([id,nm,k,d,tm,operator])=>({id,nm,k,d,tm,operator,me:id===myId,look:mode==='Zombies'?null:id===myId?idrLocal():peerLooks.get(id)})):board();return r.sort((a,b)=>b.k-a.k||(a.d==null?9e3:a.d)-(b.d==null?9e3:b.d)).slice(0,12)}
 function teamTxt(){if(!teamMode())return'';const t=netOn&&!isHost&&netSc?netSc:mode=='Capture the Flag'?cs:mode=='Domination'||mode=='Hardpoint'?ds:mode=='Kill Confirmed'?kc:{A:ts.A||0,B:ts.B||0};return `Blue ${t.A||0} – ${t.B||0} Red`}
 function finStart(t,sc,nb,xp){podClear();fin=1;fs='vic';ft=0;fe=0;const w=t=='Victory',rows=finRows();finInfo={w,rows};
  $('#hud').style.display=$('#pause').style.display=$('#end').style.display='none';
@@ -595,9 +901,10 @@ function buildPodium(){podClear();if(skyM)skyM.visible=false;hemi.intensity=.9;s
   const pl=new THREE.Mesh(new THREE.PlaneGeometry(.9,.9),new THREE.MeshBasicMaterial({map:numTex(i+1),transparent:true}));pl.position.set(SX[i],SH[i]/2,1.06);podG.add(pl);
   const cone=new THREE.Mesh(new THREE.CylinderGeometry(.3,1.3,10,20,1,true),new THREE.MeshBasicMaterial({color:0xfff0c0,transparent:true,opacity:.08,depthWrite:false,side:THREE.DoubleSide}));cone.position.set(SX[i],SH[i]+5.2,0);podG.add(cone)}
  const lt=new THREE.PointLight(0xffe2b0,1.1,40);lt.position.set(0,7,5);podG.add(lt);
- const rows=finInfo.rows.slice(0,3);if(mode!='Zombies')while(rows.length<3)rows.push({id:'f'+rows.length,nm:'Grunt',k:0,d:0,tm:'',me:0});
- const extra=rows.some(r=>r.me)?null:finInfo.rows.find(r=>r.me),col=(r,i)=>r.tm=='A'?0x3d6ad6:r.tm=='B'?0xb5452e:r.me?0x3d6ad6:new THREE.Color().setHSL((i*.19+.05)%1,.6,.42).getHex();
- rows.forEach((r,i)=>mkFig(r,SX[i],SH[i],0,i==1?.3:i==2?-.3:0,col(r,i),i==0));if(extra)mkFig(extra,5.4,0,1.4,-.5,0x3d6ad6,false);
+ const rows=finInfo.rows.slice(0,3);if(mode!='Zombies')while(rows.length<3)rows.push({id:'f'+rows.length,nm:'Grunt',k:0,d:0,tm:'',me:0,operator:botOperator(rows.length)});
+ const extra=rows.some(r=>r.me)?null:finInfo.rows.find(r=>r.me);
+ rows.forEach((r,i)=>mkFig(r,SX[i],SH[i],0,i==1?.3:i==2?-.3:0,i===0));
+ if(extra)mkFig(extra,5.4,0,1.4,-.5,false);
  doEmote(figs[0],1);
  if(mode=='Zombies')zCrowd();
  const cm=[0xffd24a,0x62e0f0,0xff5a3a,0xffffff,0x7bd86b].map(c=>new THREE.MeshBasicMaterial({color:c}));
@@ -607,7 +914,7 @@ function buildPodium(){podClear();if(skyM)skyM.visible=false;hemi.intensity=.9;s
 var zcr=[];
 function zCrowd(){zcr=[];const rd=Math.max(1,typeof zq!='undefined'&&zq?zq.r:6);for(let i=0;i<30;i++){const R=4.8+Math.random()*5.2,ph=(Math.random()*2-1)*1.75,x=R*Math.sin(ph),z=-R*Math.cos(ph)+.5,big=i%9==4,{m,rig}=zModel(rd,big,i);m.position.set(x,0,z);const q=Math.atan2(-x,-z+.0001)+Math.PI;podG.add(m);zcr.push({m,rig,zom:1,i,x,z,tyaw:Math.atan2(-x,2.5-z),ry:Math.atan2(-x,2.5-z)+(Math.random()-.5)*.5,ph:Math.random()*6,big})}}
 function zCrowdTick(){const s0=t0;for(const b of zcr){t0=ft+b.i*.37;b.tyaw=b.ry;animBot(b,.016);b.m.position.y=Math.abs(Math.sin(ft*1.6+b.ph))*.035;b.m.rotation.z=Math.sin(ft*1.1+b.ph)*.05}t0=s0}
-function mkFig(r,x,y,z,ry,col,crown){const g=new THREE.Group(),rig=mkHuman(g,r.look?{operator:r.look.operator}:undefined);g.children[0].material.color.setHex(col);g.position.set(x,y,z);g.rotation.y=ry;
+function mkFig(r,x,y,z,ry,crown){const g=new THREE.Group(),rig=mkHuman(g,{operator:r.operator??r.look?.operator});markOperatorTeam(rig,r.tm);g.position.set(x,y,z);g.rotation.y=ry;
  if(crown){const gd=new THREE.MeshLambertMaterial({color:0xffd24a}),cb=(w,h,d,px,py,pz)=>{const o=new THREE.Mesh(bg,gd);o.scale.set(w,h,d);o.position.set(px,py,pz);g.add(o)};cb(.34,.05,.34,0,1.98,0);for(const[px,pz]of[[-.14,-.14],[.14,-.14],[-.14,.14],[.14,.14]])cb(.05,.1,.05,px,2.04,pz)}
  podG.add(g);const f={g,rig,e:null,et:0,ed:2.4,nt:1+Math.random()*2,ph:Math.random()*6,by:y,ry0:ry,me:!!r.me,top:y+2.5,x,z};figs.push(f);
  const d=document.createElement('div');d.className='pl'+(r.me?' me':'');d.innerHTML=`<b>${esc(r.nm)}${r.me?' (you)':''}</b><i>${r.k} kills</i>`;$('#fnm').appendChild(d);fLab.push(d);return f}
@@ -634,7 +941,7 @@ function podClear(){if(podG){S.remove(podG);podG=null}zcr=[];figs=[];conf=[];fLa
 function finStop(){podClear();fin=0;fs='';netBd=netSc=null;const F=$('#fin');F.style.display='none';F.className=''}
 /* podium done: back to the main menu (fades from black) */
 function toMenu(){podClear();fin=0;fs='';netBd=netSc=null;if(net&&(isHost||conns.length))netEnd();else netClose();for(const b of bots)S.remove(b.m);bots=[];for(const g of grs)S.remove(g.m);grs=[];clearFlags();endDeath();buildMap();hideFP();showRank();
- $('#hud').style.display=$('#end').style.display='none';$('#menu').style.display='block';if(net)$('#nav button.'+app+'[data-p="priv"]').click();const F=$('#fin');F.className='blk';void F.offsetWidth;F.className='';setTimeout(()=>{if(!fin)F.style.display='none'},600)}
+ $('#hud').style.display=$('#end').style.display='none';$('#menu').style.display='block';if(partyActive)openMenuPanel(playPanel(),false);else if(net)$('#nav button.'+app+'[data-p="priv"]').click();const F=$('#fin');F.className='blk';void F.offsetWidth;F.className='';setTimeout(()=>{if(!fin)F.style.display='none'},600)}
 
 /* ===================== touch.js ===================== */
 /* ---------- mobile touch controls + no-zoom / no-copy protections ---------- */
