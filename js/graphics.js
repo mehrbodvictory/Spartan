@@ -82,6 +82,10 @@ function gfxMap(M,list){
  for(const e of M._v||[])gfxVis(tclip(e),acc);if(M.deco)for(const e of M.deco())gfxVis(tclip(e),acc);if(M.facade)facade(list,acc);
  if(!M.open)for(const[x,z,w,d]of[[0,-H-1,2*H+4,2],[0,H+1,2*H+4,2],[-H-1,0,2,2*H],[H+1,0,2,2*H]])addBox(acc('wall'+M.bc,gMat('brick',M.bc)),x,5,z,w,10,d,TS.brick,0);
  for(const k in accs){const a=accs[k],g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(a.p,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(a.n,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(a.u,2));g.setAttribute('color',new THREE.Float32BufferAttribute(a.c,3));g.setIndex(a.i);const m=new THREE.Mesh(g,a.mat);m.castShadow=m.receiveShadow=true;mapG.add(m)}
+ // World geometry is immutable between map builds.
+ for(const mesh of mapG.children)if(mesh.isMesh&&mesh!==skyM&&mesh!==skyC){
+  mesh.updateMatrix();mesh.matrixAutoUpdate=false;
+ }
  gfxL=[];for(const[x,y,z,col,I,dist]of M.lights||[]){const l=new THREE.PointLight(col,I,dist);l.position.set(x,y,z);mapG.add(l);gfxL.push({l,b:I,p:Math.random()*6})}
 }
 /* every frame: sky follows the camera, lamps flicker, and the sun's shadow window glides in whole shadow texels so shadow edges stay rock steady while you move */
@@ -101,8 +105,16 @@ function gfxTick(dt){gt_+=dt;LX.tick(dt);if(skyM)skyM.position.copy(C.position);
    Boomtown: ochre dust storm, thick dust bands, a dark storm wall, smoke columns.     Rust: bleached desert noon, heat haze, mesas, an oil flare plume.
    Decay: heavy green-grey overcast, smoke columns and a ruined skyline.              Hollow Estate: night with a huge moon, stars, thin moonlit cloud, bats and a red horizon glow. ---------- */
 var SKY_SUN={Blockfort:[.45,.75,-.35],Pillars:[-.2,.92,.3],Canyon:[-.86,.2,.3],Suburbia:[.3,.7,.5],Boomtown:[.6,.5,-.4],Rust:[.1,.85,-.5],Decay:[-.3,.45,.2],London:[.38,.6,.5],'Dry Dock':[.55,.3,-.45],'Hollow Estate':[-.5,.55,.4]};
-var skyDir=()=>{const d=SKY_SUN[sel.map]||[.45,.7,.3],l=Math.hypot(...d);return d.map(v=>v/l)};
-function gfxSky(M){const W=1024,Hh=512,c=document.createElement('canvas');c.width=W;c.height=Hh;const g=c.getContext('2d'),name=sel.map,hz='#'+new THREE.Color(M.sky).getHexString(),hy=Hh/2;let sd=name.length*977+13;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
+const skyDirections=new Map();
+function skyDir(){
+ const key=sel.map;
+ if(!skyDirections.has(key)){
+  const d=SKY_SUN[key]||[.45,.7,.3],length=Math.hypot(...d);
+  skyDirections.set(key,d.map(v=>v/length));
+ }
+ return skyDirections.get(key);
+}
+function gfxSky(M){const W=1024,Hh=512,c=document.createElement('canvas');c.width=W;c.height=Hh;const g=c.getContext('2d'),name=sel.map,hz='#'+new THREE.Color(M.sky).getHexString(),hy=Hh/2;let sd=M.skySeed||name.length*977+13;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
  const sdir=skyDir(),phi0=Math.atan2(sdir[2],-sdir[0]),sx=((phi0<0?phi0+Math.PI*2:phi0)/(Math.PI*2))*W,sy=Math.acos(sdir[1])/Math.PI*Hh;
  const grad=(stops)=>{const gr=g.createLinearGradient(0,0,0,Hh);for(const[p,col]of stops)gr.addColorStop(p,col);g.fillStyle=gr;g.fillRect(0,0,W,Hh)};
  /* wrap helper: things near the left / right seam are drawn twice so the sphere has no visible seam */

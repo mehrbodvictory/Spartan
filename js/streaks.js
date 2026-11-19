@@ -227,9 +227,9 @@ function skCrate(x,z,type,fall){const m=skM(type=='vests'?'vests':type=='ammo'?'
 /* ---------- heavy weapons ---------- */
 W.MNG={n:'Fear Machine',d:15,r:.04,m:200,sp:.035,rc:.45,pel:1,au:1,rl:6,len:.85,col:0x4a4f55};W.GL={n:'Boom Machine',d:120,r:.55,m:12,sp:.01,rc:1.2,pel:1,au:0,rl:3.2,len:.8,col:0x4a5030};W.FT={n:'Flamethrower',d:9,r:.045,m:160,sp:.1,rc:.2,pel:1,au:1,rl:5,len:.7,col:0xd9822b};
 WG.MNG=[.85,0x4a4f55,1,0xffa040];WG.GL=[.8,0x4a5030,1,0xffa040];WG.FT=[.7,0xd9822b,1,0xff7a30];RLK.MNG=RLK.GL=RLK.FT='mag';
-MODELS.MNG=function(g,rm){const k=gunKit(g,rm),M=k.M,body=rm||M(0x4a4f55),dk=M(0x1b1d21),st=M(0x9aa0a8);k.box(.12,.14,.4,0,0,.1,body);k.cyl(.07,.2,0,0,.4,dk);for(let i=0;i<6;i++){const a=i*1.047;k.cyl(.02,.62,Math.cos(a)*.045,Math.sin(a)*.045,.75,st)}k.cyl(.07,.04,0,0,1.06,dk);k.cyl(.07,.04,0,0,.55,dk);k.box(.1,.2,.1,0,-.17,.0,dk,.3);k.box(.06,.12,.08,0,-.12,.34,dk);k.box(.14,.18,.2,.1,-.05,.0,M(0x4a5030));k.box(.04,.1,.04,0,.1,.0,dk);k.box(.04,.04,.5,0,.1,.3,dk);g.userData.a={r:[0,-.14,0],l:[0,-.08,.34],m:[0,-.05,.0]};g.userData.mags=[];return g};
-MODELS.GL=function(g,rm){const k=gunKit(g,rm),M=k.M,body=rm||M(0x4a5030),dk=M(0x1b1d21),st=M(0x9aa0a8);k.cyl(.07,.7,0,.02,.45,body);k.cyl(.085,.34,0,.02,.25,dk);k.cyl(.075,.05,0,.02,.82,dk);k.box(.07,.1,.34,0,-.02,.0,dk);k.box(.04,.14,.05,0,-.1,-.02,dk,.3);k.box(.03,.1,.03,0,-.1,.5,dk);k.box(.04,.04,.4,0,.1,.25,dk);k.cyl(.02,.04,0,.14,.55,st);k.box(.05,.05,.3,0,-.06,-.25,body);k.box(.05,.12,.04,0,-.06,-.42,dk);g.userData.a={r:[0,-.12,-.0],l:[0,-.05,.5],m:[0,-.02,.25]};g.userData.mags=[];return g};
-MODELS.FT=function(g,rm){const k=gunKit(g,rm),M=k.M,body=rm||M(0xd9822b),dk=M(0x1b1d21),st=M(0x9aa0a8);k.cyl(.035,.9,0,.04,.5,st);k.cyl(.05,.2,0,.04,.15,dk);k.box(.07,.12,.3,0,0,0,body);k.cyl(.045,.1,0,.04,.98,dk,.025);k.cone(.012,.05,0,.04,1.06,M(0xff7a30));k.box(.04,.14,.05,0,-.1,.0,dk,.3);k.box(.04,.1,.04,0,-.08,.45,dk);k.cyl(.12,.42,-.02,-.2,-.35,M(0xb8b8b0),.12);k.cylY(.12,.4,-.02,-.25,-.4,M(0xb8b8b0));k.cylY(.02,.5,.05,-.1,-.15,dk,0,Math.PI/2);g.userData.a={r:[0,-.1,0],l:[0,-.06,.45],m:[0,0,.1]};g.userData.mags=[];return g};
+MODELS.MNG=function(g,rm){const k=gunKit(g,rm),M=k.M,body=rm||M(0x4a4f55),dk=M(0x1b1d21),st=M(0x9aa0a8);k.box(.12,.14,.4,0,0,.1,body);k.cyl(.07,.2,0,0,.4,dk);for(let i=0;i<6;i++){const a=i*1.047;k.cyl(.02,.62,Math.cos(a)*.045,Math.sin(a)*.045,.75,st)}k.cyl(.07,.04,0,0,1.06,dk);k.cyl(.07,.04,0,0,.55,dk);k.box(.1,.2,.1,0,-.17,.0,dk,.3);k.box(.06,.12,.08,0,-.12,.34,dk);k.box(.14,.18,.2,.1,-.05,.0,M(0x4a5030));k.box(.04,.1,.04,0,.1,.0,dk);k.box(.04,.04,.5,0,.1,.3,dk);g.userData.a={r:[0,-.14,0],l:[0,-.08,.34],m:[0,-.05,.0]};g.userData.mags=[];mkSights(g,'MNG',{yt:.167,yb:.12,yf:.075,zr:.1,zf:.92});return g};
+MODELS.GL=function(g,rm){const k=gunKit(g,rm),M=k.M,body=rm||M(0x4a5030),dk=M(0x1b1d21),st=M(0x9aa0a8);k.cyl(.07,.7,0,.02,.45,body);k.cyl(.085,.34,0,.02,.25,dk);k.cyl(.075,.05,0,.02,.82,dk);k.box(.07,.1,.34,0,-.02,.0,dk);k.box(.04,.14,.05,0,-.1,-.02,dk,.3);k.box(.03,.1,.03,0,-.1,.5,dk);k.box(.04,.04,.4,0,.1,.25,dk);k.cyl(.02,.04,0,.14,.55,st);k.box(.05,.05,.3,0,-.06,-.25,body);k.box(.05,.12,.04,0,-.06,-.42,dk);g.userData.a={r:[0,-.12,-.0],l:[0,-.05,.5],m:[0,-.02,.25]};g.userData.mags=[];mkSights(g,'GL',{yt:.183,yb:.118,yf:.09,zr:.12,zf:.72});return g};
+MODELS.FT=function(g,rm){const k=gunKit(g,rm),M=k.M,body=rm||M(0xd9822b),dk=M(0x1b1d21),st=M(0x9aa0a8);k.cyl(.035,.9,0,.04,.5,st);k.cyl(.05,.2,0,.04,.15,dk);k.box(.07,.12,.3,0,0,0,body);k.cyl(.045,.1,0,.04,.98,dk,.025);k.cone(.012,.05,0,.04,1.06,M(0xff7a30));k.box(.04,.14,.05,0,-.1,.0,dk,.3);k.box(.04,.1,.04,0,-.08,.45,dk);k.cyl(.12,.42,-.02,-.2,-.35,M(0xb8b8b0),.12);k.cylY(.12,.4,-.02,-.25,-.4,M(0xb8b8b0));k.cylY(.02,.5,.05,-.1,-.15,dk,0,Math.PI/2);g.userData.a={r:[0,-.1,0],l:[0,-.06,.45],m:[0,0,.1]};g.userData.mags=[];mkSights(g,'FT',{yt:.126,yb:.062,yf:.076,zr:.04,zf:.87});return g};
 function skGiveHeavy(wk){if(!W[wk])return;let w=wp.find(x=>x.k==wk);if(w){w.mag=w.m}else{w={k:wk,...eff(wk,[])};w.mag=w.m;w.res=0;w.rs=0;w.heavy=1;wp.push(w)}cur=wp.indexOf(w);setGun();msg(W[wk].n+' equipped',2);beep(500,.2,'square',.06)}
 function skDropHeavy(wk){const i=wp.findIndex(w=>w.k==wk);if(i<0)return;wp.splice(i,1);cur=Math.max(0,Math.min(cur,wp.length-1));setGun()}
 function skHeavyShot(w){w.mag--;shots++;nf=t0+w.r*zfr();src=W[w.k].n;srcK=w.k;gunSnd(w);kick=Math.max(kick,.4);const o=C.position.clone(),d=aimDir();
@@ -310,7 +310,7 @@ var skImg=id=>{const u=objImg('sk_'+id,()=>skModel(id));return u||''};
 var skTag=id=>{const u=skImg(id);return u?`<img src="${u}" alt="">`:''};
 /* ---------- screen ---------- */
 var SKU={sel:'uav',slot:0,cat:-1};
-function skOpen(){SKU.sel=skSel()[SKU.slot]||'uav';$$('#nav button').forEach(x=>x.classList.remove('on'));$$('.pn').forEach(p=>p.classList.toggle('on',p.id=='p-ks'));skRender()}
+function skOpen(){SKU.sel=skSel()[SKU.slot]||'uav';showMenuPanel('ks');skRender();$('#p-ks button')?.focus({preventScroll:true})}
 function skBack(){const b=document.querySelector('#nav button[data-p="load"]');if(b)b.click()}
 function skRender(){const e=$('#p-ks');if(!e)return;const sel=skSel(),cur=STK[SKU.sel]||STK.uav,lock=!skOK(cur.id),hid=cur.id=='nuke'&&lock;
  const tiles=STKL.filter(s=>s.id!='nuke'&&(SKU.cat<0||s.c==SKU.cat)).map(s=>{const lk=!skOK(s.id),hd=s.id=='nuke'&&lk,on=sel.includes(s.id);return `<button class="sk ${SKU.sel==s.id?'sel':''} ${lk?'lk':''} ${on?'eq':''}" data-sk="${s.id}"><span class="skc">${hd?'':s.k}</span>${lk?`<u>🔒</u>`:''}<span class="ski">${hd?'':skTag(s.id)}</span><b>${hd?'???':s.n}</b>${lk&&!hd?`<small>Level ${s.lv}</small>`:''}</button>`}).join('');
@@ -397,7 +397,6 @@ function dropPower(){const had=wp.length;wp=wp.filter(w=>!(w.pw||PWK.includes(w.
 
 /* ===================== fixes: RayGun ADS, VR menu cube ===================== */
 /* RayGun: the power cell and cap sit on the sight line a few centimetres in front of the camera, which showed up as a giant block while aiming. They are hidden while aiming down sights. */
-{const _fu=fpUpdate;fpUpdate=function(dt){_fu.apply(this,arguments);try{const m=rgG.userData.mag,w=cw();if(m&&w){const hide=w.k=='RG'&&ST.ads>.2;for(const x of m)x.visible=!hide}}catch(e){}}}
 /* VR: outside a match nothing weapon-shaped may be drawn on the controllers or the camera (the white block on the right arm in the main menu) */
 {const _vp=vrPost;vrPost=function(dt){_vp.apply(this,arguments);if(!xrS||inMatch())return;try{gun.visible=false;katG.visible=false;for(const a of[fpArm.r,fpArm.l])a.up.visible=a.fo.visible=false;for(const c of xrCtl)for(const ch of c.children)if(ch!==gun&&!(xrWrist&&ch===xrWrist.m))ch.visible=false}catch(e){}}}
 
@@ -534,10 +533,10 @@ var KC={on:0,t:0,dur:3.4,b:null,tp:null,cam:null,hist:[],deal:[],info:null};
 function kcStart(k){const live=OPT.kc&&k&&k.m&&k!==null,now=t0,rec=new Map();for(const h of KC.hist)if(now-h.t<6&&h.d>0){const key=h.nm||'Explosion';const r=rec.get(key)||{nm:key,d:0,wk:h.wk};r.d+=h.d;if(h.wk)r.wk=h.wk;rec.set(key,r)}
  let dealt=0;if(k)for(const x of KC.deal)if(x.b===k&&now-x.t<8)dealt+=x.d;
  KC.on=1;KC.t=0;KC.b=live?k:null;KC.tp=V(P.x,P.y+1,P.z);KC.cam=null;
- KC.info={nm:k?(k.nm||'Enemy'):'Unknown',wk:k&&k.wk?(W[k.wk]?W[k.wk].n:k.wk):'Explosive',dist:k?Math.round(Math.hypot(k.x-P.x,k.z-P.z)):0,team:k?k.team:0,rec:[...rec.values()].sort((a,b)=>b.d-a.d).slice(0,5),dealt:Math.round(dealt),live,hp0:k?Math.max(0,k.hp+(k.sh||0)):0};
+ KC.info={nm:k?(k.nm||'Enemy'):'Unknown',look:k?.net&&!k.hb?peerLooks.get(k.id):null,wk:k&&k.wk?(W[k.wk]?W[k.wk].n:k.wk):'Explosive',dist:k?Math.round(Math.hypot(k.x-P.x,k.z-P.z)):0,team:k?k.team:0,rec:[...rec.values()].sort((a,b)=>b.d-a.d).slice(0,5),dealt:Math.round(dealt),live,hp0:k?Math.max(0,k.hp+(k.sh||0)):0};
  KC.hist=[];KC.deal=[];P.rt=Math.max(P.rt,live?KC.dur+.5:3.4);document.body.classList.add('kc-on');kcPanel()}
 function kcPanel(){const e=$('#kcam'),I=KC.info;if(!e||!I)return;const wn=n=>String(n).replace(/[<>&]/g,'');
- e.innerHTML=`<div class="kc-top">${I.live?'<small>KILLCAM</small>':'<small>ELIMINATED</small>'}<b>${wn(I.nm).toUpperCase()}</b><span>${wn(I.wk)} · ${I.dist} m</span><div class="kc-hp"><i></i></div></div>
+ e.innerHTML=`<div class="kc-top">${I.live?'<small>KILLCAM</small>':'<small>ELIMINATED</small>'}${I.look?idrPlate(I.look,I.nm):`<b>${wn(I.nm).toUpperCase()}</b>`}<span class="kc-weapon">${wn(I.wk)} · ${I.dist} m</span><div class="kc-hp"><i></i></div></div>
  <div class="kc-rec"><h4>DAMAGE TAKEN</h4>${I.rec.length?I.rec.map(r=>`<div><b>${wn(r.nm)}</b><span>${r.wk&&W[r.wk]?W[r.wk].n:'Explosion'}</span><i>${Math.round(r.d)}</i></div>`).join(''):'<div><b>Unknown</b><i>–</i></div>'}<h4>YOU DEALT</h4><div><b>${I.dealt>0?wn(I.nm):'Nothing'}</b><i>${I.dealt}</i></div></div>
  <div class="kc-bot"><span id="kc-rs"></span><em>Press <kbd>${keyName(bindOf('use'))}</kbd> to skip</em></div>`;e.style.display='block'}
 function kcCam(dt){KC.t+=dt;const k=KC.b;if(!k||!k.m)return;const T=KC.tp,K=V(k.x,(k.y||0)+1,k.z);let dx=T.x-K.x,dz=T.z-K.z;const L=Math.hypot(dx,dz)||1;dx/=L;dz/=L;
@@ -578,13 +577,14 @@ var MEDALS={'First Blood':[50,'First kill of the match'],'Headshot':[10,'Kill wi
  'Cold Steel':[30,'Melee kill'],'Frag Out':[25,'Kill with an explosive'],'Air Support':[25,'Kill with a scorestreak'],'Untouchable':[60,'5 kills without taking damage']};
 var dayKey=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 var weekKey=()=>{const d=new Date(),t=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate());return'W'+Math.floor((t/86400000+3)/7)};
-var msReset=()=>{Object.assign(MST,{k:0,hs:0,melee:0,expl:0,streak:0,long:0,best:0,medals:{},dmg:0,t0:t0,su:0,mk:[],lastKiller:null,noHit:0,cc:[]})};
+var msReset=()=>{Object.assign(MST,{k:0,hs:0,melee:0,expl:0,streak:0,long:0,best:0,medals:{},dmg:0,t0:t0,su:0,mk:[],lastKiller:null,noHit:0,cc:[],season:null})};
 /* challenge definitions: [id, name, description, stat, goal, xp] */
 var CHD=[['d1','Warm-up','Get 15 kills','kills',15,300],['d2','Sharpshooter','Get 8 headshots','headshots',8,400],['d3','Rifleman','12 kills with rifles','k_Rifles',12,350],['d4','Close Quarters','10 kills with SMGs and shotguns','k_Close Quarters',10,350],
  ['d5','Sidearm Specialist','6 kills with sidearms','k_Sidearms',6,400],['d6','Long Shot','2 kills from 50 m or more','longshots',2,450],['d7','Knife Fight','3 melee kills','melee',3,450],['d8','Frag Out','3 kills with explosives','explosive',3,400],
  ['d9','Call Down','Use 3 scorestreaks','streaksUsed',3,350],['d10','On a Roll','Play 3 matches','matches',3,300],['d11','Victory Lap','Win 2 matches','wins',2,500],['d12','Medal Hunter','Earn 6 medals','medals',6,300]];
 var CHW=[['w1','Veteran','Get 120 kills','kills',120,1500],['w2','Headhunter','Get 50 headshots','headshots',50,1500],['w3','Winning Streak','Win 8 matches','wins',8,2000],['w4','Air Superiority','15 kills with scorestreaks','streakKills',15,1500],['w5','Marksman','10 kills from 50 m or more','longshots',10,1800],['w6','Sidearm Master','40 kills with sidearms','k_Sidearms',40,1500]];
-var CHC=[['c1','Centurion','kills',[100,500,2500],[500,1500,4000]],['c2','Headshot Hunter','headshots',[50,250,1000],[500,1500,4000]],['c3','Veteran of Arms','wins',[10,50,200],[600,2000,5000]],['c4','Medal Collector','medals',[25,100,400],[500,1500,4000]]];
+const CH_TIERS=['I','II','III'];
+var CHC=[['c1','Centurion','kills',[100,500,2500],[500,1500,4000],['breach',null,'iron']],['c2','Headshot Hunter','headshots',[50,250,1000],[500,1500,4000],['sight',null,'zero']],['c3','Veteran of Arms','wins',[10,50,200],[600,2000,5000],['summit',null,'dominion']],['c4','Medal Collector','medals',[25,100,400],[500,1500,4000],['ribbons',null,'laurels']]];
 var hs2=x=>{let a=0x9e3779b9,b=0x85ebca6b;const t=x+'|ch|sd77';for(let i=0;i<t.length;i++){a=Math.imul(a^t.charCodeAt(i),2654435761);b=Math.imul(b^t.charCodeAt(i),1597334677)}return((a^b)>>>0).toString(36)};
 var rngS=seed=>{let s=0;for(const c of seed)s=(s*31+c.charCodeAt(0))>>>0;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296}};
 var pickS=(pool,seed,n)=>{const r=rngS(seed),a=pool.slice(),o=[];while(o.length<n&&a.length)o.push(a.splice(Math.floor(r()*a.length),1)[0]);return o};
@@ -597,7 +597,17 @@ var chActive=()=>({d:pickS(CHD,CHST.day,3),w:pickS(CHW,CHST.week,3)});
 function chEv(stat,n=1){if(!CHST)chLoad();chRoll();const A=chActive();let any=0;
  for(const [grp,list] of [['d',A.d],['w',A.w]])for(const c of list){if(c[3]!=stat)continue;const key=grp+':'+c[0];if(CHST.done[key])continue;CHST[grp][c[0]]=Math.min(c[4],(CHST[grp][c[0]]||0)+n);any=1;
   if(CHST[grp][c[0]]>=c[4]){CHST.done[key]=1;MST.cc.push([c[1],c[5]]);try{giveXP(c[5])}catch(e){}popup('CHALLENGE COMPLETE',c[1]+' · +'+c[5]+' XP')}}
- for(const c of CHC){if(c[2]!=stat)continue;CHST.c[stat]=(CHST.c[stat]||0)+n;any=1;const t=CHST.tier[c[0]]||0;if(t<3&&CHST.c[stat]>=c[3][t]){CHST.tier[c[0]]=t+1;MST.cc.push([c[1]+' '+['I','II','III'][t],c[4][t]]);try{giveXP(c[4][t])}catch(e){}popup('CAREER · '+c[1].toUpperCase()+' '+['I','II','III'][t],'+'+c[4][t]+' XP')}}
+ for(const [id,name,metric,goals,xp,cards] of CHC){
+  if(metric!==stat)continue;
+  CHST.c[stat]=(CHST.c[stat]||0)+n;any=1;
+  for(let tier=CHST.tier[id]||0;tier<goals.length&&CHST.c[stat]>=goals[tier];tier++){
+   CHST.tier[id]=tier+1;
+   const title=name+' '+CH_TIERS[tier],card=IDR_CARDS[cards[tier]]?.name;
+   MST.cc.push([title,xp[tier],card]);
+   try{giveXP(xp[tier])}catch(e){}
+   popup('CAREER · '+title.toUpperCase(),'+'+xp[tier]+' XP'+(card?' · Calling card unlocked: '+card:''));
+  }
+ }
  if(any)chSave()}
 chLoad();
 function msMedal(name){const m=MEDALS[name];if(!m)return;MST.medals[name]=(MST.medals[name]||0)+1;CHST.medals[name]=(CHST.medals[name]||0)+1;try{giveXP(m[0])}catch(e){}ntShow('<span>★ '+name.toUpperCase()+' · +'+m[0]+' XP</span>','streak',2.6,'m:'+name+performance.now(),0);chEv('medals')}
@@ -619,24 +629,44 @@ function msKill(b,head){const s=String(src||''),stk=!!SK.nok,d=Math.hypot(b.x-P.
 {const _hb=hitBot;hitBot=function(b,d,head){if(d>0&&b&&b.al&&run)MST.dmg+=Math.min(d,b.hp+(b.sh||0));return _hb.apply(this,arguments)}}
 {const _us=useStreak;useStreak=function(){const n=q.length,r=_us.apply(this,arguments);if(q.length<n){MST.su++;chEv('streaksUsed')}return r}}
 {const _sg=startGame;startGame=function(){msReset();return _sg.apply(this,arguments)}}
-{const _eg=endGame;endGame=function(t){const was=over,r=_eg.apply(this,arguments);if(!was&&over&&mode!='Zombies'&&mode!='Survival'){chEv('matches');if(won)chEv('wins')}return r}}
-/* challenges screen */
-(function(){const nav=$('#nav'),main=$('main');if(!nav||!main)return;const b=document.createElement('button');b.dataset.p='chal';b.className='mp';b.textContent='Challenges';const ld=nav.querySelector('button[data-p=load]');nav.insertBefore(b,ld?ld.nextSibling:null);
- const sec=document.createElement('section');sec.id='p-chal';sec.className='pn';main.appendChild(sec);
- b.onclick=()=>{$$('#nav button').forEach(x=>x.classList.toggle('on',x==b));$$('.pn').forEach(p=>p.classList.toggle('on',p.id=='p-chal'));chRenderUI()}})();
+/* Challenges use one collection at a time. */
+let challengeView='daily';
+$('#nav [data-p=chal]').addEventListener('click',chRenderUI);
+$('#p-chal').addEventListener('click',e=>{
+ const button=e.target.closest('[data-challenge-view]');
+ if(!button)return;
+ challengeView=button.dataset.challengeView;chRenderUI();
+ $('#p-chal [data-challenge-view="'+challengeView+'"]').focus({preventScroll:true});
+});
 function chLeft(ms){const m=Math.max(0,Math.floor(ms/60000)),d=Math.floor(m/1440),h=Math.floor(m%1440/60);return d?d+'d '+h+'h':h+'h '+m%60+'m'}
 function chRenderUI(){const e=$('#p-chal');if(!e)return;chRoll();const A=chActive(),now=new Date(),dRes=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1)-now,wDay=(now.getDay()+6)%7,wRes=new Date(now.getFullYear(),now.getMonth(),now.getDate()+(7-wDay))-now;
  const row=(grp,c)=>{const key=grp+':'+c[0],p=CHST[grp][c[0]]||0,done=!!CHST.done[key];return`<div class="chr ${done?'dn':''}"><div class="cht"><b>${c[1]}</b><span>${c[2]}</span></div><div class="chb"><i style="width:${Math.min(100,p/c[4]*100)}%"></i></div><div class="chn">${done?'COMPLETE':p+' / '+c[4]}<em>+${c[5]} XP</em></div></div>`};
- const car=c=>{const t=CHST.tier[c[0]]||0,v=CHST.c[c[2]]||0,g=c[3][Math.min(t,2)];return`<div class="chr ${t>=3?'dn':''}"><div class="cht"><b>${c[1]}</b><span>Tier ${Math.min(t+1,3)} of 3${t>=3?' (complete)':''}</span></div><div class="chb"><i style="width:${t>=3?100:Math.min(100,v/g*100)}%"></i></div><div class="chn">${t>=3?'MAX':v+' / '+g}<em>+${c[4][Math.min(t,2)]} XP</em></div></div>`};
- e.innerHTML=`<h2>Challenges</h2><p class="sub">Daily and weekly challenges rotate automatically. Rewards are XP. Progress is saved on this device.</p><div class="chg"><div class="chc"><h3>Daily <small>resets in ${chLeft(dRes)}</small></h3>${A.d.map(c=>row('d',c)).join('')}</div><div class="chc"><h3>Weekly <small>resets in ${chLeft(wRes)}</small></h3>${A.w.map(c=>row('w',c)).join('')}</div><div class="chc"><h3>Career</h3>${CHC.map(car).join('')}</div></div>
- <h3 class="chh">Medals</h3><div class="chm">${Object.keys(MEDALS).map(n=>{const c=CHST.medals[n]||0;return`<div class="md ${c?'on':''}" title="${MEDALS[n][1]}"><b>★</b><span>${n}</span><i>${c}</i></div>`}).join('')}</div>`}
+ const car=([id,name,stat,goals,xp,cards])=>{
+  const tier=CHST.tier[id]||0,last=goals.length-1,done=tier>last,cur=Math.min(tier,last),goal=goals[cur],v=Math.min(goal,CHST.c[stat]||0);
+  const rewards=cards.map((card,i)=>card?`<li><b>${IDR_CARDS[card].name}</b><span>Tier ${CH_TIERS[i]} · ${tier>i?'Unlocked':goals[i].toLocaleString()+' '+stat}</span></li>`:'').join('');
+  return`<div class="chr ${done?'dn':''}"><div class="cht"><b>${name}</b><span>${done?'All tiers complete':'Tier '+CH_TIERS[cur]+' · '+goal.toLocaleString()+' '+stat}</span></div><div class="chb"><i style="width:${done?100:v/goal*100}%"></i></div><div class="chn">${done?'MAX':v.toLocaleString()+' / '+goal.toLocaleString()}${done?'':`<em>+${xp[cur]} XP</em>`}</div><ul class="idr-ch-rewards" aria-label="Calling card rewards">${rewards}</ul></div>`;
+ };
+ const labels=[['daily','Daily'],['weekly','Weekly'],['career','Career'],['medals','Medals']];
+ const rotated=challengeView==='daily'||challengeView==='weekly';
+ let collection;
+ if(rotated){
+  const daily=challengeView==='daily',group=daily?'d':'w';
+  collection=`<div class="section-line"><h3>${daily?'Daily challenges':'Weekly challenges'}</h3><span>Resets in ${chLeft(daily?dRes:wRes)}</span></div>
+   <div class="challenge-list">${A[group].map(c=>row(group,c)).join('')}</div>`;
+ }else if(challengeView==='career'){
+  collection=`<div class="section-line"><h3>Calling card progression</h3><button class="text-button" data-panel="identity">Open Locker <span aria-hidden="true">↗</span></button></div>
+   <div class="challenge-list career">${CHC.map(car).join('')}</div>`;
+ }else collection=`<div class="chm">${Object.keys(MEDALS).map(n=>{const c=CHST.medals[n]||0;return`<div class="md ${c?'on':''}" title="${MEDALS[n][1]}"><b>★</b><span>${n}</span><i>${c}</i></div>`}).join('')}</div>`;
+ e.innerHTML=`<header class="panel-head"><h2>Challenges</h2></header><div class="segmented" aria-label="Challenge categories">${labels.map(([id,name])=>
+  `<button data-challenge-view="${id}" aria-pressed="${challengeView===id}">${name}</button>`).join('')}</div>${collection}`;
+}
 /* ===================== aar.js ===================== */
 /* ---------- feature 5: after action report. The post-match board gets a full report: your result, MVP badge, K/D, accuracy, headshots, damage, best streak, time played, XP, the medals you earned and the challenges you completed. ---------- */
 {const _fs=finStart;finStart=function(t,sc,nb,xp){const r=_fs.apply(this,arguments);try{aarInject(t)}catch(e){console.error(e)}return r}}
 function aarInject(t){const f=$('#fbd'),c=$('#fcont');if(!f||!c)return;const rows=(typeof finInfo!='undefined'&&finInfo&&finInfo.rows)||[],me=rows.findIndex(r=>r.me),mvp=me==0&&rows.length>1,acc=shots?Math.round(hits/shots*100):0,kd=deaths?(kills/deaths).toFixed(2):kills.toFixed(2),mins=Math.max(0,t0-MST.t0),tm=Math.floor(mins/60)+':'+String(Math.floor(mins%60)).padStart(2,'0'),
  box=(l,v,s)=>`<div class="ab"><i>${l}</i><b>${v}</b>${s?`<em>${s}</em>`:''}</div>`,md=Object.keys(MST.medals);
- const h=`<div class="aar">${mvp?'<div class="mvp">★ MVP · top of the board</div>':''}<div class="aag">${box('K/D',kd,kills+' / '+deaths)}${box('Accuracy',acc+'%',hits+' of '+shots+' shots')}${box('Headshots',MST.hs,kills?Math.round(MST.hs/kills*100)+'% of kills':'')}${box('Damage',Math.round(MST.dmg))}${box('Best streak',MST.best)}${box('Time',tm)}</div>
- ${md.length?`<h4>Medals earned</h4><div class="aam">${md.map(n=>`<span><b>★</b>${n}${MST.medals[n]>1?' x'+MST.medals[n]:''}</span>`).join('')}</div>`:''}${MST.cc.length?`<h4>Challenges completed</h4><div class="aac">${MST.cc.map(x=>`<div><span>${x[0]}</span><i>+${x[1]} XP</i></div>`).join('')}</div>`:''}</div>`;
+ const h=`<div class="aar">${mvp?'<div class="mvp">★ MVP · top of the board</div>':''}<div class="aag">${box('K/D',kd,kills+' / '+deaths)}${box('Accuracy',acc+'%',hits+' of '+shots+' shots')}${box('Headshots',MST.hs,kills?Math.round(MST.hs/kills*100)+'% of kills':'')}${box('Damage',Math.round(MST.dmg))}${box('Best streak',MST.best)}${box('Time',tm)}${MST.season?box('Battle Pass','+'+MST.season.earned+' XP','+'+MST.season.reward+' Mehrbod Bux'):''}</div>
+ ${md.length?`<h4>Medals earned</h4><div class="aam">${md.map(n=>`<span><b>★</b>${n}${MST.medals[n]>1?' x'+MST.medals[n]:''}</span>`).join('')}</div>`:''}${MST.cc.length?`<h4>Challenges completed</h4><div class="aac">${MST.cc.map(([title,xp,card])=>`<div><span>${title}${card?`<small class="idr-report-reward">Calling card unlocked · ${card}</small>`:''}</span><i>+${xp} XP</i></div>`).join('')}</div>`:''}</div>`;
  f.classList.add('hasaar');c.insertAdjacentHTML('beforebegin',h)}
 /* ===================== threat.js ===================== */
 /* ---------- feature 6: threat awareness. Live grenades near you show a pulsing arrow around the crosshair pointing at them (red for frags, white for flashbangs) with a warning beep, and enemy footsteps are heard
@@ -881,7 +911,7 @@ function kcAssets(){if(kcA)return kcA;
  const plate=new THREE.ExtrudeGeometry(sh,{depth:.01,bevelEnabled:true,bevelThickness:.006,bevelSize:.006,bevelSegments:3,curveSegments:8});plate.translate(0,0,-.005);
  const stamp=new THREE.ExtrudeGeometry(rr(.15,.19,.028),{depth:.003,bevelEnabled:true,bevelThickness:.0016,bevelSize:.0016,bevelSegments:1,curveSegments:5});stamp.translate(0,-.032,.011);
  const cv=(w,h,fn)=>{const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);return t};
- const glow=cv(64,64,(g,w,h)=>{const r=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.25,'rgba(255,255,255,.55)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,w,h)});
+ const glow=LX.effectTextures().glow;
  const grad=cv(4,128,(g,w,h)=>{const l=g.createLinearGradient(0,h,0,0);l.addColorStop(0,'#fff');l.addColorStop(.35,'#777');l.addColorStop(1,'#000');g.fillStyle=l;g.fillRect(0,0,w,h)});
  const std=(c,m,r,e)=>new THREE.MeshStandardMaterial({color:c,metalness:m,roughness:r,emissive:e||0,emissiveIntensity:.9}),mk=(col,dk,em)=>({plate:std(col,.92,.26,em),stamp:std(dk,.85,.38,0),bead:std(0xcfd3d8,1,.22,0)});
  return kcA={plate,stamp,glow,grad,mat:{y:mk(0xffd21a,0xb08a00,0x4a3600),r:mk(0xff3b30,0x8a1010,0x4a0808)},bead:new THREE.SphereGeometry(.0085,8,6),
@@ -939,3 +969,48 @@ function kcTick(dt){if(!kcTags.length&&!kcFly.length)return;const auth=!netOn||i
 /* a tag drops wherever a fighter goes down */
 {const _an=announce;announce=function(t,by){const r=_an.apply(this,arguments);try{kcDrop(t,by)}catch(e){}return r}}
 {const _sd=startDeath;startDeath=function(){try{if(mode=='Kill Confirmed'&&!over)kcDrop(P,lastBot||null)}catch(e){}return _sd.apply(this,arguments)}}
+
+/* Keep the existing setting inputs and bindings while presenting them by task. */
+addEventListener('sd-ready',()=>{
+ const panel=$('#p-set'),heading=panel.firstElementChild,body=document.createElement('div'),nav=document.createElement('div');
+ heading.classList.add('panel-head');nav.className='segmented';nav.setAttribute('aria-label','Settings categories');
+ body.className='settings-body';
+ const groups={};
+ for(const [key,label] of [['match','Gameplay'],['video','Video & audio'],['input','Input'],['help','Control guide']]){
+  const button=document.createElement('button'),group=document.createElement('section');
+  button.textContent=label;button.dataset.settingView=key;nav.append(button);
+  group.className=key==='help'?'settings-help':'settings-fields';group.setAttribute('aria-label',label);
+  groups[key]=group;body.append(group);
+ }
+ const video=new Set(['br','gq','mbl','fpsLimit','fps','vl3','sk3']);
+ for(const row of panel.querySelectorAll(':scope > label,:scope > .rgbrow')){
+  const id=row.querySelector('select,input')?.id;
+  groups[row.matches('.rgbrow')||video.has(id)?'video':['pgs','vib','vrm','sn'].includes(id)?'input':'match'].append(row);
+ }
+ for(const title of [...panel.querySelectorAll(':scope > h2')].slice(1)){
+  const details=document.createElement('details'),summary=document.createElement('summary'),content=title.nextElementSibling;
+  const note=content.nextElementSibling;
+  summary.textContent=title.textContent;details.append(summary,content);
+  title.hidden=true;details.append(title);
+  if(note?.matches('p.sub'))details.append(note);
+  groups.help.append(details);
+ }
+ groups.help.append(...panel.querySelectorAll(':scope > p.sub'));
+ const rebind=$('#rebind');
+ groups.match.append(...rebind.querySelectorAll(':scope > label'));
+ rebind.firstElementChild.remove();groups.input.append(rebind);
+ panel.append(nav,body);
+ const change=key=>{
+  for(const [name,group] of Object.entries(groups))group.hidden=name!==key;
+  for(const button of nav.children)button.setAttribute('aria-pressed',String(button.dataset.settingView===key));
+ };
+ change('match');
+ nav.addEventListener('click',e=>{const key=e.target.closest('[data-setting-view]')?.dataset.settingView;if(key)change(key)});
+ const pause=$('#pause .card'),exit=$('#exit'),details=document.createElement('details'),fields=document.createElement('div');
+ details.className='pause-options';fields.className='pause-fields';
+ const summary=document.createElement('summary');summary.textContent='Match settings';details.append(summary,fields);exit.before(details);
+ const groupPause=()=>fields.append(...pause.querySelectorAll(':scope > label,:scope > .rgbrow'));
+ groupPause();
+ const show=showPause;
+ showPause=function(){show.apply(this,arguments);groupPause()};
+});

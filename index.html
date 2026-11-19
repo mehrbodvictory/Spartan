@@ -4,10 +4,10 @@ PROJECT RULES (kept here so every future session starts from them)
  Look & feel     3D models must be detailed and professional, animations everywhere, plenty of juice. Never ship placeholder-looking models.
  Files           the whole project stays under 20 files (index.html, style.css, favicon.svg, README.md and the scripts in js/). Add to existing files before adding new ones.
  Delivery        the finished game is delivered as a .zip. The README does not need updating.
- Weapons         every weapon added must also exist in Zombies (wall buy + Mystery Box), unless it is a map's own unique weapon (London's The Brew). Zombies-only weapons never appear in Multiplayer.
+ Weapons         every weapon added must also exist in Zombies (wall buy on a suitable map + Mystery Box), unless it is a map's own unique weapon (London's The Brew). Zombies-only weapons never appear in Multiplayer.
                  There is ONE model per weapon, used in first person, in the loadout, on bots/other players and on the chalk wall buys. Bots can use every Multiplayer weapon.
                  Reload sounds are real mechanical sounds (noise + material resonances, scrapes, thuds), unique per gun, never pitched tones or sweeps. RayGun: one shared projectile and one shared red ooze explosion (rgImpact) for the player, bots and remote players.
- Performance     must be heavily optimised: no frame cap, 60 fps minimum on every device at Ultra (the governor LX.gov trades resolution first, effects second). Never add per-frame DOM rebuilds.
+ Performance     must be heavily optimised: uncapped by default, with an optional FPS limit. Never add per-frame DOM rebuilds.
  Zombies         wall buys are chalk outlines; at most two zombies throw guts at a time; each gun has its own reload sounds; ONE Mystery Box per map at a random spot that moves after use;
                  the spawn room always has Revive Soda (self-revive, and it revives teammates twice as fast); Hollow Estate has Nitrogen Fists, London has the power switch and the tea easter egg, never Nitrogen Fists.
  Multiplayer maps keep their OWN layouts and character: never replace a map with a shared template. They follow the Call of Duty design rules through per-map tuning (mapTune / MAPTUNE in extras.js):
@@ -18,26 +18,124 @@ PROJECT RULES (kept here so every future session starts from them)
 -->
 <html lang="en"><head><meta charset="utf-8"><title>Spartan Drill</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600&family=Teko:wght@500;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@500;600&family=Teko:wght@500;700&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="favicon.svg"><link rel="stylesheet" href="style.css"></head><body>
-<div id="menu">
- <header id="brand"><h1>SPARTAN <b>DRILL</b></h1><p>Arena combat simulator</p></header>
- <nav id="nav"><button data-p="play" class="mp">Play</button><button data-p="priv" class="mp">Private match</button><button data-p="load" class="mp">Loadout</button><button data-p="zplay" class="zm">Play</button><button data-p="priv" class="zm">Co-op lobby</button><button data-p="cust" class="zm">Camos</button><button data-p="chew" class="zm">Chewables</button><button data-p="set">Settings</button><button id="back">‹ Back</button></nav>
- <div id="prof"><input id="nm" type="text" maxlength="12" placeholder="Your name"><p id="rank"></p><div id="xpb"><div id="xpf"></div></div><button id="prest" class="btn sm" style="display:none"></button></div>
+<div id="menu" style="display:none">
+ <div class="lobby-stage" aria-hidden="true"><canvas id="lobby-canvas" data-studio="party" data-studio-id="all"></canvas></div>
+ <header class="menu-header">
+  <div id="brand" class="wordmark"><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M18 2 33 9v10c0 7-7 12-15 15C10 31 3 26 3 19V9z"/><path d="m10 20 8-10 8 10m-13 5 5-6 5 6"/></svg><h1>Spartan <b>Drill</b></h1></div>
+  <nav id="nav" aria-label="Main menu">
+   <button data-p="lobby" class="mp" data-primary>Play</button>
+   <button data-p="load" class="mp" data-primary>Loadout</button>
+   <button data-p="identity" class="mp" data-primary>Locker</button>
+   <button data-p="pass" class="mp" data-primary>Battle Pass</button>
+   <button data-p="chal" class="mp" data-primary>Challenges</button>
+   <button data-p="zplay" class="zm" data-primary>Play</button>
+   <button data-p="identity" class="zm" data-primary>Locker</button>
+   <button data-p="cust" class="zm" data-primary>Weapon Camos</button>
+   <button data-p="chew" class="zm" data-primary>Chewables</button>
+   <button data-p="play" class="mp" data-secondary>Match setup</button>
+   <button data-p="priv" class="mp" data-secondary>Private match</button>
+   <button data-p="priv" class="zm" data-secondary>Co-op lobby</button>
+  </nav>
+  <div class="menu-utility">
+   <button id="back" class="utility-icon" type="button" aria-label="Switch game mode" title="Switch game mode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4 3 9l5 5M3 9h13a4 4 0 0 1 0 8h-3"/></svg></button>
+   <button id="settings-open" class="utility-icon" type="button" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6m-6 0v6"/></svg></button>
+   <button id="profile-open" class="profile-open" aria-label="Player profile" aria-controls="prof" aria-expanded="false"><span id="profile-initial" aria-hidden="true"></span><b id="profile-name">Player</b><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button>
+  </div>
+  <div id="prof" hidden><label for="nm">Player name</label><input id="nm" type="text" maxlength="12" placeholder="Your name"><p id="rank"></p><div id="xpb"><div id="xpf"></div></div><button id="prest" class="btn sm" style="display:none"></button></div>
+ </header>
  <main>
-  <section id="p-play" class="pn"><h2>Game mode</h2><div class="row" id="md"></div><h2>Map</h2><div class="row" id="mp"></div><button id="go" class="big">Deploy</button></section>
-  <section id="p-priv" class="pn"><h2>Private match</h2><p class="sub">Play with friends directly, peer to peer. Host creates a code, friends type it in. Pick any game mode: bots and rules run on the host. Uses your current loadout.</p>
-   
-   <div class="two"><div class="card2"><h3>Host</h3><label id="pmodeL">Game mode<select id="pmode"></select></label><label id="pmL">Map<select id="pm"></select></label><label id="pbL">Bots in the match: <b id="pbv">6</b><input id="pbots" type="range" min="0" max="12" step="1" value="6"></label><button id="host" class="big">Create match</button>
-    <div id="hostbox" style="display:none"><div id="code"></div><button id="startnet" class="big">Start match</button></div></div>
-   <div class="card2"><h3>Join</h3><label>Match code<input id="jc" type="text" maxlength="5" placeholder="ABCDE"></label><button id="join" class="big">Join match</button></div></div>
-   <p id="lb"></p><ul id="plist"></ul><button id="leave" class="big alt" style="display:none">Leave lobby</button></section>
-  <section id="p-load" class="pn"><h2>Loadout <span id="pts"></span></h2><div id="ld"></div></section>
+  <section id="p-lobby" class="pn" aria-label="Multiplayer lobby"></section>
+  <section id="p-play" class="pn" aria-label="Match setup">
+   <header class="panel-head setup-head">
+    <div><button class="text-button back-link" data-panel="lobby">Back to Play</button><h2>Match setup</h2></div>
+    <button id="go" class="big action-arrow" data-initial-focus>Find match</button>
+   </header>
+   <div class="setup-shell">
+    <section class="setup-playlists" aria-labelledby="setup-playlist-title">
+     <div class="section-line"><h3 id="setup-playlist-title">Playlist</h3></div>
+     <p id="setup-rule" class="setup-rule"></p>
+     <div id="md" class="playlist-list"></div>
+    </section>
+    <section class="setup-maps" aria-labelledby="setup-map-title">
+     <div class="section-line"><h3 id="setup-map-title">Map</h3></div>
+     <div id="setup-map" class="setup-map" data-map-art="Blockfort">
+      <div class="map-feature-image" aria-hidden="true"></div>
+      <div class="map-feature-info"><h3 id="setup-map-name"></h3><p id="setup-map-note"></p></div>
+     </div>
+     <div class="setup-map-grid" id="mp"></div>
+    </section>
+   </div>
+  </section>
+  <section id="p-queue" class="pn" aria-label="Matchmaking">
+   <div class="queue-layout">
+    <div class="queue-search">
+     <div class="queue-signal" aria-hidden="true"><i></i><i></i><i></i><span></span></div>
+     <div class="queue-status" role="status">
+      <div class="mode-label"><i></i> Matchmaking</div>
+      <h2 id="queue-title">Searching for a match</h2>
+      <p id="queue-detail"></p>
+     </div>
+     <ol id="queue-steps" class="queue-steps" aria-label="Matchmaking progress"><li>Search</li><li>Assemble</li><li>Ready</li></ol>
+     <div class="queue-actions"><button class="big action-arrow" id="queue-accept" hidden>Deploy</button><button class="big alt" id="queue-cancel" data-initial-focus>Cancel</button></div>
+    </div>
+    <div class="queue-map" id="queue-map">
+     <div class="map-feature-image" aria-hidden="true"></div>
+     <div class="map-feature-info"><div id="queue-mode" class="eyebrow"></div><h3 id="queue-location"></h3></div>
+    </div>
+   </div>
+  </section>
+  <section id="p-priv" class="pn">
+   <header class="panel-head"><div><button class="text-button back-link" data-panel="deployment">Back to Play</button><h2>Private match</h2><p class="sub">Create a lobby or join with a friend’s code.</p></div></header>
+   <div class="party-setup"><div class="card2"><h3>Host a match</h3><div class="party-fields">
+    <label id="pmodeL">Game mode<select id="pmode"></select></label><label id="pmL">Map<select id="pm"></select></label><label id="pbL">Bots <b id="pbv">6</b><input id="pbots" type="range" min="0" max="12" step="1" value="6"></label></div>
+    <button id="host" class="big">Create lobby</button>
+    <div id="hostbox" style="display:none"><div class="party-code"><span>Match code</span><strong id="code"></strong></div><button id="startnet" class="big">Start match</button></div></div>
+    <div class="card2"><h3>Join a match</h3><label for="jc">Match code</label><input id="jc" type="text" maxlength="5" placeholder="ABCDE" autocapitalize="characters" autocomplete="off"><button id="join" class="big alt">Join lobby</button></div></div>
+   <div class="party-status"><p id="lb" role="status"></p><ul id="plist"></ul><button id="leave" class="big alt" style="display:none">Leave lobby</button></div>
+   <div class="split-entry"><div><h3>Local split screen</h3><small id="split-help">Connect two controllers and press a button on each.</small></div><button id="split-start" class="btn alt" disabled>Start split screen</button></div>
+  </section>
+  <section id="p-load" class="pn" aria-label="Loadout"><div id="ld"></div></section>
+  <section id="p-pass" class="pn" aria-label="Battle Pass"></section>
+  <section id="p-chal" class="pn" aria-label="Challenges"></section>
+  <section id="p-identity" class="pn" aria-labelledby="idr-title">
+   <header class="panel-head idr-header"><div><h2 id="idr-title">Locker</h2></div><div id="idr-equipped"></div></header>
+   <div class="locker-toolbar" aria-label="Locker categories">
+    <label class="locker-category">Collection<select id="locker-category">
+     <option value="operators">Operators</option><option value="weapon">Weapon finishes</option><option value="emotes">Emotes</option><option value="charms">Weapon charms</option><option value="titles">Player titles</option><option value="tracers">Tracer finishes</option>
+     <option value="cards">Calling cards</option><option value="emblems">Emblems</option>
+    </select></label>
+    <button class="idr-button" data-idr-tab="creator">Emblem editor</button>
+   </div>
+   <div id="idr-content"></div><p id="idr-status" role="status"></p>
+  </section>
   <section id="p-mast" class="pn"><h2>Weapon mastery and camos</h2><p class="sub">Kills in Multiplayer level your weapons and unlock these camos. Zombie camos can be equipped here too.</p><div id="wm"></div></section>
-  <section id="p-zplay" class="pn"><h2>Zombies</h2><p class="sub">Survive endless rounds of the undead on one of two maps: the Hollow Estate, an abandoned mansion with a front lawn, a back garden and a crypt, or Westminster, London, where Big Ben watches over the Palace Yard and the power is off until you find the switch. Play solo or with up to 3 friends in a co-op lobby. You always start the same way: a 1911 with 500 points, your bare fists, 2 frags and 2 flashbangs. Your Multiplayer loadout does not carry over. Zombies get stronger every round and a pack of brutes arrives every fifth round.</p>
-   <div class="how"><span>10 points per hit</span><span>50 per body kill</span><span>100 per headshot kill</span><span>130 per melee kill</span><span><kbd>F</kbd> buy / interact</span><span><kbd>V</kbd> tap: quick melee strike, hold: draw your melee weapon</span></div>
-   <ul class="zl"><li>Doors (750 to 2500) open new rooms of the mansion</li><li>Wall weapons: buy guns straight off the wall (600 to 4500). Buy the same gun again for half price to refill its ammo</li><li>Ammo crates: refill the weapon you are holding for 500, or 2000 once Pack-a-Punched, or 4000 after the second upgrade. Ammo is never restored for free between rounds</li><li>Mystery Box (950): a random weapon. There is only ever one box on the map: it starts in a random spot and, after a few uses, moves to another. The RayGun is rare and one-shots almost everything. On the Hollow Estate the Nitrogen Fists are rare too and replace your melee slot, and while they are drawn (hold <kbd>V</kbd>) the aim button is a rocket DASH that smashes through zombies (short cooldown)</li><li>Pack-a-Punch (in the crypt): 5000 to upgrade your weapon, 10000 to upgrade it again. Draw your melee first (hold <kbd>V</kbd>) to upgrade your fists instead. Upgraded weapons come out with a camo that exists only in this map</li><li>Power-ups drop from zombies: Max Ammo, Insta-Kill, Double Points, Nuke, Fire Sale and Full Restore. Run into them to pick them up before they fade</li><li>Soda machines: red health, green fast reload, yellow double damage and fire rate, blue self-revive (the machine runs dry after 4 buys), purple run speed and shooting while sprinting, orange third weapon</li><li>Do not camp on furniture: zombies that cannot reach you will hurl their guts at you instead</li></ul>
-   <p id="zbest" class="sub"></p><h2>Choose your map</h2><div id="zmaps"></div></section>
+  <section id="p-zplay" class="pn" aria-label="Zombies deployment">
+   <div id="z-feature" class="deployment z-deployment" data-map-art="Hollow Estate">
+    <div class="deploy-art" aria-hidden="true"></div>
+    <div class="deploy-scrim" aria-hidden="true"></div>
+    <div class="deploy-copy">
+     <div class="mode-label"><i></i> Zombies</div>
+     <h2 id="z-location">Hollow Estate</h2>
+     <p id="z-description"></p>
+     <div class="deploy-actions"><button id="zdeploy" class="big" data-initial-focus>Deploy solo</button><button class="big alt" data-panel="priv">Co-op lobby</button></div>
+     <p id="zbest" class="deploy-record"></p>
+    </div>
+   </div>
+   <div class="section-line"><h3>Choose a map</h3><button class="text-button" data-panel="zguide">Field guide <span aria-hidden="true">↗</span></button></div>
+   <div id="zmaps" aria-label="Zombies maps"></div>
+  </section>
+  <section id="p-zguide" class="pn">
+   <header class="panel-head"><div><button class="text-button back-link" data-panel="zplay">Back to Zombies</button><h2>Field guide</h2></div></header>
+   <div class="field-guide">
+    <section><h3>Start the run</h3><p>Start with 500 points, a 1911, bare fists, two frags, and two flashbangs. Hits and kills earn points. Rounds get tougher, and brutes arrive every fifth round.</p></section>
+    <section><h3>Gear and ammunition</h3><p>Buy weapons at chalk outlines or pay 950 points to roll the Mystery Box. Wall weapons refill for half price. Ammo crates refill the gun you’re holding and cost more for upgraded weapons.</p></section>
+    <section><h3>Perks and upgrades</h3><p>Perk machines and wall weapons vary by map. Use Pack-a-Punch to upgrade your weapon for 5,000, then 10,000, then 20,000 points. Draw your melee weapon first to upgrade it.</p></section>
+    <section><h3>Map interactions</h3><p>Hold the interact button to revive teammates, or rebuild the window boards in The 1 Room Challenge. Turn on the power in Westminster. Unlock the Nitrogen Fists at Hollow Estate for a dash attack.</p></section>
+    <section><h3>Power-ups</h3><p>Collect Max Ammo, Insta-Kill, Double Points, Nuke, Fire Sale, and Full Restore before they vanish. Moving keeps you clear of zombies that throw projectiles when they cannot reach you.</p></section>
+   </div>
+  </section>
   <section id="p-cust" class="pn"></section>
   <section id="p-chew" class="pn"></section>
   <section id="p-ks" class="pn"></section>
@@ -58,9 +156,17 @@ PROJECT RULES (kept here so every future session starts from them)
  <div id="hot"></div>
  <div id="dev"><div class="card"><h2>Developer menu</h2><button class="big" data-d="all">Unlock everything</button><button class="big" data-d="lvl">Max level 55</button><button class="big" data-d="master">Prestige Master 1250</button><button class="big alt" data-d="reset">Reset all progress</button><button class="big alt" data-d="close">Close</button></div></div>
 </div>
-<div id="home"><header><h1>SPARTAN <b>DRILL</b></h1><p>Choose your battlefield</p></header>
- <div id="hbtns"><button id="hz" class="hb"><b>Zombies</b><span>Survive the undead. Doors, perks, the mystery box and Pack-a-Punch.</span><i id="hzs"></i></button>
- <button id="hmp" class="hb"><b>Multiplayer</b><span>Arena modes, bot matches and private lobbies.</span><i id="hms"></i></button></div></div>
+<div id="home">
+ <header class="home-header"><div class="wordmark"><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M18 2 33 9v10c0 7-7 12-15 15C10 31 3 26 3 19V9z"/><path d="m10 20 8-10 8 10m-13 5 5-6 5 6"/></svg><h1>Spartan <b>Drill</b></h1></div></header>
+ <div class="home-content">
+  <h2>Choose a mode</h2>
+  <div id="hbtns">
+   <button id="hmp" class="hb" data-map-art="Dry Dock" type="button"><span class="home-art" aria-hidden="true"></span><span class="home-mode"><b>Multiplayer</b><span>Matchmaking and private lobbies</span><i id="hms"></i></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+   <button id="hz" class="hb" data-map-art="Hollow Estate" type="button"><span class="home-art" aria-hidden="true"></span><span class="home-mode"><b>Zombies</b><span>Round-based solo or co-op survival</span><i id="hzs"></i></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+   <button id="hsw" class="hb" type="button"><span class="home-art" aria-hidden="true"></span><span class="home-mode"><b>Stormwatch</b><span>Harvest, build and defend the ATLAS</span><i>Solo PvE · Battle Pass XP</i></span><span class="home-arrow" aria-hidden="true">↗</span></button>
+  </div>
+ </div>
+</div>
 <div id="pause"><div class="card"><h2 id="pt">Paused</h2><button id="resume" class="big">Resume</button>
  <label>Aim assist<select id="aa2"><option value="0">Off</option><option value="0.6">Light</option><option value="1">Strong</option><option value="1.5">Very strong</option></select></label>
  <label>Look sensitivity<input id="sn2" type="range" min="0.3" max="2.5" step="0.1"></label>
@@ -77,22 +183,62 @@ PROJECT RULES (kept here so every future session starts from them)
  <div id="ffd"></div></div>
 <div id="rcv"></div><div id="zgore"></div><div id="osk"></div><div id="scope"></div><div id="flash"></div><div id="nvo"></div><div id="sbd"></div><div id="mapv"><canvas id="mapc" width="640" height="640"></canvas><p>M to close</p></div>
 <div id="hud"><div id="dm"></div><div id="di"></div><canvas id="rd" width="150" height="150"></canvas><div id="kf"></div><div id="ks"></div><div id="pops"></div><div id="kst"></div><div id="ob"></div><div id="ms"></div><div id="cx"></div><div id="hm"></div>
-<div id="zh"><div id="zr"></div><div id="zpt"></div><div id="zpk"></div><div id="zt"></div></div><div id="zp"></div>
+<div id="zmain" hidden><header><strong></strong><small></small></header><div class="zmain-track" role="progressbar" aria-label="Boss health" aria-valuemin="0" aria-valuemax="100"><i></i></div></div>
+<div id="zh"><div class="zhud-field"><span>Round</span><div id="zr"></div></div><div class="zhud-field"><span>Points</span><div id="zpt"></div></div><div id="zpk"></div><div id="zt"></div></div><div id="zp"></div>
 <div id="bars"><span id="hn">Shield</span><div class="bar"><div id="sh"></div></div><div class="bar"><div id="hp"></div></div></div>
 <div id="hint">WASD move · Shift sprint · Mouse look · LMB fire · RMB aim · V katana · R reload · E frag · Q flash · F use · C crouch · Ctrl prone · 3 kills = UAV (3)</div><div id="am"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <script>
-/* LOADER. Over https the 14 game files are fetched, joined and run inside ONE closure, so no game variable or function (P, bots, addBot, hurt, the killstreak code...) is reachable from the browser console.
-   The SHA-256 of the joined source is this build's id: the multiplayer handshake compares it so an older or edited build cannot join a match. Opened from disk, or if anything fails, the files load as ordinary scripts. */
-(function(){const F=['lumen','core','maps','systems','graphics','interface','controls','menus','zombies','estate','juice','extras','london','streaks'];
- const classic=()=>{let i=0;const next=()=>{if(i>=F.length)return;const s=document.createElement('script');s.src='js/'+F[i++]+'.js';s.async=false;s.onload=next;s.onerror=next;document.body.appendChild(s)};next()};
- const local=location.hostname=='localhost'||location.hostname=='127.0.0.1';
- if(location.protocol=='file:'||!window.fetch||!window.crypto||!crypto.subtle||(local&&/[?&]raw=1\b/.test(location.search))){window.__SD_MODE='raw';classic();return}
+/* The split-screen shell hosts two isolated seats with one local match. */
+(function(){
+ const url=new URL(location.href),params=url.searchParams,room=params.get('split');
+ if(room&&/^[a-z0-9]{6,20}$/.test(room)){
+  document.body.className='split-shell';
+  const layout=document.createElement('div');layout.id='split-layout';
+  const toolbar=document.createElement('header');toolbar.id='split-toolbar';
+  toolbar.innerHTML='<b>SPARTAN DRILL · LOCAL SPLIT SCREEN</b><button>Exit split screen</button>';
+  toolbar.querySelector('button').onclick=()=>{
+   for(const key of ['split','map','mode','bots','app','g1','g2'])url.searchParams.delete(key);
+   location.assign(url);
+  };
+  document.body.replaceChildren(toolbar,layout);
+  for(const seat of [1,2]){
+   const child=new URL(url);
+   child.searchParams.delete('split');child.searchParams.set('splitRoom',room);child.searchParams.set('sdSeat',seat);
+   const frame=document.createElement('iframe');
+   frame.title='Player '+seat;frame.allow='gamepad';frame.src=child;layout.appendChild(frame);
+  }
+  return;
+ }
+ const seat=Number(params.get('sdSeat')),localRoom=params.get('splitRoom');
+ window.SD_SPLIT=(seat===1||seat===2)&&localRoom&&/^[a-z0-9]{6,20}$/.test(localRoom)?{
+  seat,room:localRoom,pad:Number(params.get('g'+seat)),map:params.get('map'),mode:params.get('mode'),app:params.get('app'),bots:params.get('bots')
+ }:null;
+ let storage;
+ try{storage=window.localStorage}catch(e){}
+ if(window.SD_SPLIT?.seat===2){
+  const original=storage;
+  storage={
+   getItem:key=>original?.getItem('sd-p2:'+key)??null,
+   setItem:(key,value)=>{if(!original)throw Error('Storage unavailable');original.setItem('sd-p2:'+key,value)},
+   removeItem:key=>original?.removeItem('sd-p2:'+key)
+  };
+  try{Object.defineProperty(window,'localStorage',{configurable:true,value:storage})}catch(e){}
+ }
+ window.__SD_STORAGE=storage;
+ /* Hash the complete game script. The build check compares peers running the same code. */
+ const F=['lumen','core','maps','systems','graphics','interface','controls','stormwatch-engineering','stormwatch-physics','stormwatch-operations','stormwatch-citadel','stormwatch','menus','zombies','estate','juice','extras','london','lockbox-actors','lockbox','streaks'];
+ const ready=()=>dispatchEvent(new Event('sd-ready'));
+ const classic=()=>{let i=0;const next=()=>{if(i>=F.length){ready();return}const s=document.createElement('script');s.src='js/'+F[i++]+'.js';s.async=false;s.onload=next;s.onerror=next;document.body.appendChild(s)};next()};
+ const local=location.hostname==='localhost'||location.hostname==='127.0.0.1';
+ if(location.protocol==='file:'||!window.fetch||!window.crypto||!crypto.subtle||(local&&/[?&]raw=1\b/.test(location.search))){window.__SD_MODE='raw';classic();return}
  Promise.all(F.map(f=>fetch('js/'+f+'.js',{cache:'no-cache'}).then(r=>{if(!r.ok)throw 0;return r.text()}))).then(async t=>{
-  const src=t.join('\n;\n'),h=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(src)))].map(b=>b.toString(16).padStart(2,'0')).join('');
-  const code='(function(__BUILD,__MODE){\n'+src+'\n})("'+h+'","closure");\n//# sourceURL=js/game.js';
-  const u=URL.createObjectURL(new Blob([code],{type:'text/javascript'})),s=document.createElement('script');s.src=u;s.onload=()=>URL.revokeObjectURL(u);document.body.appendChild(s)
- }).catch(()=>{window.__SD_MODE='raw';classic()})})();
+  const src=t.join('\n;\n'),hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(src)))].map(b=>b.toString(16).padStart(2,'0')).join('');
+  const code='(function(__BUILD,__MODE,localStorage){\n'+src+'\n})("'+hash+'","closure",window.__SD_STORAGE);\n//# sourceURL=js/game.js';
+  const u=URL.createObjectURL(new Blob([code],{type:'text/javascript'})),s=document.createElement('script');
+  s.src=u;s.onload=()=>{URL.revokeObjectURL(u);ready()};document.body.appendChild(s);
+ }).catch(()=>{window.__SD_MODE='raw';classic()});
+})();
 </script>
 </body></html>

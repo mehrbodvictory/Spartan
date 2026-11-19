@@ -11,10 +11,7 @@
 (function(){
 const hi=LX.pbr,V3=THREE.Vector3,JX=window.JX={lights:[],sp:[],rings:[],cas:[],scorch:[]},rnd=(a,b)=>a+Math.random()*(b-a),F=LX.fx,T=()=>LX.U.time.value;
 const cv=(w,h,fn)=>{const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);return new THREE.CanvasTexture(c)};
-const glowTex=cv(64,64,(g,w,h)=>{const r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.2,'rgba(255,255,255,.62)');r.addColorStop(.55,'rgba(255,255,255,.14)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,w,h)});
-const puffTex=cv(64,64,(g,w,h)=>{for(let i=0;i<9;i++){const x=32+(Math.random()-.5)*26,y=32+(Math.random()-.5)*26,r=g.createRadialGradient(x,y,0,x,y,16+Math.random()*10);r.addColorStop(0,'rgba(255,255,255,.55)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,w,h)}});
-const flareTex=cv(128,128,(g,w,h)=>{const r=g.createRadialGradient(64,64,0,64,64,64);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.12,'rgba(255,240,200,.9)');r.addColorStop(.4,'rgba(255,170,70,.25)');r.addColorStop(1,'rgba(255,120,30,0)');g.fillStyle=r;g.fillRect(0,0,w,h);
- g.globalCompositeOperation='lighter';for(let i=0;i<4;i++){g.save();g.translate(64,64);g.rotate(i*Math.PI/4+.2);const l=g.createLinearGradient(-64,0,64,0);l.addColorStop(0,'rgba(255,200,120,0)');l.addColorStop(.5,'rgba(255,230,170,.75)');l.addColorStop(1,'rgba(255,200,120,0)');g.fillStyle=l;g.fillRect(-64,-1.6,128,3.2);g.restore()}});
+const {glow:glowTex,flare:flareTex,smoke:[puffTex]}=LX.effectTextures();
 JX.glowTex=glowTex;
 /* ---------- sprite pool: fireballs, flares, smoke, glints ---------- */
 function addSp(o){if(JX.sp.length>170)return null;const m=new THREE.SpriteMaterial({map:o.tex||glowTex,transparent:true,depthWrite:false,blending:o.add===false?THREE.NormalBlending:THREE.AdditiveBlending,opacity:o.op==null?1:o.op});m.color.setRGB(o.c[0],o.c[1],o.c[2]);if(o.rot!=null)m.rotation=o.rot;
@@ -128,7 +125,7 @@ const wrap=(name,fn)=>{try{const o=SCOPE[name];if(typeof o=='function')SCOPE[nam
 const ctxWrap=(ctx,pick)=>o=>function(){const old=LX.ctx;LX.ctx=ctx;try{const r=o.apply(this,arguments);LX.bevel(pick(r,arguments));if(ctx=='char'&&LX.mergeRig)LX.mergeRig(pick(r,arguments),r);return r}finally{LX.ctx=old}};
 if(hi){wrap('buildGun',ctxWrap('gun',(r,a)=>r&&r.traverse?r:a[2]));wrap('attFpModel',ctxWrap('gun',r=>r&&r.traverse?r:null));wrap('mkHuman',ctxWrap('char',(r,a)=>a[0]))}
 /* particles: hot colours glow (the HDR target keeps values above 1, so bloom picks them up) */
-if(hi&&typeof mc!='undefined'){for(const[c,k]of[[0xffd24a,2.6],[0xffffff,1.8],[0xffa040,2.6],[0x62e0f0,2.2],[0xffdd66,2.4],[0xffe08a,2.4],[0xff4040,1.8]])if(!mc[c]){mc[c]=new THREE.MeshBasicMaterial({color:c});mc[c].color.multiplyScalar(k)}}
+if(hi&&typeof mc!='undefined'){for(const[c,k]of[[0xffd24a,2.6],[0xffffff,1.8],[0xffa040,2.6],[0x62e0f0,2.2],[0xffdd66,2.4],[0xffe08a,2.4],[0xff4040,1.8]])if(!mc[c])mc[c]=new THREE.Color(c).multiplyScalar(k)}
 wrap('muzzleFlash',o=>function(p,k){const r=o.apply(this,arguments);try{JX.muzzle(p,k)}catch(e){}return r});
 wrap('tr',o=>function(a,d,len,col,life,raw){const r=o.apply(this,arguments);try{JX.tracer(a,d,len,col,life,raw)}catch(e){}return r});
 wrap('boom',o=>function(p,g){const r=o.apply(this,arguments);try{if(g&&!g.tac){if(g.w=='RG')JX.goop(p,g);else if(g.w=='TEA'&&JX.tea)JX.tea(p,g);else JX.explode(p,g)}else if(g&&g.tac)JX.flash(p,0xffffff,10,.25,24)}catch(e){}return r});

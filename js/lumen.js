@@ -18,6 +18,58 @@ if(!/^(high|med|low)$/.test(LX.q))LX.q='high';
 LX.safe=/[?&]safe=1/.test(location.search);if(LX.safe)LX.q='low';
 LX.pbr=LX.q!='low';LX.postOn=LX.q=='high';LX.postDead=false;
 LX.U={time:{value:0},fogH:{value:.05},fogD:{value:.012},fogA:{value:.3},wind:{value:1}};
+/* Shared sprite textures. Transparent padding keeps the quads invisible even under bloom. */
+LX.effectTextures=(()=>{
+ let textures;
+ const fade=(from,to,value)=>{
+  const t=Math.max(0,Math.min(1,(value-from)/(to-from)));
+  return t*t*(3-2*t);
+ };
+ const make=sample=>{
+  const size=128,pixels=new Uint8Array(size*size*4);
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+   const i=(y*size+x)*4;
+   pixels[i]=pixels[i+1]=pixels[i+2]=255;
+   pixels[i+3]=Math.round(255*sample((x+.5)*2/size-1,(y+.5)*2/size-1));
+  }
+  const texture=new THREE.DataTexture(pixels,size,size);
+  texture.magFilter=THREE.LinearFilter;
+  texture.minFilter=THREE.LinearMipmapLinearFilter;
+  texture.generateMipmaps=true;
+  texture.needsUpdate=true;
+  return texture;
+ };
+ const hash=(x,y,seed)=>{
+  const n=Math.imul(x,374761393)+Math.imul(y,668265263)+Math.imul(seed,1274126177)|0;
+  return (Math.imul(n^(n>>>13),1274126177)>>>0)/4294967295;
+ };
+ const noise=(x,y,seed)=>{
+  const ix=Math.floor(x),iy=Math.floor(y),u=fade(0,1,x-ix),v=fade(0,1,y-iy);
+  const top=hash(ix,iy,seed)*(1-u)+hash(ix+1,iy,seed)*u;
+  const bottom=hash(ix,iy+1,seed)*(1-u)+hash(ix+1,iy+1,seed)*u;
+  return top*(1-v)+bottom*v;
+ };
+ const turbulence=(x,y,seed)=>.57*noise(x,y,seed)+.28*noise(2.1*x,2.1*y,seed+1)+.15*noise(4.3*x,4.3*y,seed+2);
+ const smoke=seed=>make((x,y)=>{
+  const nx=x+.52*(turbulence(x*2.25,y*2.25,seed+5)-.5);
+  const ny=y+.52*(turbulence(x*2.25,y*2.25,seed+13)-.5);
+  const billow=1-fade(.02,.99,Math.hypot(nx,ny*1.12));
+  const detail=turbulence(nx*3.7,ny*3.7,seed);
+  const density=fade(.09,.82,billow*(.46+.86*detail));
+  return .88*density*(1-fade(.71,.96,Math.hypot(x,y)));
+ });
+ return ()=>textures||(textures={
+  glow:make((x,y)=>{
+   const r2=x*x+y*y;
+   return (.76*Math.exp(-16*r2)+.24*Math.exp(-5*r2))*(1-fade(.48,.90,r2));
+  }),
+  flare:make((x,y)=>{
+   const r2=x*x+1.4*y*y;
+   return (.78*Math.exp(-27*r2)+.22*Math.exp(-6*r2))*(1-fade(.48,.90,x*x+y*y));
+  }),
+  smoke:[smoke(31),smoke(53),smoke(89)]
+ });
+})();
 /* per-map look: ex exposure, bl bloom, sat, con contrast, vig vignette, ray sun shafts, rc shaft colour, ts/th shadow/highlight tint, haze (ground fog amount), hz fog height falloff, env reflection strength, cl clouds [cover, opacity, speed, scale, lit, shade], st stars */
 LX.FX={
  Blockfort:{ex:1,bl:.5,sat:1.14,con:1.06,vig:.3,ray:.55,rc:[1,.94,.78],ts:[0,.02,.07],th:[.09,.05,0],haze:.28,hz:.05,env:1,cl:[.52,.55,.6,1.6,[1,1,1],[.62,.7,.84]],st:0},
@@ -42,8 +94,8 @@ diffuseColor.rgb*=0.82+0.42*lxMv;
 `;
 LX.FOGC=`#if defined(USE_FOG) && !defined(FOG_EXP2)
  vec3 lxP1=cameraPosition+(vec4(-vViewPosition,0.0)*viewMatrix).xyz;
- float lxFg=smoothstep(fogNear,fogFar,vFogDepth);
- float lxHz=(1.0-exp(-vFogDepth*uLxFD))*exp(-max(lxP1.y,0.0)*uLxFH)*uLxFA;
+ float lxFg=smoothstep(fogNear,fogFar,fogDepth);
+ float lxHz=(1.0-exp(-fogDepth*uLxFD))*exp(-max(lxP1.y,0.0)*uLxFH)*uLxFA;
  gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor,clamp(lxFg+lxHz,0.0,1.0));
 #else
  #include <fog_fragment>
@@ -150,10 +202,17 @@ LX.skyMat=function(fx,sd){const c=fx.cl,V=a=>new THREE.Color(a[0],a[1],a[2]);
   vertexShader:'varying vec3 vD;void main(){vD=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
   fragmentShader:'uniform float uT;uniform float uCover;uniform float uOp;uniform float uScale;uniform float uStar;uniform vec2 uWind;uniform vec3 uLit;uniform vec3 uShade;uniform vec3 uSunD;varying vec3 vD;\n'+LX.NOISE+
   `float h3(vec3 p){return fract(sin(dot(p,vec3(12.9898,78.233,37.719)))*43758.5453);}
-void main(){vec3 d=normalize(vD);float up=d.y;vec2 p=d.xz/(up+0.28)*uScale+uWind*uT*60.0;float n=lxFbm(p);float c=smoothstep(uCover-0.12,uCover+0.22,n);
+void main(){vec3 d=normalize(vD);float up=d.y;
+if(up<=0.015){gl_FragColor=vec4(0.0);return;}
+vec2 p=d.xz/(up+0.28)*uScale+uWind*uT*60.0;float n=lxFbm(p);float c=smoothstep(uCover-0.12,uCover+0.22,n);
+if(c==0.0&&(uStar==0.0||up<=0.05)){gl_FragColor=vec4(0.0);return;}
 float n2=lxFbm(p+uSunD.xz*0.07/(up+0.3));float lit=clamp(0.55+(n-n2)*4.2,0.0,1.0);float sa=pow(max(dot(d,uSunD),0.0),6.0);
 vec3 col=mix(uShade,uLit,lit)+uLit*sa*0.55*(1.0-c*0.4);float a=c*uOp*smoothstep(0.015,0.22,up);
-vec3 sp=d*300.0;float h=h3(floor(sp));vec2 q=fract(sp.xy+sp.z)-0.5;float tw=0.6+0.4*sin(uT*2.5+h*60.0);float star=step(0.9972,h)*tw*uStar*smoothstep(0.05,0.3,up)*(1.0-c)*(1.0-smoothstep(0.1,0.5,length(q)));
+float star=0.0;
+if(uStar>0.0&&up>0.05){
+ vec3 sp=d*300.0;float h=h3(floor(sp));
+ if(h>=0.9972){vec2 q=fract(sp.xy+sp.z)-0.5;float tw=0.6+0.4*sin(uT*2.5+h*60.0);star=tw*uStar*smoothstep(0.05,0.3,up)*(1.0-c)*(1.0-smoothstep(0.1,0.5,length(q)));}
+}
 gl_FragColor=vec4(mix(col,vec3(1.0),star),clamp(a+star,0.0,1.0));}`})};
 /* ---------- the post-processing pipeline ---------- */
 LX.GL={};
@@ -180,7 +239,7 @@ if(uSpeed>0.002){vec3 acc=vec3(0.0);for(int i=0;i<6;i++){float k=float(i)/5.0;ve
 else col=vec3(texture2D(tScene,uv+off).r,texture2D(tScene,uv).g,texture2D(tScene,uv-off).b);
 vec2 px=1.0/uRes;vec3 bl=(texture2D(tScene,uv+vec2(px.x,0.0)).rgb+texture2D(tScene,uv-vec2(px.x,0.0)).rgb+texture2D(tScene,uv+vec2(0.0,px.y)).rgb+texture2D(tScene,uv-vec2(0.0,px.y)).rgb)*0.25;
 col+=(col-bl)*uSharp;col=max(col,vec3(0.0));
-col+=texture2D(tBloom,uv).rgb*uBloom;col+=texture2D(tRays,uv).rgb*uRay*uRayCol;col+=uFlashCol*uFlash;col*=uExp;
+col+=texture2D(tBloom,uv).rgb*uBloom;if(uRay>0.0)col+=texture2D(tRays,uv).rgb*uRay*uRayCol;col+=uFlashCol*uFlash;col*=uExp;
 float l=dot(col,vec3(0.299,0.587,0.114));col=mix(vec3(l),col,uSat);col=(col-0.5)*uCon+0.5;col+=mix(uTintS,uTintH,smoothstep(0.1,0.9,l))*0.1;col=filmic(max(col,vec3(0.0)));
 float lh=dot(col,vec3(0.299,0.587,0.114));col=mix(col,vec3(lh),smoothstep(0.85,1.0,lh)*0.22);
 float vg=1.0-smoothstep(0.2,0.85,rr*1.15*(1.0+uPulse));col*=mix(1.0-uVig,1.0,vg);
@@ -215,7 +274,7 @@ LX.render=function(sc,cam){
   for(let i=nd-2;i>=0;i--){const low=i==nd-2?LX.rtD[i+1]:LX.rtU[i+1];Up.tLow.value=low.texture;Up.tHigh.value=LX.rtD[i].texture;Up.uTexel.value.set(1/low.width,1/low.height);Up.uScatter.value=.72;qd(LX.mUp,LX.rtU[i])}
   /* sun shafts */
   let ray=0;if(m.ray>0&&(LX.gTier|0)<1&&typeof skyDir=='function'&&typeof C!='undefined'){const d=skyDir(),v=LX.sunV;v.set(C.position.x+d[0]*100,C.position.y+d[1]*100,C.position.z+d[2]*100);v.project(cam);
-   if(v.z<1){const e=1-Math.min(1,Math.max(0,(Math.max(Math.abs(v.x),Math.abs(v.y))-.8)/1.2));ray=m.ray*e;const R_=LX.mRays.uniforms;R_.uSun.value.set(v.x*.5+.5,v.y*.5+.5);R_.tScene.value=LX.rtS.texture;qd(LX.mRays,LX.rtR)}}
+   if(v.z<1){const e=1-Math.min(1,Math.max(0,(Math.max(Math.abs(v.x),Math.abs(v.y))-.8)/1.2));ray=m.ray*e;if(ray>0){const R_=LX.mRays.uniforms;R_.uSun.value.set(v.x*.5+.5,v.y*.5+.5);R_.tScene.value=LX.rtS.texture;qd(LX.mRays,LX.rtR)}}}
   U.tScene.value=LX.rtS.texture;U.tBloom.value=LX.rtU[0].texture;U.tRays.value=LX.rtR.texture;U.uTime.value=LX.U.time.value;
   U.uExp.value=m.ex*LX.bright;U.uBloom.value=m.bl*.5*(1+fx.boom*.9+fx.shot*.15);U.uRay.value=ray*(1+fx.flash*.5);U.uVig.value=m.vig+fx.dmg*.12;U.uGrain.value=(m.gr==null?.03:m.gr);U.uCA.value=.0011+fx.ca*.012+fx.boom*.006+fx.dmg*.004;
   U.uSharp.value=.2;U.uSpeed.value=LX.mblur?Math.min(1,fx.speed+fx.blur):0;U.uDmg.value=Math.min(1,fx.dmg);U.uHeal.value=fx.heal;U.uFlash.value=fx.flash;U.uPulse.value=fx.pulse;U.uSat.value=m.sat*(1-fx.dmg*.2);U.uCon.value=m.con;
