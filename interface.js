@@ -423,7 +423,7 @@ function bhMsg(d,cn){
    if(d.p===p&&verified){
     cn.reclaimed=ticket&&d.resume===resume?ticket:null;
     cn.theirs=1;bhDone(cn);
-   }else bhReject(cn,'Invalid invitation or incompatible game build.');
+   }else bhReject(cn,d.p!==p?'Check A failed: game files differ between the two devices.':'Check B failed: the secure invite check did not match (Safari/browser difference or wrong code).');
   }).catch(()=>bhReject(cn,'Could not verify this room.'));
  }
 }
