@@ -599,7 +599,7 @@ function reg(cn){
  const watchIce=()=>{
   const pc=cn.peerConnection;if(!pc||cn.iceWatched)return;cn.iceWatched=true;
   pc.addEventListener('iceconnectionstatechange',()=>{
-   console.info('[net] ICE '+pc.iceConnectionState);
+   cn.iceState=pc.iceConnectionState;console.info('[net] ICE '+pc.iceConnectionState);
    if(pc.iceConnectionState==='failed'&&!cn.vf&&!cn.joinFailure)
     cn.joinFailure='Could not connect directly. The two networks are blocking peer-to-peer and no relay worked.';
   });
@@ -642,7 +642,7 @@ function netLost(cn){conns=conns.filter(x=>x!==cn);
   return;
  }
  if(!cn.vf&&!netOn&&!conns.length&&Object.keys(names).length<=1&&!window.SD_SPLIT){
-  failInitialJoin(net,cn.joinFailure||'Could not connect to that room. Check the code and try again.');
+  failInitialJoin(net,cn.joinFailure||'Could not connect to that room. Check the code and try again. [network: '+(cn.iceState||'never started')+']');
   return;
  }
  if(partyActive&&partyOperationOpen)partyDispatch({type:'lost'},cn.peer);
