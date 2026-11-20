@@ -188,17 +188,16 @@ function deathCam(dt){
 }
 
 /* ===================== net.js ===================== */
-/* ---------- private matches: peer-to-peer (PeerJS). The host runs the bots and game rules; friends join with a 5-letter code. All modes supported. ---------- */
-/* ICE servers: several STUN plus public TURN relays so players behind strict NATs or mobile data still connect */
-var PCFG={debug:0,config:{iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302','stun:stun2.l.google.com:19302','stun:global.stun.twilio.com:3478','stun:stun.cloudflare.com:3478']},
- {urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turn:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}],iceCandidatePoolSize:4,sdpSemantics:'unified-plan'}};
-var hostPid='',hostBye=0,rcTry=0,rcTimer=0;var grace={};
+/* Private rooms use encrypted WebRTC data channels over relay-only ICE. */
+var PCFG=privatePeerConfig();
+var hostPid='',hostBye=0,rcTry=0,rcTimer=0;var grace=Object.create(null);
 var net=null,myId='',myName='',conns=[],isHost=0,netOn=0,scores={},names=Object.create(null),lastAtk='',nacc=0,bacc=0,oacc=0,soloMode=null,maxP=0;
 const peerLooks=new Map();
-let partyActive=false,partyCode='',partyReady=false;
+let partyActive=false,partyCode='',partyReady=false,roomOpening=0,roomAuth=null;
+const pendingRoomLinks=new Set();
 let lastAttackHead=false;
 let roomLocked=false,roomTicket='',roomRound=0,latestRoomRound=0,roomSequence=0;
-const roomTickets=new Map(),roomReceived=new Map();
+const roomTickets=new Map(),roomReceived=new Map(),recentDamage=new Map();
 const roomControlPackets=new Set(['hi','bye','identity','roster','admitted','removed','full','room-policy','room-denied',
  'start','party-queue','party-sw','party-sw-launch']);
 function syncRoomLockControls(){
@@ -217,10 +216,10 @@ function toggleRoomLock(){
 }
 for(const button of document.querySelectorAll('[data-room-lock]'))button.onclick=toggleRoomLock;
 function setRoomRound(round){
- roomRound=round;roomSequence=0;roomReceived.clear();hitRate={};
+ roomRound=round;roomSequence=0;roomReceived.clear();recentDamage.clear();hitRate=Object.create(null);
  for(const link of conns){
   link.markAfter=0;
-  if(link.vt)Object.assign(link.vt,{last:null,dmg:[],zd:[],nk:0});
+  if(link.vt)Object.assign(link.vt,{last:null,dmg:[],zd:[],nk:0,deadAt:null});
  }
 }
 function gamePacket(data){
@@ -234,7 +233,7 @@ function acceptRoomPacket(data,link){
     data.sequence<=(roomReceived.get(link.peer)||0))return false;
  roomReceived.set(link.peer,data.sequence);return true;
 }
-var CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',lobby=t=>{
+var lobby=t=>{
  $('#lb').textContent=t;
  if(partyActive)partyStatus(t);
 };
@@ -274,64 +273,97 @@ function broadcastRoster(){
  const looks=Object.fromEntries([[myId,idrLocal()],...peerLooks]);
  netSend({t:'roster',r:{...names},looks});
 }
-function netSend(m){const packet=gamePacket({...m,id:myId});if(packet)for(const c of conns)if(c.open)c.send(packet)}
-function sendMatchPacket(link,data){const packet=gamePacket({...data,id:myId});if(packet&&link.open)link.send(packet)}
-function fwd(d,from){const packet=gamePacket(d);if(packet)for(const c of conns)if(c!==from&&c.open)c.send(packet)}
+const targetedPackets=new Set(['hit','skh','zk','zqv','zmainhit','zmainnote']);
+const packetTarget=data=>targetedPackets.has(data.t)&&typeof data.to==='string'?data.to:null;
+function sendRoomPacket(packet,except){
+ const target=isHost?packetTarget(packet):null,frame=encodePeerPacket(packet);
+ if(frame===null)return;
+ for(const link of conns)if(link!==except&&link.vf&&link.open&&!link.blocked&&(!target||link.peer===target))link.send(frame);
+}
+function rememberDamage(packet){
+ if(packet.t!=='hit'||!hasOwn(names,packet.to)||!Number.isFinite(packet.d)||packet.d<=0)return;
+ const attacker=Number.isSafeInteger(packet.bot)?'b'+packet.bot:packet.id;
+ const sources=recentDamage.get(packet.to)||new Map();
+ sources.set(attacker,{head:packet.head===true,at:performance.now()});
+ recentDamage.set(packet.to,sources);
+}
+function netSend(m){
+ const packet=gamePacket({...m,id:myId});
+ if(!packet)return;
+ if(isHost)rememberDamage(packet);
+ sendRoomPacket(packet);
+}
+function sendMatchPacket(link,data){const packet=gamePacket({...data,id:myId});if(packet)sendPeerPacket(link,packet)}
+function fwd(d,from){const packet=gamePacket(d);if(packet)sendRoomPacket(packet,from)}
 function netClose(){
+ roomOpening++;roomAuth=null;
+ for(const link of pendingRoomLinks)try{link.close()}catch{}
+ pendingRoomLinks.clear();
  if(partyActive)partyClosed();
  removedPeers.clear();
  roomLocked=false;roomTicket='';roomTickets.clear();latestRoomRound=0;setRoomRound(0);
  partyActive=false;partyCode='';
- clearTimeout(rcTimer);rcTry=0;for(const k in grace){clearTimeout(grace[k]);delete grace[k]}for(const c of conns)try{if(c.open)c.send({t:'bye',id:myId})}catch(e){}for(const c of conns)try{c.close()}catch(e){}conns=[];if(net)try{net.destroy()}catch(e){}net=null;netOn=0;isHost=0;names=Object.create(null);peerLooks.clear();scores={};document.body.classList.remove('net');$('#hostbox').style.display='none';lobbyList();if(soloMode!=null){sel.mode=soloMode;soloMode=null;ui()}}
+ clearTimeout(rcTimer);rcTry=0;for(const k in grace){clearTimeout(grace[k]);delete grace[k]}for(const c of conns)try{if(c.open)sendPeerPacket(c,{t:'bye',id:myId})}catch(e){}for(const c of conns)try{c.close()}catch(e){}conns=[];if(net)try{net.destroy()}catch(e){}net=null;netOn=0;isHost=0;names=Object.create(null);peerLooks.clear();scores={};document.body.classList.remove('net');$('#hostbox').style.display='none';lobbyList();if(soloMode!=null){sel.mode=soloMode;soloMode=null;ui()}}
 /* a match ended: everybody stays connected and returns to the same lobby; only leaving the lobby disconnects */
 function netEnd(){netOn=0;setRoomRound(0);scores={};document.body.classList.remove('net');if(soloMode!=null){sel.mode=soloMode;soloMode=null;ui()}lobbyList();lobby(partyActive?(isHost?'Party ready for another match.':'Waiting for the leader to deploy.'):isHost?'Match over. Everyone is still here. Pick a mode and map, then press Start match.':'Match over. Waiting for the host to start the next one…')}
-function createMatchPeer(id){return window.SD_SPLIT?new SplitPeer(id):new Peer(id,PCFG)}
-function hostMatch(localCode,wantsParty=false){
- netClose();partyActive=wantsParty===true;maxP=partyActive||app==='zm'?4:0;
- myName=$('#nm').value||'Host';
- let code=typeof localCode==='string'?localCode:'';
- while(code.length<5)code+=CH[Math.random()*CH.length|0];
- if(partyActive)partyCode=code;
- const peer=net=createMatchPeer((partyActive?'sd-party-':'sdrill-')+code);
+function createMatchPeer(id){return window.SD_SPLIT?new SplitPeer(id):createDataPeer(id,PCFG)}
+async function roomAddress(code,party,opening){
+ if(window.SD_SPLIT)return 'sdrill-'+code;
+ const auth=await inviteIdentity(party?'party':'match',code);
+ if(opening!==roomOpening)return '';
+ roomAuth=auth;return auth.id;
+}
+async function hostMatch(localCode,wantsParty=false){
+ netClose();partyActive=wantsParty===true;maxP=partyActive||app==='zm'?4:12;
+ myName=onlineName($('#nm').value,'Host');
+ const opening=roomOpening,code=window.SD_SPLIT?localCode:makeInviteCode();
  lobby('Connecting…');
- peer.on('disconnected',()=>{if(net===peer)try{peer.reconnect()}catch(e){}});
+ let peer;
+ try{
+  const address=await roomAddress(code,partyActive,opening);
+  if(opening!==roomOpening)return;
+  peer=net=createMatchPeer(address);
+ }catch(error){if(opening===roomOpening)lobby(error.message);return}
+ if(partyActive)partyCode=code;
+ peer.on('disconnected',()=>{if(net===peer)try{peer.reconnect()}catch{}});
  peer.on('open',id=>{
   if(net!==peer)return;
   myId=id;isHost=1;names[id]=myName;$('#code').textContent=code;$('#hostbox').style.display='block';
   lobby(partyActive?'Share this code. The leader controls deployment.':'Share this code. Press Start when everyone has joined.');lobbyList();
  });
- peer.on('connection',cn=>{if(net===peer)reg(cn);else cn.close()});
- peer.on('error',e=>{
-  if(net!==peer)return;
-  const line='Network error: '+e.type+(e.type==='unavailable-id'?' (try again)':'');
-  if(partyActive&&!isHost){netClose();partyStatus(line)}else lobby(line);
+ peer.on('connection',link=>{
+  if(net===peer&&isHost&&pendingRoomLinks.size<8)reg(link);else link.close();
+ });
+ peer.on('error',error=>{
+  if(net===peer)lobby(error.type==='unavailable-id'?'That room ID is in use. Create a new room.':'Network error: '+error.type);
  });
 }
-function joinMatch(value,wantsParty=false){
- const code=(typeof value==='string'?value:$('#jc').value).trim().toUpperCase();
- if(!/^[A-Z2-9]{5}$/.test(code)){
-  if(wantsParty)partyStatus('Enter the five-character party code.');else lobby('Enter the 5-letter code');
+async function joinMatch(value,wantsParty=false){
+ const raw=typeof value==='string'?value:$('#jc').value;
+ const code=window.SD_SPLIT?raw.trim().toUpperCase():readInviteCode(raw);
+ if(!code){
+  const line='Enter the 12-character '+(wantsParty?'party':'match')+' code.';
+  if(wantsParty)partyStatus(line);else lobby(line);
   return;
  }
- netClose();partyActive=wantsParty===true;
- if(partyActive)partyCode=code;
- myName=$('#nm').value||'Guest';hostBye=0;rcTry=0;
- hostPid=(partyActive?'sd-party-':'sdrill-')+code;
- const peer=net=createMatchPeer();
- lobby('Connecting…');
- peer.on('disconnected',()=>{if(net===peer)try{peer.reconnect()}catch(e){}});
- peer.on('open',id=>{if(net===peer){myId=id;names[id]=myName;reg(peer.connect(hostPid,{reliable:true,serialization:'json'}))}});
- peer.on('error',e=>{
+ netClose();partyActive=wantsParty===true;if(partyActive)partyCode=code;
+ myName=onlineName($('#nm').value,'Guest');hostBye=0;rcTry=0;
+ const opening=roomOpening;lobby('Connecting…');
+ let peer;
+ try{
+  const address=await roomAddress(code,partyActive,opening);
+  if(opening!==roomOpening)return;
+  hostPid=address;peer=net=createMatchPeer();
+ }catch(error){if(opening===roomOpening)lobby(error.message);return}
+ peer.on('disconnected',()=>{if(net===peer)try{peer.reconnect()}catch{}});
+ peer.on('open',id=>{if(net===peer){myId=id;names[id]=myName;reg(connectDataPeer(peer,hostPid))}});
+ peer.on('error',error=>{
   if(net!==peer)return;
-  const line=e.type==='peer-unavailable'?'No '+(partyActive?'party':'match')+' found with that code.':'Network error: '+e.type;
-  if(partyActive&&!conns.some(c=>c.open)){netClose();partyStatus(line)}else lobby(line);
+  const line=error.type==='peer-unavailable'?'No '+(partyActive?'party':'match')+' found with that code.':'Network error: '+error.type;
+  if(partyActive&&!conns.some(link=>link.open)){netClose();partyStatus(line)}else lobby(line);
  });
 }
-/* ---------- BUILD HANDSHAKE ----------
-   Before a single game message is accepted, both ends of a connection prove they run the SAME, UNMODIFIED build:
-   each side sends a random challenge together with its build id (the SHA-256 of all the game files, computed by the loader in index.html) and its play mode; the other side answers with a proof that mixes the challenge,
-   the build id and the source text of nineteen core game functions as they are currently running. An older build (it does not speak this protocol at all), an edited file, a console-patched function or a build running outside the closure fails it, and the connection is closed with a message. (Nothing that runs on a player's own machine can be made unforgeable; this makes casual and copy-pasted cheats
-   unable to join, and the host also vets every message a guest sends, below.) ---------- */
+/* Verify the invitation, transport and compatible game build before admitting a link. */
 var BHK={ver:typeof __BUILD!='undefined'?__BUILD:'raw',mode:typeof __MODE!='undefined'?__MODE:'raw'};
 var bhFns=()=>[hurt,takeDmg,shoot,eff,hitBot,boom,die,respawn,startGame,featKill,giveXP,wkill,addBot,onMsg,zDamage,zHit,mkHuman,useStreak,skAward];
 async function bhSha(s){try{if(window.crypto&&crypto.subtle){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}}catch(e){}
@@ -339,39 +371,80 @@ async function bhSha(s){try{if(window.crypto&&crypto.subtle){const b=await crypt
 var bhProof=n=>bhSha([n,BHK.ver,BHK.mode,...bhFns().map(f=>Function.prototype.toString.call(f))].join('\u0001'));
 var bhNonce=()=>{try{const a=new Uint32Array(4);crypto.getRandomValues(a);return[...a].join('-')}catch(e){return Math.random()+'-'+Date.now()}};
 const resumeProof=(ticket,nonce)=>ticket?bhSha('rejoin\u0001'+nonce+'\u0001'+ticket):Promise.resolve('');
-function bhReject(cn,why){cn.blocked=true;try{cn.send({t:'bhx',w:why})}catch(e){}lobby(why);setTimeout(()=>{try{cn.close()}catch(e){}},350)}
-function bhStart(cn){cn.vf=0;cn.sent=0;cn.theirs=0;cn.mn=bhNonce();cn.send({t:'bh1',v:BHK.ver,m:BHK.mode,n:cn.mn});
- setTimeout(()=>{if(!cn.vf&&cn.open){bhReject(cn,'Could not verify the game version: both players need the same, unmodified, up-to-date build (reload the page to update)')}},7000)}
+function bhReject(cn,why){cn.blocked=true;try{sendPeerPacket(cn,{t:'bhx',w:why})}catch(e){}if(!isHost)lobby(why);setTimeout(()=>{try{cn.close()}catch(e){}},350)}
+function bhStart(cn){
+ cn.vf=0;cn.sent=0;cn.theirs=0;cn.mn=bhNonce();
+ const auth=cn.auth;
+ cn.binding=auth?privateChannelBinding(cn):'';
+ if(auth&&!cn.binding)return bhReject(cn,'Could not verify the secure connection.');
+ sendPeerPacket(cn,{t:'bh1',v:BHK.ver,m:BHK.mode,n:cn.mn});
+}
 function bhMsg(d,cn){
- if(d.t=='bhx'){if(!isHost)lobby(String(d.w||'Version check failed').slice(0,140));return}
- if(d.t=='bh1'){if(cn.challenge)return;cn.challenge=true;
-  if(typeof d.v!='string'||d.v!==BHK.ver||d.m!==BHK.mode||typeof d.n!=='string'||d.n.length>64){bhReject(cn,'Incompatible game version: update to the latest build (reload the page) and join again');return}
-  Promise.all([bhProof(d.n),resumeProof(isHost?'':roomTicket,d.n)]).then(([p,resume])=>{
+ if(d.t==='bhx'){if(!isHost)lobby('The room could not verify this connection. Check your code and reload the game.');return}
+ const role=isHost?'host':'guest',otherRole=isHost?'guest':'host',auth=cn.auth;
+ if(d.t==='bh1'){
+  if(cn.challenge)return;cn.challenge=true;
+  if(d.v!==BHK.ver||d.m!==BHK.mode||typeof d.n!=='string'||!d.n||d.n.length>64){
+   bhReject(cn,'Incompatible game version. Reload before joining.');return;
+  }
+  const challenge=d.n+'\n'+cn.binding;
+  Promise.all([bhProof(d.n),resumeProof(isHost?'':roomTicket,d.n),auth?auth.proof(role,challenge):'']).then(([p,resume,invitation])=>{
    if(cn.blocked||!cn.open)return;
-   try{cn.send({t:'bh2',p,resume});cn.sent=1;bhDone(cn)}catch{}
-  });return;
+   sendPeerPacket(cn,{t:'bh2',p,resume,invitation});cn.sent=1;bhDone(cn);
+  }).catch(()=>bhReject(cn,'Could not verify this room.'));
+  return;
  }
- if(d.t=='bh2'&&!cn.answer){
+ if(d.t==='bh2'&&!cn.answer){
   cn.answer=true;
   const ticket=isHost?roomTickets.get(cn.peer):null;
-  Promise.all([bhProof(cn.mn),resumeProof(ticket,cn.mn)]).then(([p,resume])=>{
+  const challenge=cn.mn+'\n'+cn.binding;
+  Promise.all([bhProof(cn.mn),resumeProof(ticket,cn.mn),auth?auth.verify(otherRole,challenge,d.invitation):true]).then(([p,resume,verified])=>{
    if(cn.blocked||!cn.open)return;
-   if(typeof d.p==='string'&&d.p===p){
+   if(d.p===p&&verified){
     cn.reclaimed=ticket&&d.resume===resume?ticket:null;
     cn.theirs=1;bhDone(cn);
-   }else bhReject(cn,'This game build does not match the host’s (modified or out of date).');
-  });
+   }else bhReject(cn,'Invalid invitation or incompatible game build.');
+  }).catch(()=>bhReject(cn,'Could not verify this room.'));
  }
 }
 function bhDone(cn){
  if(cn.blocked||!cn.open||cn.vf||!(cn.sent&&cn.theirs))return;
  const pending=cn.pq||[];cn.pq=null;cn.vf=1;
+ clearTimeout(cn.verifyTimer);pendingRoomLinks.delete(cn);
  if(!regOpen(cn))return;
  for(const message of pending)acceptGamePacket(message,cn);
 }
 /* ---------- the host vets everything a guest sends before it acts on it or relays it ---------- */
 const guestPacketTypes=new Set(['s','hit','bh','dead','sh','chat','mark','sko','skh','skx','nuke','oi','bye','hi','identity',
  'zqb','zqd','zqe','zqh','zqp','zqw','zqr','zqv','zdn','zmainuse','party-sw','party-bench','vox-shots','vox-blast']);
+const guestRelayTypes=new Set(['s','hit','dead','sh','sko','skh','skx','nuke','oi','zqv','zdn']);
+const hostPacketTypes=new Set([...guestPacketTypes,'roster','start','admitted','removed','full','room-policy','room-denied',
+ 'b','bsh','o','ob','f','z','kd','kg','feed','pop','end','party-queue','party-return','party-sw-launch','vox-update',
+ 'zs','zb','zbt','zbs','zbl','zd','zg','zpg','zpu','zpc','zk','zrev','zmainhit','zmainnote','zmaincue','zmainwin']);
+const netInteger=(value,max=100000)=>Number.isSafeInteger(value)&&value>=0&&value<=max;
+const netPlayerId=value=>typeof value==='string'&&/^[A-Za-z0-9_-]{1,80}$/.test(value)&&
+ value!=='prototype'&&!hasOwn(Object.prototype,value);
+const netScore=value=>netInteger(value)?value:0;
+const netTeam=value=>value==='A'||value==='B'?value:'';
+const netTeamScores=value=>({A:netScore(value?.A),B:netScore(value?.B)});
+function teamCanHit(from,to){
+ return netPlayerId(to)&&to!==from&&hasOwn(names,to)&&(!teamMode()||mpTeams[from]!==mpTeams[to]);
+}
+function validNetPose(data){
+ return [data.x,data.y,data.z,data.yaw,data.pi].every(Number.isFinite)&&Math.abs(data.x)<1500&&Math.abs(data.z)<1500&&
+  data.y>=-8&&data.y<=80&&Math.abs(data.yaw)<15000&&Math.abs(data.pi)<=1.6&&
+  (data.al===0||data.al===1)&&netInteger(data.st,4)&&netInteger(data.aj,1)&&
+  typeof data.w==='string'&&hasOwn(W,data.w)&&typeof data.cm==='string'&&data.cm.length<=100&&
+  Array.isArray(data.at)&&data.at.length<=10&&data.at.every(name=>typeof name==='string'&&name.length<=50);
+}
+function vettedMatchBoard(rows){
+ if(!Array.isArray(rows))return [];
+ return rows.slice(0,32).flatMap(row=>{
+  if(!Array.isArray(row)||!netPlayerId(row[0]))return [];
+  const [id,name,kills,deaths,team,operator]=row;
+  return [[id,onlineName(name),netScore(kills),deaths==null?null:netScore(deaths),netTeam(team),operatorId(operator)]];
+ });
+}
 function bhKick(cn,why){
  if(cn.blocked)return;
  cn.blocked=true;cn.bye=true;removedPeers.add(cn.peer);
@@ -380,23 +453,42 @@ function bhKick(cn,why){
  if(grace[cn.peer]){clearTimeout(grace[cn.peer]);delete grace[cn.peer]}
  if(cn.vf)dropPeer(cn.peer);
  if(cn.vf)lobby(name+' was removed.');
- try{cn.send({t:'removed',w:'Removed from the room ('+why+').'})}catch{}
+ try{sendPeerPacket(cn,{t:'removed',w:'Removed from the room ('+why+').'})}catch{}
  setTimeout(()=>cn.close(),300);
 }
 function hostVet(d,cn){if(!guestPacketTypes.has(d.t))return false;const t=d.t,n=performance.now(),v=cn.vt||(cn.vt={w:n,c:0,dmg:[],last:null,nk:0,sko:[],bad:0,zd:[],chat:[],bt:n}),bad=()=>{if(n-v.bt>15000){v.bad=Math.max(0,v.bad-Math.floor((n-v.bt)/15000));v.bt=n}if(++v.bad>=10)bhKick(cn,'sending impossible game data');return false};
  if(n-v.w>1000){v.w=n;v.c=0}if(++v.c>150){if(v.c>700)bhKick(cn,'flooding the match');return false}
  if(d.id!==cn.peer||t==='dead'&&d.v!==cn.peer||t==='oi'&&d.out!==cn.peer)return bad();
+ if(!['hi','bye','identity'].includes(t)&&!hasOwn(names,cn.peer))return false;
+ if(t[0]==='z'&&mode!=='Zombies')return false;
  if(t.startsWith('party-')&&(!partyActive||d.id!==cn.peer))return false;
- if(t=='hit'||t=='bh'){const dm=+d.d;if(!(dm>=0)||dm>300)return bad();v.dmg=v.dmg.filter(x=>n-x[0]<1000);v.dmg.push([n,dm]);if(v.dmg.reduce((a,x)=>a+x[1],0)>760)return bad()}
+ if(t==='hit'||t==='bh'){
+  const target=t==='bh'?bots.find(b=>!b.net&&b.i===d.i&&b.al):null;
+  if(!run||over||mode==='Zombies'||v.deadAt!=null||!Number.isFinite(d.d)||d.d<=0||d.d>300||
+     t==='hit'&&(d.bot!=null||!teamCanHit(cn.peer,d.to))||
+     t==='bh'&&(!target||teamMode()&&mpTeams[cn.peer]===target.team))return false;
+  v.dmg=v.dmg.filter(entry=>n-entry[0]<1000);v.dmg.push([n,d.d]);
+  if(v.dmg.reduce((sum,entry)=>sum+entry[1],0)>760)return bad();
+  if(t==='hit')rememberDamage(d);
+ }else if(t==='dead'){
+  if(!run||over||v.deadAt!=null)return false;
+  v.deadAt=n;
+  const recent=recentDamage.get(cn.peer)?.get(d.by);
+  recentDamage.delete(cn.peer);
+  const attributed=mode!=='Zombies'&&recent&&n-recent.at<12000;
+  if(!attributed)d.by='';
+  d.head=Boolean(attributed&&recent.head);
+ }
  else if(t=='zqh'){
-  const dm=+d.d,Wk=W[d.k],meleeCap=sel.map==='Hollow Estate'?24000:16000;
+  const dm=d.d,Wk=typeof d.k==='string'&&hasOwn(W,d.k)?W[d.k]:null,meleeCap=sel.map==='Hollow Estate'?24000:16000;
   const cap=d.m?meleeCap:Wk?Math.max(Wk.d||0,Wk.ex?Wk.ex.d||0:0)*3*9*2*1.6:0;
-  if(!(dm>=0)||(!d.m&&!Wk)||dm>cap)return bad();
+  if(!Number.isFinite(dm)||dm<0||(!d.m&&!Wk)||dm>cap)return bad();
   v.zd=v.zd.filter(x=>n-x[0]<1000);v.zd.push([n,dm]);
   const hitLimit=sel.map==='London'?90:45;
   if(v.zd.length>hitLimit||v.zd.reduce((a,x)=>a+x[1],0)>60000)return bad();
  }
  else if(t=='s'){
+  if(!validNetPose(d))return bad();
   const x=+d.x,z=+d.z,q=mode==='Zombies'?zq?.main:null;
   const inArena=!!q&&zQuestInArena(x,z),previousArena=!!q&&v.last&&zQuestInArena(v.last.x,v.last.z);
   const credited=!!q?.credit.includes(cn.peer);
@@ -404,26 +496,42 @@ function hostVet(d,cn){if(!guestPacketTypes.has(d.t))return false;const t=d.t,n=
   if(inArena?(!credited||!q.fight):(Math.abs(x)>H+8||Math.abs(z)>H+8))return bad();
   const portal=credited&&v.last&&(inArena&&q.fight&&!previousArena||
    previousArena&&!q.fight&&!inArena&&Math.hypot(x-q.entry.x,z-q.entry.z)<8);
+  if(v.deadAt!=null&&d.al===1){
+   if(n-v.deadAt<450)return false;
+   v.deadAt=null;v.last=null;recentDamage.delete(cn.peer);
+  }
   if(!portal&&v.last){const dt=(n-v.last.n)/1000;if(dt>.01&&dt<1.5&&Math.hypot(x-v.last.x,z-v.last.z)/dt>38){v.last.n=n;return bad()}}
   v.last={x,z,n};
  }
- else if(t=='nuke'){const r=typeof board=='function'?board().find(r=>r.id==cn.peer):null;if(!r||r.k<20||v.nk++>0)return bad()}
+ else if(t==='nuke'){const r=board().find(row=>row.id===cn.peer);if(d.by!==cn.peer||!r||r.k<20||v.nk++>0)return bad()}
+ else if(t==='sh'||t==='skx'){
+  if(![d.x,d.y,d.z].every(value=>Number.isFinite(value)&&Math.abs(value)<1500)||
+     t==='sh'&&(typeof d.w!=='string'||!hasOwn(W,d.w)))return bad();
+ }else if(t==='skh'){
+  if(!teamCanHit(cn.peer,d.to)||!netInteger(d.u)||!Number.isFinite(d.d)||d.d<=0||d.d>400)return false;
+ }else if(t==='zqv'){
+  if(!netPlayerId(d.to)||d.to===cn.peer||!hasOwn(names,d.to))return false;
+  const giver=bots.find(player=>player.net&&player.id===cn.peer&&player.al);
+  const target=d.to===myId?(P.dead&&zq?.down?P:null):bots.find(player=>player.net&&player.id===d.to&&player.dn);
+  if(!giver||!target||Math.hypot(giver.x-target.x,giver.y-target.y,giver.z-target.z)>5)return false;
+ }
  else if(t=='sko'){v.sko=v.sko.filter(x=>n-x<20000);if(v.sko.length>=8)return false;v.sko.push(n)}
  else if(t=='chat'){v.chat=v.chat.filter(x=>n-x<3000);if(v.chat.length>=4)return false;v.chat.push(n)}
  return true}
-var hitRate={};function hitRateOK(id,dm){const n=performance.now(),a=(hitRate[id]=(hitRate[id]||[]).filter(x=>n-x[0]<1000));a.push([n,dm]);return a.reduce((s,x)=>s+x[1],0)<=760}
+var hitRate=Object.create(null);function hitRateOK(id,dm){const n=performance.now(),a=(hitRate[id]=(hitRate[id]||[]).filter(x=>n-x[0]<1000));a.push([n,dm]);return a.reduce((s,x)=>s+x[1],0)<=760}
 function regOpen(cn){
+ if(!netPlayerId(cn.peer)){bhReject(cn,'Invalid connection identity.');return false}
  if(isHost&&(removedPeers.has(cn.peer)||conns.some(c=>c.peer===cn.peer&&c.open))){
-  if(removedPeers.has(cn.peer))cn.send({t:'removed',w:'You were removed from this room.'});
+  if(removedPeers.has(cn.peer))sendPeerPacket(cn,{t:'removed',w:'You were removed from this room.'});
   cn.blocked=true;setTimeout(()=>cn.close(),350);return false;
  }
  const ticket=isHost?roomTickets.get(cn.peer):null;
  if(isHost&&(ticket&&cn.reclaimed!==ticket||!ticket&&roomLocked)){
-  cn.send({t:'room-denied',w:ticket?'This connection could not reclaim its seat.':'The host has locked this room.'});
+  sendPeerPacket(cn,{t:'room-denied',w:ticket?'This connection could not reclaim its seat.':'The host has locked this room.'});
   cn.blocked=true;setTimeout(()=>cn.close(),350);return false;
  }
  if(isHost&&maxP&&(conns.length>=maxP-1||partyActive&&(run||partyOperationOpen)&&!hasOwn(names,cn.peer))){
-  cn.send({t:'full'});cn.blocked=true;setTimeout(()=>cn.close(),400);return false;
+  sendPeerPacket(cn,{t:'full'});cn.blocked=true;setTimeout(()=>cn.close(),400);return false;
  }
  cn.last=performance.now();rcTry=0;
  if(grace[cn.peer]){clearTimeout(grace[cn.peer]);delete grace[cn.peer];feed((names[cn.peer]||'Player')+' reconnected')}
@@ -431,18 +539,33 @@ function regOpen(cn){
  if(isHost){
   const key=ticket||Array.from(crypto.getRandomValues(new Uint8Array(16)),v=>v.toString(16).padStart(2,'0')).join('');
   roomTickets.set(cn.peer,key);
-  cn.send({t:'admitted',ticket:key,locked:roomLocked});
+  sendPeerPacket(cn,{t:'admitted',ticket:key,locked:roomLocked});
  }
- cn.send({t:'hi',id:myId,n:myName,look:idrLocal()});
+ sendPeerPacket(cn,{t:'hi',id:myId,n:myName,look:idrLocal()});
  lobby(isHost?'Player joined':'Connected. Waiting for the host to start…');return true;
 }
 function acceptGamePacket(data,link){
  if(link.blocked)return;
- try{if(acceptRoomPacket(data,link)&&(!isHost||hostVet(data,link)))onMsg(data,link)}catch{}
+ try{
+  if(!isHost){
+   if(link.peer!==hostPid||!hostPacketTypes.has(data.t))return;
+   const target=packetTarget(data);
+   if(target&&target!==myId||data.t==='s'&&!validNetPose(data))return;
+  }
+  if(acceptRoomPacket(data,link)&&(!isHost||hostVet(data,link)))onMsg(data,link);
+ }catch{}
 }
 function reg(cn){
  const owner=net;
- cn.last=performance.now();cn.vf=0;
+ cn.last=performance.now();cn.vf=0;cn.auth=roomAuth;
+ pendingRoomLinks.add(cn);
+ cn.verifyTimer=setTimeout(()=>{
+  pendingRoomLinks.delete(cn);
+  if(net===owner&&!cn.vf){
+   if(!isHost)lobby('Could not connect through the privacy relay or verify the room.');
+   cn.close();
+  }
+ },12000);
  cn.on('open',()=>{if(net===owner)bhStart(cn);else cn.close()});
  peerPackets(cn,'t',d=>{
   if(net!==owner||cn.blocked)return;
@@ -456,14 +579,14 @@ function reg(cn){
    }
    return;
   }
-  if(d.t==='ping'){if(cn.open)cn.send({t:'pong'});return}
+  if(d.t==='ping'){if(cn.open)sendPeerPacket(cn,{t:'pong'});return}
   if(d.t!=='pong')acceptGamePacket(d,cn);
  },()=>{
   if(net!==owner)return;
-  if(isHost)bhKick(cn,'too many invalid network messages');
+  if(isHost&&cn.vf)bhKick(cn,'too many invalid network messages');
   else cn.close();
  });
- cn.on('error',()=>{});cn.on('close',()=>{if(net===owner)netLost(cn)});
+ cn.on('error',()=>{});cn.on('close',()=>{clearTimeout(cn.verifyTimer);pendingRoomLinks.delete(cn);if(net===owner)netLost(cn)});
 }
 /* a connection ended. Players who say goodbye leave at once; anyone else gets 15 s to come back (flaky wifi, tab switches, ICE hiccups) before their body is removed */
 function netLost(cn){conns=conns.filter(x=>x!==cn);
@@ -479,11 +602,11 @@ function netLost(cn){conns=conns.filter(x=>x!==cn);
  if(netOn||Object.keys(names).length>1)guestRetry()}
 function guestRetry(){if(!net||isHost||hostBye)return;if(conns.some(c=>c.open)){rcTry=0;return}if(rcTry++>=12){lobby('Lost connection to the host');if(netOn)setTimeout(()=>endGame('Disconnected'),300);return}
  lobby('Connection lost. Reconnecting… ('+rcTry+'/12)');if(run)msg('Reconnecting…',1.2);try{if(net.disconnected)net.reconnect()}catch(e){}
- try{const c=net.connect(hostPid,{reliable:true,serialization:'json'});reg(c);c.on('open',()=>{lobby('Reconnected');if(run)msg('Reconnected',1.5)})}catch(e){}
+ try{const c=connectDataPeer(net,hostPid);reg(c);c.on('open',()=>{lobby('Reconnected');if(run)msg('Reconnected',1.5)})}catch(e){}
  clearTimeout(rcTimer);rcTimer=setTimeout(guestRetry,2500)}
 /* heartbeat: keeps NAT mappings open, and any link silent for 25 s is closed so it can be retried */
-setInterval(()=>{const n=performance.now();for(const c of conns)if(c.open){try{c.send({t:'ping'})}catch(e){}if(c.last&&n-c.last>25000){try{c.close()}catch(e){}}}},1000);
-function dropPeer(id){roomTickets.delete(id);roomReceived.delete(id);const i=bots.findIndex(b=>b.net&&b.id==id);if(i>=0){S.remove(bots[i].m);bots.splice(i,1)}if(!hasOwn(names,id))return;if(run)feed(names[id]+' left');delete names[id];peerLooks.delete(id);if(partyActive)partyMemberLeft(id);broadcastRoster();lobbyList()}
+setInterval(()=>{const n=performance.now();for(const c of conns)if(c.open){try{sendPeerPacket(c,{t:'ping'})}catch(e){}if(c.last&&n-c.last>25000){try{c.close()}catch(e){}}}},1000);
+function dropPeer(id){roomTickets.delete(id);roomReceived.delete(id);recentDamage.delete(id);const i=bots.findIndex(b=>b.net&&b.id==id);if(i>=0){S.remove(bots[i].m);bots.splice(i,1)}if(!hasOwn(names,id))return;if(run)feed(names[id]+' left');delete names[id];peerLooks.delete(id);if(partyActive)partyMemberLeft(id);broadcastRoster();lobbyList()}
 var nmOf=k=>names[k]||(bots.find(b=>(b.hb||!b.net)&&('b'+b.i)==k)||{}).nm||'?';
 /* host-side scoring for kills made by someone other than the host's own hits */
 function credit(by){if(!isHost||mode=='Private')return;const kb=by==myId?P:bots.find(b=>(b.net?b.id:'b'+b.i)==by);if(!kb)return;const tm=kb===P?pTeam():kb.team;ts[tm]=(ts[tm]||0)+1;if(kb!==P)kb.k=(kb.k||0)+1}
@@ -511,23 +634,28 @@ function hostChat(text,channel,sender){
  if(!message||!['all','team'].includes(channel)||(channel==='team'&&!['A','B'].includes(team)))return;
  const packet=gamePacket({t:'chat',id:sender,m:message,ch:channel,tm:team||''});
  if(!packet)return;
+ const frame=encodePeerPacket(packet);
+ if(frame===null)return;
  for(const link of conns)if(link.open&&link.vf&&!link.blocked&&link.peer!==sender&&
-    (channel==='all'||mpTeams[link.peer]===team))link.send(packet);
+    (channel==='all'||mpTeams[link.peer]===team))link.send(frame);
  if(sender!==myId&&(channel==='all'||mpTeams[myId]===team))chatRecv(packet);
 }
-function onMsg(d,cn){if(isHost&&d.t!='hi'&&d.t!='roster'&&d.t!='bye'&&d.t!='identity'&&d.t!='zmainuse'&&d.t!='chat'&&d.t!='mark'&&!d.t.startsWith('party-')&&!d.t.startsWith('vox-'))fwd(d,cn);
+function onMsg(d,cn){
+ if(isHost&&guestRelayTypes.has(d.t))fwd(d,cn);
  switch(d.t){
  case'oi':{const b=bots.find(q=>q.net&&q.id==d.out);if(b){b.out=1;b.al=0;b.m.visible=false;feed((names[d.out]||'A player')+' is out')}break}
  case'bye':if(isHost){cn.bye=1;dropPeer(d.id)}else hostBye=1;break;
  case'hi':{
   const id=cn.peer;
-  names[id]=typeof d.n==='string'?(d.n.trim().slice(0,12)||'Player'):'Player';
+  names[id]=onlineName(d.n);
   if(d.look)peerLooks.set(id,idrRead(d.look));
   if(isHost){broadcastRoster();voxelSync(cn)}
   lobbyList();break;
  }
  case'roster':{
-  names=Object.assign(Object.create(null),d.r);
+  if(!d.r||Array.isArray(d.r)||typeof d.r!=='object')break;
+  names=Object.assign(Object.create(null),Object.fromEntries(Object.entries(d.r).slice(0,12)
+   .filter(([id])=>netPlayerId(id)).map(([id,name])=>[id,onlineName(name)])));
   peerLooks.clear();
   for(const id of Object.keys(names))if(id!==myId&&hasOwn(d.looks||{},id))peerLooks.set(id,idrRead(d.looks[id]));
   lobbyList();break;
@@ -592,16 +720,22 @@ function onMsg(d,cn){if(isHost&&d.t!='hi'&&d.t!='roster'&&d.t!='bye'&&d.t!='iden
   if(by==myId&&d.v!=myId){kills++;const b=bots.find(b=>b.net&&b.id==d.v);if(b){const head=d.head===true;featKill(b,head);juiceKill(b,head)}}break}
  case'sh':{const b=bots.find(b=>b.net&&b.id==d.id);if(b&&b.al)remoteShot(b,d.w,V(d.x,d.y,d.z),undefined,d.hand===1?1:0);break}
  case'bsh':if(!isHost){const b=bots.find(b=>b.hb&&b.i==d.i);if(b&&b.al)remoteShot(b,d.w,V(d.x,d.y,d.z),b.team=='A'?0x62a8ff:0xff5a3a)}break;
- case'ob':obText=d.s;break;case'chat':if(isHost)hostChat(d.m,d.ch,cn.peer);else if(cn.peer===hostPid)chatRecv(d);break;
+ case'ob':if(typeof d.s==='string')obText=d.s.slice(0,180);break;case'chat':if(isHost)hostChat(d.m,d.ch,cn.peer);else if(cn.peer===hostPid)chatRecv(d);break;
  case'mark':if(isHost)shareSquadMark(d.point,cn.peer,cn);else if(cn.peer===hostPid)receiveSquadMark(d);break;
  case'sko':skNetObjs(d);break;case'skh':skNetHit(d);break;case'skx':skNetFx(d);break;case'nuke':if(d.by!=myId&&run&&!over){if(isHost)NUKE_BY=d.by;skNukeSeq(d.by,0)}break;
  case'kd':case'kg':try{kcNetRecv(d)}catch(e){}break;
  case'z':if(!isHost){ds=d.ds;if(d.hp&&mode=='Hardpoint')hpApply(d.hp);else d.z.forEach((a,k)=>{const z=zones[k];if(!z)return;z.o=a[0];z.cp=a[1]})}break;
  case'b':if(!isHost)syncPuppets(d.l);break;
  case'f':if(!isHost){d.f.forEach((a,i)=>{const f=flags[i];if(!f)return;if(a[3]==myId&&f.byk!=myId)msg('You have the flag! Bring it home',2.5);f.st=a[0];f.x=a[1];f.z=a[2];f.byk=a[3]});if(d.cs)cs=d.cs}break;
- case'feed':if(!isHost)feed(d.s);break;
+ case'feed':if(!isHost&&typeof d.s==='string')feed(d.s.slice(0,180));break;
  case'pop':if(!isHost)popup(d.a,d.b);break;
- case'end':if(!isHost){let w=d.w;if(d.nk&&!teamMode())w=d.nk==myId?'Victory':(names[d.nk]||'A player')+' wins';if(teamMode())w=(w=='Victory')==(myTeam==d.ht)?'Victory':'Defeat';else if(w=='Victory')w=(names[d.id]||'Host')+' wins';netBd=d.bd||null;netSc=d.sc||null;endGame(w)}break;default:if(d.t&&d.t.length>1&&d.t[0]=='z')zNet(d,cn)}}
+ case'end':if(!isHost&&typeof d.w==='string'&&d.w.length<=100){
+  let w=d.w;
+  if(teamMode())w=(w==='Victory')===(myTeam===netTeam(d.ht))?'Victory':'Defeat';
+  else if(netPlayerId(d.nk))w=d.nk===myId?'Victory':(names[d.nk]||'A player')+' wins';
+  else if(w==='Victory')w=(names[d.id]||'Host')+' wins';
+  netBd=vettedMatchBoard(d.bd);netSc=d.sc?netTeamScores(d.sc):null;endGame(w);
+ }break;default:if(d.t&&d.t.length>1&&d.t[0]=='z')zNet(d,cn)}}
 function addNetBot(id,team){const b=addBot(1e9,1,peerLooks.get(id)?.operator||'recruit',true);b.net=1;b.id=id;b.al=0;b.m.visible=false;b.tx=b.ty=b.tz=b.x=b.z=b.yaw=0;b.team=team||id;b.nm=names[id]||'Player';b.k=0;
  if(teamMode())markOperatorTeam(b.rig,b.team)}
 function hostStart(){let m=$('#pmode').value,map=$('#pm').value;PBOTS=Math.max(0,Math.min(12,+($('#pbots')&&$('#pbots').value)));if(isNaN(PBOTS))PBOTS=null;const pick=a=>a[Math.random()*a.length|0];
@@ -747,9 +881,9 @@ function showMatchSearchPhase(phase){
  const panel=$('#p-queue');
  panel.dataset.phase=phase;
  $('#queue-map').dataset.mapArt=ready?map:sel.rp?'?':sel.map;
- $('#queue-title').textContent=['Searching for a match','Assembling the lobby','Match found'][phase];
+ $('#queue-title').textContent=[partyActive?'Preparing a party match':'Preparing a bot match','Setting up the arena','Ready to deploy'][phase];
  $('#queue-detail').textContent=[
-  sel.rm?'Searching available playlists.':'Searching the '+mode+' playlist.',
+  sel.rm?'Choosing a playlist.':mode+' playlist',
   'Preparing the arena and match rules.',
   'Confirm when you’re ready to deploy.'
  ][phase];
@@ -776,8 +910,8 @@ function beginMatchSearch(){
   matchSearch.timer=setTimeout(()=>{
    showMatchSearchPhase(2);
    beep(660,.115,'triangle',.026);
-  },3000+Math.random()*2000);
- },9000+Math.random()*4000);
+  },1500+Math.random()*1000);
+ },4500+Math.random()*2000);
 }
 $('#queue-cancel').onclick=cancelMatchSearch;
 $('#queue-accept').onclick=()=>{
@@ -832,16 +966,17 @@ function menuCam(dt){gfxTick(dt);if(fin){finTick(dt);return}hideFP();ma+=dt*.12;
 /* lobby */
 $('#leave').onclick=()=>{netClose();lobby('You left the lobby')};$('#host').onclick=hostMatch;$('#join').onclick=joinMatch;$('#startnet').onclick=()=>{if(conns.length<1)return lobby('Waiting for at least one friend to join');hostStart()};
 /* pause */
-function showPause(){for(const k in key)key[k]=false;trig=0;$('#pt').textContent=typeof netOn!='undefined'&&netOn?'Menu (the match keeps running)':'Paused';$('#aa2').value=String(AA);$('#sn2').value=sens;$('#fv2').value=fovBase;updateMatchModeration();syncRoomLockControls();renderNextLifeLoadouts();$('#pause').style.display='block'}
+function showPause(){for(const k in key)key[k]=false;trig=0;arenaSoundCaptions.clear();$('#pt').textContent=typeof netOn!='undefined'&&netOn?'Menu (the match keeps running)':'Paused';$('#aa2').value=String(AA);$('#sn2').value=sens;$('#fv2').value=fovBase;updateMatchModeration();syncRoomLockControls();renderNextLifeLoadouts();$('#pause').style.display='block'}
 function hidePause(){$('#pause').style.display='none';$('#pt').textContent='Paused'}
 $('#resume').onclick=()=>lockPtr();
-$('#aa2').onchange=e=>{AA=+e.target.value;$('#aa').value=e.target.value;saveSet()};$('#sn2').oninput=e=>{sens=+e.target.value;$('#sn').value=e.target.value;saveSet()};$('#vl').oninput=e=>vol=+e.target.value;$('#sk').oninput=e=>shk=+e.target.value;
+$('#aa2').onchange=e=>{AA=+e.target.value;$('#aa').value=e.target.value;saveSet()};$('#sn2').oninput=e=>{sens=+e.target.value;$('#sn').value=e.target.value;saveSet()};$('#sk').oninput=e=>shk=+e.target.value;
 function exitNetworkMatch(keepParty=false){
- run=0;over=1;paused=0;document.exitPointerLock?.();hidePause();resetLifeLoadouts();clearSquadMarks();
+ run=0;over=1;paused=0;document.exitPointerLock?.();hidePause();resetLifeLoadouts();clearSquadMarks();arenaSoundCaptions.clear();zQuestResetCinema();
  if(practiceSession){
   delete MAPS[practiceName];sel.map=practiceSession.map;practiceSession=null;mode=sel.mode;
-  document.body.classList.remove('practice-range');
+  document.body.classList.remove('practice-range','basic-training');
   $('#practice-reset').hidden=true;
+  trainingCoach.hidden=true;
  }
  $('#hud').style.display=$('#end').style.display='none';finStop();hideFP();endDeath();
  if(keepParty)netEnd();else netClose();
@@ -872,7 +1007,7 @@ var esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','
 function board(){const looks=mode!=='Zombies',rows=[{id:myId||'me',nm:hname(),k:mode=='Private'?(scores[myId]||0):kills,d:deaths,tm:teamMode()?myTeam:'',me:1,operator:passOperator(),look:looks?idrLocal():null}];
  for(const b of bots){if(b.zom||(b.nm=='Grunt'&&(!b.net||b.hb)))continue;rows.push({id:b.net?b.id:'b'+b.i,nm:b.nm||'Player',k:mode=='Private'?(scores[b.id]||0):(b.k||0),d:b.net?null:(b.dc||0),tm:teamMode()?b.team:'',me:0,operator:b.m.userData.operator,look:looks&&b.net&&!b.hb?peerLooks.get(b.id):null})}return rows}
 function finRows(){const r=netOn&&!isHost&&netBd?netBd.map(([id,nm,k,d,tm,operator])=>({id,nm,k,d,tm,operator,me:id===myId,look:mode==='Zombies'?null:id===myId?idrLocal():peerLooks.get(id)})):board();return r.sort((a,b)=>b.k-a.k||(a.d==null?9e3:a.d)-(b.d==null?9e3:b.d)).slice(0,12)}
-function teamTxt(){if(!teamMode())return'';const t=netOn&&!isHost&&netSc?netSc:mode=='Capture the Flag'?cs:mode=='Domination'||mode=='Hardpoint'?ds:mode=='Kill Confirmed'?kc:{A:ts.A||0,B:ts.B||0};return `Blue ${t.A||0} – ${t.B||0} Red`}
+function teamTxt(){if(!teamMode())return'';const t=netOn&&!isHost&&netSc?netSc:mode=='Capture the Flag'?cs:mode=='Domination'||mode=='Hardpoint'?ds:mode=='Kill Confirmed'?kc:ts;return `Blue ${netScore(t?.A)} – ${netScore(t?.B)} Red`}
 function finStart(t,sc,nb,xp){podClear();fin=1;fs='vic';ft=0;fe=0;const w=t=='Victory',rows=finRows();finInfo={w,rows};
  $('#hud').style.display=$('#pause').style.display=$('#end').style.display='none';
  $('#fvt b').textContent=w?'Victory':'Defeat';$('#fvt span').textContent=t=='Victory'||t=='Defeat'?`${mode} on ${sel.map}`:t;

@@ -3,18 +3,20 @@ const combatRecordKey='sd-combat-record';
 const recordLimit=30;
 const combatDate=new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'});
 let recordView='mp';
+const privateMatchResult=value=>value==='Victory'?'Victory':['Eliminated','Out of lives','You were eliminated'].includes(value)?'Eliminated':'Defeat';
 function readCombatRecord(){
  try{
   const stored=JSON.parse(localStorage.getItem(combatRecordKey));
   if(Array.isArray(stored))return stored.filter(row=>row&&typeof row.map==='string'&&
    typeof row.mode==='string'&&typeof row.result==='string'&&Number.isFinite(row.at)&&
-   row.at>0&&row.at<=8.64e15&&['kills','deaths','hits','shots','duration'].every(key=>Number.isFinite(row[key]))).slice(0,recordLimit);
+   row.at>0&&row.at<=8.64e15&&['kills','deaths','hits','shots','duration'].every(key=>Number.isFinite(row[key])))
+   .slice(0,recordLimit).map(row=>({...row,result:privateMatchResult(row.result)}));
  }catch{}
  return [];
 }
 function saveCombatRecord(result){
  if(practiceSession||result==='Disconnected')return;
- const record={at:Date.now(),map:sel.map,mode,result,kills,deaths,hits,shots,
+ const record={at:Date.now(),map:sel.map,mode,result:privateMatchResult(result),kills,deaths,hits,shots,
   duration:Math.max(0,Math.round(t0)),round:mode==='Zombies'?zq?.r||1:0,
   connection:window.SD_SPLIT?'Split screen':netOn?'Online':'Local'};
  const recent=[record,...readCombatRecord()].slice(0,recordLimit);
@@ -162,7 +164,7 @@ function shareSquadMark(point,sender,link){
  }
  const packet=gamePacket({t:'mark',id:sender,point});
  if(!packet)return;
- for(const peer of conns)if(peer.open&&peer.vf&&!peer.blocked&&peer.peer!==sender&&recipient(peer.peer))peer.send(packet);
+ for(const peer of conns)if(peer.open&&peer.vf&&!peer.blocked&&peer.peer!==sender&&recipient(peer.peer))sendPeerPacket(peer,packet);
  if(sender!==myId&&recipient(myId))showSquadMark(point,sender);
 }
 function receiveSquadMark(packet){

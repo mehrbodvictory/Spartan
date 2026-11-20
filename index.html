@@ -17,6 +17,9 @@ PROJECT RULES (kept here so every future session starts from them)
  Anti-cheat      streaks.js loads last and snapshots the weapon table and the functions listed in names_. New weapons must be added to W before streaks.js runs; never wrap those functions afterwards.
 -->
 <html lang="en"><head><meta charset="utf-8"><title>Spartan Drill</title>
+<!-- Update the CSP hash if this page’s inline loader changes. -->
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' blob: 'wasm-unsafe-eval' 'sha256-8x0ZTfnCfOGwguD+3vttYRc8ZbbNn+OMCt8i0vHSBzg=' https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js; connect-src 'self' blob: https://0.peerjs.com wss://0.peerjs.com https://cdn.jsdelivr.net; script-src-attr 'none'; worker-src blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@500;600&family=Teko:wght@500;700&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="favicon.svg"><link rel="stylesheet" href="style.css"></head><body>
@@ -53,7 +56,7 @@ PROJECT RULES (kept here so every future session starts from them)
   <section id="p-play" class="pn" aria-label="Match setup">
    <header class="panel-head setup-head">
     <div><button class="text-button back-link" data-panel="lobby">Back to Play</button><h2>Match setup</h2></div>
-    <div class="setup-actions"><button id="practice-start" class="btn alt">Practice range</button><button id="go" class="big action-arrow" data-initial-focus>Find match</button></div>
+    <div class="setup-actions"><button id="training-start" class="btn alt">Basic training</button><button id="practice-start" class="btn alt">Practice range</button><button id="go" class="big action-arrow" data-initial-focus>Find match</button></div>
    </header>
    <p id="practice-note" role="status"></p>
    <div class="setup-shell">
@@ -96,7 +99,8 @@ PROJECT RULES (kept here so every future session starts from them)
     <label id="pmodeL">Game mode<select id="pmode"></select></label><label id="pmL">Map<select id="pm"></select></label><label id="pbL">Bots <b id="pbv">6</b><input id="pbots" type="range" min="0" max="12" step="1" value="6"></label></div>
     <button id="host" class="big">Create lobby</button>
     <div id="hostbox" style="display:none"><div class="party-code"><span>Match code</span><strong id="code"></strong><button class="btn alt sm" data-room-lock hidden type="button"></button></div><button id="startnet" class="big">Start match</button></div></div>
-    <div class="card2"><h3>Join a match</h3><label for="jc">Match code</label><input id="jc" type="text" maxlength="5" placeholder="ABCDE" autocapitalize="characters" autocomplete="off"><button id="join" class="big alt">Join lobby</button></div></div>
+    <div class="card2"><h3>Join a match</h3><label for="jc">Match code</label><input id="jc" type="text" maxlength="14" placeholder="XXXX-XXXX-XXXX" autocapitalize="characters" autocomplete="off"><button id="join" class="big alt">Join lobby</button></div></div>
+   <p class="sub">Players in your room can see your display name and equipped cosmetics. Online connections use a relay, and the host routes team chat.</p>
    <div class="party-status"><p id="lb" role="status"></p><ul id="plist"></ul><button id="leave" class="big alt" style="display:none">Leave lobby</button></div>
    <div class="split-entry"><div><h3>Local split screen</h3><small id="split-help">Connect two controllers and press a button on each.</small></div><button id="split-start" class="btn alt" disabled>Start split screen</button></div>
   </section>
@@ -170,7 +174,7 @@ PROJECT RULES (kept here so every future session starts from them)
    <p class="sub">Touch screens: drag on the left to look, tap or hold on the right to shoot, use the stick for movement (push it to the edge to sprint) and the buttons for jump, reload, grenade, melee, swap and killstreak.</p><p class="sub">No aim button: shots go where your crosshair points, and aim assist helps when an enemy is near it.</p></section>
  </main>
  <div id="hot"></div>
- <div id="dev"><div class="card"><h2>Developer menu</h2><button class="big" data-d="all">Unlock everything</button><button class="big" data-d="lvl">Max level 55</button><button class="big" data-d="master">Prestige Master 1250</button><button class="big alt" data-d="reset">Reset all progress</button><button class="big alt" data-d="close">Close</button></div></div>
+ <div id="dev"><div class="card"><h2>Developer menu</h2><button class="big" data-d="all">Unlock everything</button><button class="big" data-d="lvl">Max level 55</button><button class="big" data-d="master">Prestige Master 1250</button><button class="big alt" data-d="gums">Stock chewables</button><button class="big alt" data-d="boost" aria-pressed="false">Boost next solo Zombies run</button><button class="big alt" data-d="reset-ks">Reset killstreak slots</button><button class="big alt" data-d="reset">Reset all progress</button><button class="big alt" data-d="close">Close</button></div></div>
 </div>
 <div id="home">
  <header class="home-header"><div class="wordmark"><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M18 2 33 9v10c0 7-7 12-15 15C10 31 3 26 3 19V9z"/><path d="m10 20 8-10 8 10m-13 5 5-6 5 6"/></svg><h1>Spartan <b>Drill</b></h1></div></header>
@@ -194,7 +198,7 @@ PROJECT RULES (kept here so every future session starts from them)
  <form id="party-join-form">
   <button id="party-create" type="button">Create party</button>
   <label for="party-join-code">Friend’s party code</label>
-  <div class="party-join-row"><input id="party-join-code" maxlength="5" placeholder="ABCDE" required autocomplete="off" autocapitalize="characters"><button>Join</button></div>
+  <div class="party-join-row"><input id="party-join-code" maxlength="14" placeholder="XXXX-XXXX-XXXX" required autocomplete="off" autocapitalize="characters"><button>Join</button></div>
  </form>
 </dialog>
 <div id="pause"><div class="card"><h2 id="pt">Paused</h2><button id="resume" class="big">Resume</button>
@@ -203,7 +207,7 @@ PROJECT RULES (kept here so every future session starts from them)
  <label class="aim-option">Aim-down-sights sensitivity<input data-aim-option="ads" type="range" min="25" max="150" step="5" value="55"><output data-aim-value="ads">55%</output></label>
  <label>Field of view<input id="fv2" type="range" min="60" max="110" step="1"></label>
  <label>Brightness<input id="br2" type="range" min="0.6" max="1.6" step="0.05"></label>
- <label>Volume<input id="vl" type="range" min="0" max="1" step="0.05" value="1"></label>
+ <label>Master volume<input id="vl" type="range" min="0" max="1" step="0.05" value="1"></label>
  <label>Screen shake<input id="sk" type="range" min="0" max="1" step="0.1" value="1"></label>
  <button id="practice-reset" class="big alt" hidden>Reset targets and ammo</button>
  <details id="next-loadout" class="pause-options" hidden>
@@ -220,12 +224,15 @@ PROJECT RULES (kept here so every future session starts from them)
  <div id="ffd"></div></div>
 <div id="rcv"></div><div id="zgore"></div><div id="osk"></div><div id="scope"></div><div id="flash"></div><div id="nvo"></div><div id="sbd"></div><div id="mapv"><canvas id="mapc" width="640" height="640"></canvas><p>M to close</p></div>
 <div id="hud"><div id="dm"></div><div id="di"></div><canvas id="rd" width="150" height="150"></canvas><div id="kf"></div><div id="ks"></div><div id="pops"></div><div id="kst"></div><div id="ob"></div><div id="ms"></div><div id="cx"></div><div id="hm"></div>
+<section id="training-coach" aria-label="Basic training" role="status" hidden><small></small><strong></strong><span></span></section>
+<div id="sound-captions" class="sound-captions" aria-live="polite" aria-label="Sound captions" hidden></div>
 <div id="zmain" hidden><header><strong></strong><small></small></header><div class="zmain-track" role="progressbar" aria-label="Boss health" aria-valuemin="0" aria-valuemax="100"><i></i></div></div>
+<div id="zcinema" hidden><div><small></small><strong></strong><span></span></div></div>
 <div id="zh"><div class="zhud-field"><span>Round</span><div id="zr"></div></div><div class="zhud-field"><span>Points</span><div id="zpt"></div></div><div id="zpk"></div><div id="zt"></div></div><div id="zp"></div>
 <div id="bars"><span id="hn">Shield</span><div class="bar"><div id="sh"></div></div><div class="bar"><div id="hp"></div></div></div>
 <div id="hint">WASD move · Shift sprint · Mouse look · LMB fire · RMB aim · V katana · R reload · E frag · Q flash · F use · C crouch · Ctrl prone · 3 kills = UAV (3)</div><div id="am"></div></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js" integrity="sha384-nlUQ8ZqCbvStErob+biJNzSgltf6urV3VGqhfIfzhmg9RXmpeRm76ELw0pYnKlTR" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 /* The split-screen shell hosts two isolated seats with one local match. */
 (function(){
@@ -235,10 +242,17 @@ PROJECT RULES (kept here so every future session starts from them)
   const layout=document.createElement('div');layout.id='split-layout';
   const toolbar=document.createElement('header');toolbar.id='split-toolbar';
   toolbar.innerHTML='<b>SPARTAN DRILL · LOCAL SPLIT SCREEN</b><button>Exit split screen</button>';
-  toolbar.querySelector('button').onclick=()=>{
+  const leave=()=>{
+   const stormwatch=params.get('app')==='sw';
    for(const key of ['split','map','mode','bots','app','g1','g2'])url.searchParams.delete(key);
+   if(stormwatch)url.searchParams.set('openStormwatch','1');
    location.assign(url);
   };
+  toolbar.querySelector('button').onclick=leave;
+  addEventListener('message',event=>{
+   if(event.origin===location.origin&&event.data==='stormwatch-exit-split'&&
+      [...layout.children].some(frame=>frame.contentWindow===event.source))leave();
+  });
   document.body.replaceChildren(toolbar,layout);
   for(const seat of [1,2]){
    const child=new URL(url);
@@ -265,17 +279,22 @@ PROJECT RULES (kept here so every future session starts from them)
  }
  window.__SD_STORAGE=storage;
  /* Hash the complete game script. The build check compares peers running the same code. */
- const F=['lumen','core','maps','shardworks','systems','operator-models','graphics','net-safety','interface','controls','stormwatch-engineering','stormwatch-physics','stormwatch-operations','stormwatch-citadel','stormwatch-squad','stormwatch-hub','stormwatch','menus','party','zombies','estate','juice','extras','london','zombies-quests','lockbox-actors','lockbox','practice','match-features','streaks'];
+ const F=['player-audio','lumen','core','maps','shardworks','systems','operator-models','graphics','net-safety','interface','controls','stormwatch-engineering','stormwatch-physics','stormwatch-operations','stormwatch-citadel','stormwatch-squad','stormwatch-hub','stormwatch','menus','party','zombies','estate','juice','extras','london','zombies-quests','lockbox-actors','lockbox','practice','match-features','streaks'];
  const ready=()=>dispatchEvent(new Event('sd-ready'));
  const classic=()=>{let i=0;const next=()=>{if(i>=F.length){ready();return}const s=document.createElement('script');s.src='js/'+F[i++]+'.js';s.async=false;s.onload=next;s.onerror=next;document.body.appendChild(s)};next()};
  const local=location.hostname==='localhost'||location.hostname==='127.0.0.1';
  if(location.protocol==='file:'||!window.fetch||!window.crypto||!crypto.subtle||(local&&/[?&]raw=1\b/.test(location.search))){window.__SD_MODE='raw';classic();return}
- Promise.all(F.map(f=>fetch('js/'+f+'.js',{cache:'no-cache'}).then(r=>{if(!r.ok)throw 0;return r.text()}))).then(async t=>{
+ Promise.all(F.map(f=>fetch('js/'+f+'.js',{cache:'no-cache',mode:'same-origin',redirect:'error'}).then(r=>{if(!r.ok)throw 0;return r.text()}))).then(async t=>{
   const src=t.join('\n;\n'),hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(src)))].map(b=>b.toString(16).padStart(2,'0')).join('');
   const code='(function(__BUILD,__MODE,localStorage){\n'+src+'\n})("'+hash+'","closure",window.__SD_STORAGE);\n//# sourceURL=js/game.js';
   const u=URL.createObjectURL(new Blob([code],{type:'text/javascript'})),s=document.createElement('script');
   s.src=u;s.onload=()=>{URL.revokeObjectURL(u);ready()};document.body.appendChild(s);
- }).catch(()=>{window.__SD_MODE='raw';classic()});
+ }).catch(()=>{
+  const error=document.createElement('p');
+  error.setAttribute('role','alert');
+  error.textContent='The game could not load its scripts. Reload to try again.';
+  document.body.replaceChildren(error);
+ });
 })();
 </script>
 </body></html>

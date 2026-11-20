@@ -220,7 +220,7 @@ function zPapTick(dt){const p=zq.pap;if(!p)return;p.t+=dt;zq.papT=Math.max(0,p.d
   const q=V(P.x,1.2,P.z);burst(q,50,0xb070ff,10,.8,.14);burst(q,24,0xffe9a0,12,.6,.08);LX.fx.pulse=Math.max(LX.fx.pulse,.9);LX.fx.flash=Math.max(LX.fx.flash,.35);if(typeof estPap=='function')estPap(0,p)}}
 
 /* ---------- building the level objects: doors, machines, boxes, wall buys and crates are modelled in js/estate.js; this file only holds their rules ---------- */
-function zStart(){document.body.classList.toggle('zom',mode=='Zombies');$('#zh').style.display=mode=='Zombies'?'flex':'none';$('#zp').textContent='';zhc='';
+function zStart(){zQuestResetCinema();document.body.classList.toggle('zom',mode=='Zombies');$('#zh').style.display=mode=='Zombies'?'flex':'none';$('#zp').textContent='';zhc='';
  if(zG&&zG.parent)zG.parent.remove(zG);zG=null;zi=[];zdoors=[];zboxes=[];zdead=[];zfls={};zbT=zsT=0;if(mode!='Zombies'){zq=null;$('#zmain').hidden=true;zHudShow(0);zPaintHands();return}
  const M=MAPS[sel.map];zq={r:0,pts:500,perks:{},cap:2,revBuys:0,revM:null,st:'prep',tm:6,toSpawn:0,spT:0,open:{0:1},fl:0,cur:null,gn:3,brutes:0,down:0,out:0,dnT:0,rvT:0,ad:0,mp:[],pb:{},mel:{k:'Fists',pap:0},dash:{t:0,cd:0,max:6,hit:null},dashH:0,papT:0,pap:null,guts:[],decals:[],elev:{},pu:{insta:0,dbl:0,fire:0},drops:[],puKills:0,puCd:8,puRound:0,puLast:null,puId:1};
  MV.eq=0;wp=[zGunObj('CT')];cur=0;rel=0;gc=2;P.mhp=50;P.hp=50;P.msh=50;P.sh=50;setGun();zPaintHands();
@@ -279,7 +279,7 @@ function zSpawn(M,big){if(M.spawn)return M.spawn(big);const open=M.zs.filter(s=>
    Guests send their hits to the host (zqh) and get the kill points back (zk). */
 var _zhb=hitBot;hitBot=function(b,d,head,scale=1){if(b.zom)return zHit(b,d,head,scale);if(mode=='Zombies')return;_zhb(b,d,head)};
 function zHit(b,d,head,scale=1){if(!b.al)return;
- if(b.zp&&b.zquestBoss&&(zq.main.ward||zq.main.warm>0)){if(t0>(zq.main.blockAt||0)){zq.main.blockAt=t0+.2;beep(240,.09,'triangle',.045)}return}const w=wp.find(x=>x.k==srcK),melee=src==='Melee';if(srcK=='RG')d=RGB*(w&&w.pm?w.pm:1)*(b.big?2:1);else if(w&&w.ex)d*=ZE*(w.pm||1);else if(!srcK&&!melee)d*=ZE;
+ if(b.zquestBoss&&(zq.main.ward||zq.main.cut||zq.main.exposed<=0)){if(t0>(zq.main.blockAt||0)){zq.main.blockAt=t0+.2;beep(240,.09,'triangle',.045)}return}const w=wp.find(x=>x.k==srcK),melee=src==='Melee';if(srcK=='RG')d=RGB*(w&&w.pm?w.pm:1)*(b.big?2:1);else if(w&&w.ex)d*=ZE*(w.pm||1);else if(!srcK&&!melee)d*=ZE;
  d*=scale;
  if(b.zp){hits++;juiceHit(b,Math.min(d,9999),head);$('#hm').className='on'+(head?' hd':'');hmT=.12;beep(head?900:600,.05,'square',.04);if(!melee&&!b.zquestBoss)zGain(10);
   if(melee&&zq.r<=2)d=Math.min(d,zHp(zq.r)*(b.big?3:1));
@@ -405,7 +405,7 @@ function zProne(){const z=zq;if(!z||P.dead||!ST.prone||!z.mp)return;z.pbq=z.pbq|
   if(fw>.7&&fw<3.6&&lat<1.8){z.pbq[m.k]=1;if(zCli())netSend({t:'zqp',k:m.k});else zProneGrant(m.k,zMe())}}}
 function zProneGrant(k,by){const z=zq,m=z.mp.find(q=>q.k==k);if(!m||z.pb[k])return;z.pb[k]=by;if(by==zMe())zProneGift(k);if(netOn&&isHost)netSend({t:'zpg',k,by})}
 /* the classic cash register: a drawer thunk, then two bright bells that ring out */
-function zCash(){try{ac=ac||new AudioContext();const t=ac.currentTime,out=ac.createGain();out.gain.value=vol;out.connect(ac.destination);
+function zCash(){try{ac=ac||new AudioContext();const t=ac.currentTime,out=ac.createGain();out.gain.value=vol;out.connect(PlayerAudio.output(ac));
  const tn=(ty,f0,f1,t0,d,pk)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=ty;o.frequency.setValueAtTime(f0,t0);if(f1!=f0)o.frequency.exponentialRampToValueAtTime(f1,t0+d);g.gain.setValueAtTime(.0001,t0);g.gain.linearRampToValueAtTime(pk,t0+.004);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(out);o.start(t0);o.stop(t0+d+.02)};
  tn('sine',150,60,t,.09,.22);
  for(const[t0,f]of[[.07,2093],[.2,2794]]){tn('sine',f,f,t+t0,.55,.15);tn('sine',f*2.76,f*2.76,t+t0,.28,.06);tn('triangle',f*1.005,f*1.005,t+t0,.4,.05)}}catch(e){}}
@@ -475,7 +475,9 @@ function zNet(d,cn){const z=zq;if(!z||mode!='Zombies')return;
  case'zqh':if(isHost){const b=bots.find(x=>x.zom&&!x.zp&&x.i==d.i&&x.al);if(b)zDamage(b,d.d,d.h,d.id,d.k,d.m)}break;
  case'zqd':if(isHost)zOpenDoor(d.i,d.id);break;
  case'zqp':if(isHost)zProneGrant(d.k,d.id);break;
- case'zpg':if(!isHost){z.pb[d.k]=d.by;if(d.by==myId)zProneGift(d.k)}break;
+ case'zpg':if(!isHost&&typeof d.k==='string'&&netPlayerId(d.by)&&z.mp.some(machine=>machine.k===d.k)){
+  z.pb[d.k]=d.by;if(d.by===myId)zProneGift(d.k);
+ }break;
  case'zqw':if(isHost&&z.barricade)lockboxRepair(bots.find(b=>b.net&&b.al&&b.id==d.id),d.quick===true,d.reinforced===true);break;
  case'zqb':if(isHost&&zboxes[d.i]&&zboxes[d.i].st==0)zBoxStart(zboxes[d.i],d.i,d.id);break;
  case'zqe':if(isHost){const o=zboxes[d.i];if(o&&o.st==2&&o.by==d.id)zBoxEnd(o,d.i)}break;
@@ -579,8 +581,8 @@ function zdPick(){const lb=lastBot&&lastBot.zom?lastBot:null;let near=0;for(cons
  if(k==ZX.last){const o=['maul','crush','drag','collapse','spirit'].filter(x=>x!=k&&(x!='spirit'||(zq&&zq.r>=8)));k=o[Math.random()*o.length|0]}return k}
 var ZDI={maul:['MAULED','The horde tears you down',4.9],crush:['CRUSHED','Thrown like a rag doll',4.7],drag:['DRAGGED UNDER','Pulled into the dark',5.2],collapse:['BLED OUT','Your legs give out',5.6],spirit:['ASCENDED','The Estate keeps your body',7]};
 /* sound: all of it is sine, triangle and filtered noise */
-function zdTone(f0,f1,d,g,dl,ty){try{ac=ac||new AudioContext();const t=ac.currentTime+(dl||0),o=ac.createOscillator(),gg=ac.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+d);gg.gain.setValueAtTime(.0001,t);gg.gain.linearRampToValueAtTime(g*vol,t+Math.min(.08,d*.2));gg.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(gg);gg.connect(ac.destination);o.start(t);o.stop(t+d+.05)}catch(e){}}
-function zdNoise(d,f0,f1,g,type,q,dl){try{ac=ac||new AudioContext();const t=ac.currentTime+(dl||0),n=Math.floor(ac.sampleRate*d),b=ac.createBuffer(1,n,ac.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=Math.random()*2-1;const s=ac.createBufferSource(),f=ac.createBiquadFilter(),gg=ac.createGain();s.buffer=b;f.type=type||'bandpass';f.Q.value=q||.8;f.frequency.setValueAtTime(f0,t);f.frequency.exponentialRampToValueAtTime(Math.max(30,f1),t+d);gg.gain.setValueAtTime(.0001,t);gg.gain.linearRampToValueAtTime(g*vol,t+Math.min(.05,d*.2));gg.gain.exponentialRampToValueAtTime(.0001,t+d);s.connect(f);f.connect(gg);gg.connect(ac.destination);s.start(t)}catch(e){}}
+function zdTone(f0,f1,d,g,dl,ty){try{ac=ac||new AudioContext();const t=ac.currentTime+(dl||0),o=ac.createOscillator(),gg=ac.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+d);gg.gain.setValueAtTime(.0001,t);gg.gain.linearRampToValueAtTime(g*vol,t+Math.min(.08,d*.2));gg.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(gg);gg.connect(PlayerAudio.output(ac));o.start(t);o.stop(t+d+.05)}catch(e){}}
+function zdNoise(d,f0,f1,g,type,q,dl){try{ac=ac||new AudioContext();const t=ac.currentTime+(dl||0),n=Math.floor(ac.sampleRate*d),b=ac.createBuffer(1,n,ac.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=Math.random()*2-1;const s=ac.createBufferSource(),f=ac.createBiquadFilter(),gg=ac.createGain();s.buffer=b;f.type=type||'bandpass';f.Q.value=q||.8;f.frequency.setValueAtTime(f0,t);f.frequency.exponentialRampToValueAtTime(Math.max(30,f1),t+d);gg.gain.setValueAtTime(.0001,t);gg.gain.linearRampToValueAtTime(g*vol,t+Math.min(.05,d*.2));gg.gain.exponentialRampToValueAtTime(.0001,t+d);s.connect(f);f.connect(gg);gg.connect(PlayerAudio.output(ac));s.start(t)}catch(e){}}
 function zdHeart(g){zdTone(70,48,.16,g,0);zdTone(62,44,.18,g*.8,.17)}
 function zdStart(kind){ZX.on=1;ZX.u=0;ZX.kind=kind;ZX.dur=ZDI[kind][2];ZX.last=kind;ZX.tm=0;ZX.hb=0;ZX.ev=[];ZX.spawn=0;ZX.pp.x=P.x;ZX.pp.z=P.z;ZX.pp.y=P.y||0;ZX.yaw0=yaw;ZX.pitch0=pitch;ZX.eye0=Math.max(1.1,ST.eye||1.65);
  const lb=lastBot&&lastBot.zom?lastBot:null;let dx=lb?P.x-lb.x:Math.sin(yaw),dz=lb?P.z-lb.z:Math.cos(yaw);const n=Math.hypot(dx,dz)||1;ZX.dir=[dx/n,dz/n];

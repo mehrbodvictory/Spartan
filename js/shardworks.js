@@ -416,7 +416,7 @@ function voxelRemove(field,ids,visual=true){
   if(visual)voxelChip(field,b,5.8);
  }
  if(!dead.size)return;
- bx=bx.filter(bound=>!dead.has(bound));
+ removeCollisionBoxes(dead);
  field.mesh.instanceMatrix.needsUpdate=true;field.dirty=true;
 }
 const voxelNeighbors=[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];

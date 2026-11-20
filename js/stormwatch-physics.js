@@ -1,12 +1,20 @@
 /* Rapier world used by Stormwatch only, with Three scene objects as ray hit identities. */
 var StormwatchPhysics = (() => {
  const url='https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.18.0/rapier.mjs';
+ const integrity='sha384-4JHh+Q2KxP6xi6PRmvlqbPOQKottQzPuBF+maE+hIoFdIOR3hjbjhlbBeODwrKD8';
  let library;
- function load(){
-  if(!library)library=import(url).then(async ({default:rapier})=>{
+ async function verifiedLibrary(){
+  const response=await fetch(url,{integrity,credentials:'omit',referrerPolicy:'no-referrer'});
+  if(!response.ok)throw Error('Could not load Stormwatch physics.');
+  const source=URL.createObjectURL(new Blob([await response.arrayBuffer()],{type:'text/javascript'}));
+  try{
+   const {default:rapier}=await import(source);
    await rapier.init();
    return rapier;
-  }).catch(error=>{library=null;throw error});
+  }finally{URL.revokeObjectURL(source)}
+ }
+ function load(){
+  if(!library)library=verifiedLibrary().catch(error=>{library=null;throw error});
   return library;
  }
  async function create(THREE,terrain,bound){

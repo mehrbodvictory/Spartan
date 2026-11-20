@@ -143,7 +143,7 @@ function burst(p,n,col,sp,life,sz){
   burstMesh.instanceMatrix.needsUpdate=true;burstMesh.instanceColor.needsUpdate=true;
  }
 }
-function noise(d,f,v){try{ac=ac||new AudioContext();const n=ac.sampleRate*d,b=ac.createBuffer(1,n,ac.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*(1-i/n);const s=ac.createBufferSource(),fl=ac.createBiquadFilter(),g=ac.createGain();s.buffer=b;fl.type='lowpass';fl.frequency.value=f;g.gain.value=v*vol;s.connect(fl).connect(g).connect(ac.destination);s.start()}catch(e){}}
+function noise(d,f,v){try{ac=ac||new AudioContext();const n=ac.sampleRate*d,b=ac.createBuffer(1,n,ac.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*(1-i/n);const s=ac.createBufferSource(),fl=ac.createBiquadFilter(),g=ac.createGain();s.buffer=b;fl.type='lowpass';fl.frequency.value=f;g.gain.value=v*vol;s.connect(fl).connect(g).connect(PlayerAudio.output(ac));s.start()}catch(e){}}
 /* every weapon has its own synthesized shot: n = noise layers [dur, filter, freq, vol, delay, Q, decay], o = tone layers [wave, f0, f1, dur, vol, delay] */
 var GS={
  AR:{n:[[.09,'lowpass',4200,.32],[.03,'highpass',3000,.2]],o:[['square',230,90,.07,.1]]},
@@ -172,8 +172,8 @@ var GS={
  FT:{n:[[.25,'bandpass',1400,.3,0,.5,.6],[.2,'lowpass',500,.25]],o:[['sawtooth',90,60,.2,.08]]}};
 function snd(p,a){try{ac=ac||new AudioContext();const t=ac.currentTime,v=(a==null?1:a)*vol;
  for(const n of p.n||[]){const len=Math.max(8,ac.sampleRate*n[0]|0),b=ac.createBuffer(1,len,ac.sampleRate),d=b.getChannelData(0),ex=n[6]||1.6;for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,ex);
-  const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=b;f.type=n[1];f.frequency.value=n[2];f.Q.value=n[5]||.7;g.gain.value=n[3]*v;s.connect(f).connect(g).connect(ac.destination);s.start(t+(n[4]||0))}
- for(const o of p.o||[]){const os=ac.createOscillator(),g=ac.createGain(),dl=o[5]||0;os.type=o[0];os.frequency.setValueAtTime(o[1],t+dl);os.frequency.exponentialRampToValueAtTime(Math.max(20,o[2]),t+dl+o[3]);g.gain.setValueAtTime(o[4]*v,t+dl);g.gain.exponentialRampToValueAtTime(.0001,t+dl+o[3]);os.connect(g).connect(ac.destination);os.start(t+dl);os.stop(t+dl+o[3]+.03)}}catch(e){}}
+  const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=b;f.type=n[1];f.frequency.value=n[2];f.Q.value=n[5]||.7;g.gain.value=n[3]*v;s.connect(f).connect(g).connect(PlayerAudio.output(ac));s.start(t+(n[4]||0))}
+ for(const o of p.o||[]){const os=ac.createOscillator(),g=ac.createGain(),dl=o[5]||0;os.type=o[0];os.frequency.setValueAtTime(o[1],t+dl);os.frequency.exponentialRampToValueAtTime(Math.max(20,o[2]),t+dl+o[3]);g.gain.setValueAtTime(o[4]*v,t+dl);g.gain.exponentialRampToValueAtTime(.0001,t+dl+o[3]);os.connect(g).connect(PlayerAudio.output(ac));os.start(t+dl);os.stop(t+dl+o[3]+.03)}}catch(e){}}
 function gunSnd(w){if(w.k=='TEA')return;if(w.pap&&typeof papSnd=='function'&&mode=='Zombies'){if(w.k=='RG')pew();return papSnd(w,w.k=='RG')}if(w.k=='RG')return pew();if(GS[w.k])return snd(GS[w.k]);noise(w.pel>1?.22:.1,w.pel>1?1800:3500,.3);beep(w.pel>1?90:140,.08,'sine',.12)}
 function msg(t,s){const e=$('#ms');e.textContent=typeof PG!='undefined'?PG.t(t):t;msT=s||2;e.classList.remove('pop');void e.offsetWidth;e.classList.add('pop')}
 function floatTxt(p,t,c){const q=p.clone().project(C);if(q.z>1)return;const e=document.createElement('div');e.className='ft';e.textContent=t;e.style.cssText=`left:${(q.x*.5+.5)*innerWidth}px;top:${(-q.y*.5+.5)*innerHeight}px;color:${c}`;$('#hud').appendChild(e);setTimeout(()=>e.remove(),800)}
@@ -212,7 +212,7 @@ function endGame(t){if(over)return;if(netOn&&isHost&&mode!='Private')mpEnd(t);ov
  const xp=awardXP();
  passFinishMatch(t);
  if(mode!='Zombies'&&mode!='Survival'){chEv('matches');if(won)chEv('wins')}
- saveCombatRecord(t);clearSquadMarks();finStart(t,sc,nb,xp);resetLifeLoadouts()}
+ saveCombatRecord(t);clearSquadMarks();arenaSoundCaptions.clear();finStart(t,sc,nb,xp);resetLifeLoadouts()}
 
 /* ===================== features.js ===================== */
 /* ---------- Call of Duty x Halo features: melee, radar, killstreaks, power weapons, pickups, XP ranks, kill feed ---------- */
@@ -310,7 +310,7 @@ rgG.position.set(0,.02,.05);
 var bmG=new THREE.CylinderGeometry(1,1,1,10);
 function rgBeam(o,d,len,raw){const s=raw?o.clone():o.clone().add(d.clone().multiplyScalar(.7)).add(V(0,-.12,0)),e=o.clone().add(d.clone().multiplyScalar(len)),mid=s.clone().add(e).multiplyScalar(.5),L=s.distanceTo(e),dir=e.clone().sub(s).normalize();
  for(const[r,c,op]of[[.1,0xff1a0a,.6],[.04,0xffe2c8,.95]]){const m=new THREE.Mesh(bmG,new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:op}));m.position.copy(mid);m.scale.set(r,L,r);m.quaternion.setFromUnitVectors(V(0,1,0),dir);S.add(m);fx.push({m,l:.16,fade:op,r})}}
-function pew(a=1){try{ac=ac||new AudioContext();const t=ac.currentTime,out=ac.createGain();out.gain.value=vol*a*.6;out.connect(ac.destination);
+function pew(a=1){try{ac=ac||new AudioContext();const t=ac.currentTime,out=ac.createGain();out.gain.value=vol*a*.6;out.connect(PlayerAudio.output(ac));
  const env=(g,t0,at,pk,hold,dec)=>{g.gain.setValueAtTime(.0001,t0);g.gain.linearRampToValueAtTime(pk,t0+at);g.gain.setValueAtTime(pk,t0+at+hold);g.gain.exponentialRampToValueAtTime(.0001,t0+at+hold+dec)},
  nb=pew.nb&&pew.nb.sampleRate==ac.sampleRate?pew.nb:(pew.nb=(()=>{const n=ac.sampleRate*.5|0,b=ac.createBuffer(1,n,ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;return b})());
  /* peh: a soft lip-pop */
@@ -444,7 +444,7 @@ function muzzle(b,hand=0,k=b.wk){
  return V(b.x+ox*c+oz*s,(b.y||0)+1.36-.3*(b.pc||0)-.42*(b.psl||0)-1.05*(b.pp||0),b.z-ox*s+oz*c);
 }
 function muzzleFlash(p,k){const m=new THREE.Mesh(sg,k=='RG'?fMatR:fMat);m.scale.setScalar(W[k]?.pel>1?.22:.13);m.position.copy(p);S.add(m);fx.push({m,l:.05})}
-function otherSnd(k,p){const v=Math.max(0,1-p.distanceTo(C.position)/55);if(v<.06)return;if(k=='RG')return pew(v);if(GS[k])return snd(GS[k],v*.8);noise(k=='SG'?.22:.1,k=='SG'?1800:3500,.3*v);beep(k=='SG'?90:140,.08,'sine',.12*v)}
+function otherSnd(k,p){const v=Math.max(0,1-p.distanceTo(C.position)/55);if(v<.06)return;arenaSoundCaption('Gunfire',p.x,p.z);if(k=='RG')return pew(v);if(GS[k])return snd(GS[k],v*.8);noise(k=='SG'?.22:.1,k=='SG'?1800:3500,.3*v);beep(k=='SG'?90:140,.08,'sine',.12*v)}
 function remoteShot(b,k,end,col,hand=0){const mz=muzzle(b,hand,k),dv=end.clone().sub(mz),L=dv.length();if(L<.1)return;dv.divideScalar(L);if(k=='RG'){rgBeam(mz,dv,L,1);rgImpact(end)}else if(k=='TEA'&&typeof teaBeam=='function'){teaBeam(mz,dv,L,1);JX.tea&&JX.tea(end,W.TEA.ex)}else tr(mz,dv,L,col||PASS_TRACERS[peerLooks.get(b.id)?.tracer]?.color||0xffd27a,.07,1);muzzleFlash(mz,k);otherSnd(k,mz)}
 function falloff(w,d){return w.pw||w.k=='RG'?1:Math.max(w.pel>1?.4:.45,1-d/(w.pel>1?30:140))}
 
@@ -816,18 +816,18 @@ function phys(dt,f,s,spd){const map=MAPS[sel.map],maxHeight=(map.ceilingY??Infin
  if(!P.on&&key.KeyW&&P.vy<5&&t0>=(P.mcd||0))tryMantle(maxHeight)}
 function tryMantle(maxHeight=Infinity){const fx_=-Math.sin(yaw),fz_=-Math.cos(yaw),px=P.x+fx_*.65,pz=P.z+fz_*.65;
  indexCollisions();
- for(const i of collisionCells.get(collisionKey(px,pz))||emptyCollisionCell){const b=bx[i],up=b.h-P.y;if(up<.55||up>1.45||b.h>maxHeight||(mode=='Zombies'&&b.h>2.6)||(b.y0||0)>P.y+1.2||px<b.x0-.05||px>b.x1+.05||pz<b.z0-.05||pz>b.z1+.05)continue;
+ for(const b of collisionCells.get(collisionKey(px,pz))||emptyCollisionCell){const up=b.h-P.y;if(b.collisionRemoved||up<.55||up>1.45||b.h>maxHeight||(mode=='Zombies'&&b.h>2.6)||(b.y0||0)>P.y+1.2||px<b.x0-.05||px>b.x1+.05||pz<b.z0-.05||pz>b.z1+.05)continue;
   const cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,hx=Math.max(0,(b.x1-b.x0)/2-.3),hz=Math.max(0,(b.z1-b.z0)/2-.3),tx=cl(P.x+fx_,cx-hx,cx+hx),tz=cl(P.z+fz_,cz-hz,cz+hz);
   const room=MAPS[sel.map].playerRoom;if(room&&(Math.abs(tx)>room-.4||Math.abs(tz)>room-.4))continue;
   const ceiling=collisionCells.get(collisionKey(tx,tz))||emptyCollisionCell;
-  if(ceiling.some(j=>{const o=bx[j];return j!==i&&tx>o.x0-.35&&tx<o.x1+.35&&tz>o.z0-.35&&tz<o.z1+.35&&(o.y0||0)<b.h+1.7&&o.h>b.h+.05}))continue;
+  if(ceiling.some(o=>o!==b&&!o.collisionRemoved&&tx>o.x0-.35&&tx<o.x1+.35&&tz>o.z0-.35&&tz<o.z1+.35&&(o.y0||0)<b.h+1.7&&o.h>b.h+.05))continue;
   P.mt={sx:P.x,sy:P.y,sz:P.z,tx,ty:b.h,tz,t:0,d:.42};P.vy=0;P.wvx=P.wvz=0;beep(300,.1,'triangle',.05);return}}
 function mantleStep(dt){const m=P.mt;m.t+=dt;const k=Math.min(1,m.t/m.d),e=eas(Math.min(1,k/.55)),h=eas(Math.max(0,(k-.35)/.65));P.y=m.sy+(m.ty-m.sy)*e;P.x=m.sx+(m.tx-m.sx)*h;P.z=m.sz+(m.tz-m.sz)*h;P.vy=0;P.on=0;
  if(k>=1){P.x=m.tx;P.y=m.ty;P.z=m.tz;P.on=1;P.mt=null;P.mcd=t0+.4;P.wj=0;shake=Math.max(shake,.15)}}
 function tryWall(){if(mode=='Zombies'||(P.wj||0)>=3||t0<(P.wcd||0))return;
  indexCollisions();
  for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){const qx=P.x+dx*.55,qz=P.z+dz*.55;
-  for(const i of collisionCells.get(collisionKey(qx,qz))||emptyCollisionCell){const b=bx[i];if(qx>b.x0&&qx<b.x1&&qz>b.z0&&qz<b.z1&&(b.y0||0)<P.y+1&&b.h>P.y+.9){P.vy=7.2;P.wvx=-dx*7;P.wvz=-dz*7;P.wj=(P.wj||0)+1;P.wcd=t0+.25;shake=Math.max(shake,.2);beep(420,.09,'triangle',.05);return}}}}
+  for(const b of collisionCells.get(collisionKey(qx,qz))||emptyCollisionCell){if(!b.collisionRemoved&&qx>b.x0&&qx<b.x1&&qz>b.z0&&qz<b.z1&&(b.y0||0)<P.y+1&&b.h>P.y+.9){P.vy=7.2;P.wvx=-dx*7;P.wvz=-dz*7;P.wj=(P.wj||0)+1;P.wcd=t0+.25;shake=Math.max(shake,.2);beep(420,.09,'triangle',.05);return}}}}
 
 /* ===================== pvp.js ===================== */
 /* ---------- simulated PvP (bots fight each other), Team Deathmatch, Capture the Flag, popups, killstreak panel; solo and private matches ---------- */
@@ -922,7 +922,14 @@ function pvpTick(dt){
  if(mode=='Kill Confirmed'){kcTick(dt);$('#ob').textContent=`Blue ${kc.A} – ${kc.B} Red  ·  first to ${KC_WIN} confirms  ·  tags ${kcTags.length}`;const w=kc.A>=KC_WIN?'A':kc.B>=KC_WIN?'B':'';if(w)endGame(w==pTeam()?'Victory':'Defeat');return}
  if(mode=='Team Deathmatch'){$('#ob').textContent=`Blue ${ts.A||0}  ·  Red ${ts.B||0}   (first to 50)`;const w=(ts.A||0)>=50?'A':(ts.B||0)>=50?'B':'';if(w)endGame(w==pTeam()?'Victory':'Defeat');return}
  const l=leader();$('#ob').textContent=`Slayer  ·  Leader ${l.nm} ${l.k} / 20`;if(l.k>=20)endGame(l.me?'Victory':l.nm+' wins')}
-function popup(t,s){const e=document.createElement('div');e.className='pp';e.innerHTML=`<b>${t}</b><span>${typeof PG!='undefined'?PG.t(s):s}</span>`;$('#pops').appendChild(e);setTimeout(()=>e.remove(),4300);beep(880,.15,'triangle',.07);setTimeout(()=>beep(1320,.2,'triangle',.06),110)}
+function popup(title,detail){
+ if(typeof title!=='string'||typeof detail!=='string')return;
+ const item=document.createElement('div'),heading=document.createElement('b'),body=document.createElement('span');
+ item.className='pp';heading.textContent=title.slice(0,120);
+ body.textContent=typeof PG!=='undefined'?PG.t(detail.slice(0,180)):detail.slice(0,180);
+ item.append(heading,body);$('#pops').appendChild(item);setTimeout(()=>item.remove(),4300);
+ beep(880,.15,'triangle',.07);setTimeout(()=>beep(1320,.2,'triangle',.06),110);
+}
 function ksHud(){const T=[['UAV',3],['Shield Boost',5],['Airstrike',8]],h=T.map(([n,k])=>{const t=k-hl(),r=q.includes(n),u=ks>=t&&!r;return `<div class="kt ${r?'rdy':u?'used':''}"><b>${n}</b><i>${r?((q.indexOf(n)>=0?'['+(q.indexOf(n)+3)+'] READY':'READY')):u?'USED':Math.min(ks,t)+' / '+t}</i></div>`}).join('');if(h!=ksC){ksC=h;$('#kst').innerHTML=`<small>KILLSTREAKS · ${ks}</small>`+h}}
 ;
 /* ######## weapons.js ######## */

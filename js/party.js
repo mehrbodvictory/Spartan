@@ -101,7 +101,7 @@ function partyStormwatchAdapter(update){
   status(){partyStatus()},
   subscribe(fn){partySubscribers.add(fn);localListeners.add(fn);return ()=>{partySubscribers.delete(fn);localListeners.delete(fn)}},
   send(payload){netSend({t:'party-sw',payload:stampPartyPacket(payload)})},
-  direct(id,payload){conns.find(c=>c.peer===id&&c.vf&&c.open)?.send({t:'party-sw',id:myId,payload:stampPartyPacket(payload)})},
+  direct(id,payload){sendPeerPacket(conns.find(c=>c.peer===id&&c.vf&&c.open),{t:'party-sw',id:myId,payload:stampPartyPacket(payload)})},
   launch:partyStartStormwatch,
   create:openGameParty,join:openGameParty,quick:openGameParty,remove:removeRoomPeer,toggleLock:toggleRoomLock,
   leave(){netClose();stormwatchGoHome(false);stormwatchOpen()},

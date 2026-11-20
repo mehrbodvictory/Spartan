@@ -42,25 +42,104 @@ const practiceMap={
  }
 };
 
-$('#practice-start').onclick=()=>{
+function startPractice(guided=false){
  if(run||netOn||window.SD_SPLIT)return;
  if(net||partyActive){
-  $('#practice-note').textContent='Leave the online lobby or party to open the practice range.';
+  $('#practice-note').textContent='Leave the online lobby or party to practice solo.';
   return;
  }
  $('#practice-note').textContent='';
- practiceSession={map:sel.map,targets:0,headshots:0};
+ practiceSession={map:sel.map,targets:0,headshots:0,training:guided?{step:0}:null};
  document.body.classList.add('practice-range');
+ document.body.classList.toggle('basic-training',guided);
  MAPS[practiceName]=practiceMap;sel.map=practiceName;startGame();
- $('#practice-reset').hidden=false;
-};
+ const reset=$('#practice-reset');
+ reset.textContent=guided?'Restart training':'Reset targets and ammo';
+ reset.hidden=false;
+ if(guided)renderTraining();
+}
+$('#practice-start').onclick=()=>startPractice();
+$('#training-start').onclick=()=>startPractice(true);
 $('#practice-reset').onclick=()=>{
  if(!practiceSession)return;
  practiceSession.targets=practiceSession.headshots=0;shots=hits=0;rel=0;
  for(const b of bots){b.hp=b.mhp;b.al=1;b.m.visible=true;b.flash=0;b.rt=0}
  for(const w of wp){w.mag=w.m;w.res=w.m*(w.rs??4)}
- gc=LG()?2:0;setGun();lockPtr();
+ if(practiceSession.training){
+  [P.x,P.z]=practiceMap.ps;
+  P.y=P.vy=P.mx=P.mz=0;yaw=pitch=kick=0;
+  ctlReset();equipLifeWeapons();
+  practiceSession.training={step:0};renderTraining();
+ }else{gc=LG()?2:0;setGun()}
+ lockPtr();
 };
+
+const trainingCoach=$('#training-coach');
+const trainingTitles=['Get moving','Clear a target','Reload','Switch weapons','Land a sidearm hit','Training complete'];
+const trainingDrills=trainingTitles.length-1;
+const trainingKey='sd-training-complete';
+function trainingComplete(){
+ try{return localStorage.getItem(trainingKey)==='1'}catch{return false}
+}
+function trainingControls(){
+ if(xrS)return ['Left stick','Right trigger','Right grip','B'];
+ if(PG.on)return [PG.b('ls'),PG.b('rt'),PG.l('reload'),PG.l('swap')];
+ if(isTouch)return ['Move stick','Fire area on the right','Reload','Swap'];
+ return [['fwd','left','back','right'].map(action=>keyName(bindOf(action))).join(' / '),'Left mouse button',keyName(bindOf('reload')),keyName(bindOf('next'))];
+}
+function renderTraining(){
+ const training=practiceSession.training,[move,fire,reload,swap]=trainingControls();
+ const hints=[
+  'Move a few steps from the starting line. · '+move,
+  'Aim at an orange target and fire short bursts until it drops. · '+fire,
+  'Fire once if the magazine is full, then reload. · '+reload,
+  'Equip your Magnum sidearm. · '+swap,
+  'Hit an orange target with the Magnum. · '+fire,
+  'Keep practicing or exit from the pause menu.'
+ ];
+ trainingCoach.hidden=false;
+ trainingCoach.children[0].textContent=training.step===trainingDrills?'All drills cleared':'Basic training · '+(training.step+1)+' / '+trainingDrills;
+ trainingCoach.children[1].textContent=trainingTitles[training.step];
+ trainingCoach.children[2].textContent=hints[training.step];
+ training.input=xrS?'xr':PG.on?PG.type:isTouch?'touch':'mouse';
+}
+function advanceTraining(training){
+ training.step++;
+ training.targets=practiceSession.targets;
+ training.hits=hits;
+ if(training.step===trainingDrills){
+  try{localStorage.setItem(trainingKey,'1')}catch{}
+  beep(880,.22,'triangle',.07);
+ }
+ renderTraining();
+}
+function trainingTick(training){
+ switch(training.step){
+  case 0:
+   if(Math.hypot(P.x-practiceMap.ps[0],P.z-practiceMap.ps[1])>=3)advanceTraining(training);
+   break;
+  case 1:
+   if(practiceSession.targets>training.targets)advanceTraining(training);
+   break;
+  case 2:{
+   const weapon=cw();
+   if(rel>0){
+    training.reloadWeapon=weapon;training.reloadMagazine=weapon.mag;
+   }else if(training.reloadWeapon){
+    if(training.reloadWeapon===weapon&&weapon.mag>training.reloadMagazine)advanceTraining(training);
+    training.reloadWeapon=null;
+   }
+   break;
+  }
+  case 3:
+   if(cw().k==='MG')advanceTraining(training);
+   break;
+  case 4:
+   if(cw().k==='MG'&&hits>training.hits)advanceTraining(training);
+   else if(cw().k!=='MG')training.hits=hits;
+ }
+ if(training.input!==(xrS?'xr':PG.on?PG.type:isTouch?'touch':'mouse'))renderTraining();
+}
 
 function practiceSetup(){
  const materials={
@@ -107,6 +186,8 @@ function practiceTick(dt){
   b.m.rotation.x=b.al?0:-Math.min(1.3,(1.15-b.rt)*7);
  }
  for(const w of wp)w.res=w.m*(w.rs??4);
+ if(practiceSession.training)trainingTick(practiceSession.training);
  const percentage=shots?Math.min(100,Math.round(hits/shots*100)):0;
- $('#ob').textContent='Practice Range · '+practiceSession.targets+' cleared · '+practiceSession.headshots+' head hits · '+percentage+'% accuracy';
+ const stats='Practice Range · '+practiceSession.targets+' cleared · '+practiceSession.headshots+' head hits · '+percentage+'% accuracy';
+ const objective=$('#ob');if(objective.textContent!==stats)objective.textContent=stats;
 }

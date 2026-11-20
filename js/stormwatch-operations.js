@@ -2,11 +2,60 @@
 var StormwatchOperations = (() => {
  const DAY=86400000, WEEK=7*DAY;
  const missions={
-  defense:{name:'ATLAS Defense',brief:'Fortify the relay and keep it online through five waves.'},
-  seal:{name:'Seal the Breach',brief:'Fuel the Rift Anchor with three Flux Crystals, then hold it for four minutes.'},
+  defense:{name:'Relay Defense',brief:'Recover two power cells, fortify the marked approaches, and launch five assaults from the relay.'},
+  seal:{name:'Seal the Breach',brief:'Recover three Flux Crystals, fortify the Rift Anchor, and activate it to begin a four-minute siege.'},
   nests:{name:'Clear the Nests',brief:'Track down five Hollow nests, defeat their guardians, and shatter their cores before the storm closes.'},
   payload:{name:'Secure the Payload',brief:'Fortify the landing zone, then defend the recovery pod while the safe zone contracts.'}
  };
+ const rewards={
+  defense:{planks:18,gears:8,cells:3},
+  seal:{quartz:12,charge:8,cells:3},
+  nests:{powder:16,parts:10,charge:4},
+  payload:{parts:16,gears:10,cells:4}
+ };
+ const sectors=['timbervale','ironridge','canyonlands','obsidian'];
+ const campaign=[
+  {region:'timbervale',mission:'defense',title:'A Light on the Ridge',brief:'Bring Timbervale’s relay back online so stranded survey crews can call for help.',reward:{planks:14,parts:10,powder:6}},
+  {region:'timbervale',mission:'payload',title:'The Last Transmission',brief:'Recover the relay’s transmissions from a courier pod before the storm swallows the landing site.',reward:{gears:12,parts:15}},
+  {region:'timbervale',mission:'seal',title:'Beyond the Static',brief:'Seal the breach interfering with the relay. The recovered signal opens a path to Ironridge.',reward:{quartz:10,cells:6}},
+  {region:'ironridge',mission:'nests',title:'The Foundry Below',brief:'Clear the nests choking the roads around the old foundry.',reward:{powder:20,parts:12}},
+  {region:'ironridge',mission:'defense',title:'Hold the Pass',brief:'Raise a second relay under heavier fire to reopen the supply route.',reward:{planks:24,gears:16}},
+  {region:'ironridge',mission:'payload',title:'Drawn in Copper',brief:'Extract the foundry’s route survey. Its beacon points to a safe approach to Canyonlands.',reward:{parts:20,cells:8}},
+  {region:'canyonlands',mission:'seal',title:'The Hollow Current',brief:'Close the breach feeding the storm through the canyon.',reward:{quartz:18,charge:14}},
+  {region:'canyonlands',mission:'nests',title:'Cut the Tethers',brief:'Break the nests drawing energy from the canyon floor before the storm closes in.',reward:{powder:26,gears:18}},
+  {region:'canyonlands',mission:'defense',title:'The Long Reach',brief:'Keep the ridge relay alive long enough to chart a route into Obsidian Peaks.',reward:{parts:25,cells:12}},
+  {region:'obsidian',mission:'payload',title:'Cold Signal',brief:'Recover the survey team’s final report from a frostbound drop zone.',reward:{parts:30,gears:20}},
+  {region:'obsidian',mission:'seal',title:'Where the Storm Begins',brief:'Follow the signal to the high breach and hold the Anchor through the full siege.',reward:{quartz:25,charge:18}},
+  {region:'obsidian',mission:'defense',title:'The Northern Line',brief:'Defend the Frostline Relay against Stormbreaker and finish the northern warning network.',reward:{parts:36,cells:18}}
+ ].map((chapter,index)=>({...chapter,index,key:chapter.region+'/'+chapter.mission,marks:index%3===2?3:1}));
+ function campaignProgress(profile){
+  const claimed=profile.campaign?.claimed||{},wins=profile.campaign?.wins||{};
+  const active=campaign.find(chapter=>!claimed[chapter.key]);
+  const unlocked=sectors.filter((_,index)=>index===0||claimed[campaign[index*3-1].key]);
+  return {active,claimed,wins,unlocked,chapters:campaign};
+ }
+ function fieldMarks(region){
+  return sectors.indexOf(region)+1;
+ }
+ function payout(mission,region){
+  if(!Object.hasOwn(rewards,mission)||!sectors.includes(region))return {};
+  const rate=1+sectors.indexOf(region)*.35;
+  return Object.fromEntries(Object.entries(rewards[mission]).map(([item,count])=>[item,Math.round(count*rate)]));
+ }
+ function assaultFronts(seed,lanes){
+  const compass=[0,2,3,1];
+  const shift=(seed>>>0)%compass.length,sign=seed&4?-1:1;
+  return lanes.map(lane=>compass[(shift+sign*compass.indexOf(lane)+compass.length)%compass.length]);
+ }
+ function assaultGroups(wave,fronts,players){
+  const groups=[];
+  for(let start=0;start<wave.units.length;start+=3){
+   const units=wave.units.slice(start,start+3);
+   for(let seat=1;seat<players;seat++)units.push(seat===2?'husk':'runner');
+   groups.push({lane:fronts[groups.length%fronts.length],units});
+  }
+  return groups;
+ }
  const modifiers=[
   {id:'quick',name:'Quickened Rift',description:'Hollows advance 22% faster. The Citadel pays extra salvage.',bonus:{gears:6,cells:2}},
   {id:'tough',name:'Hardened Brood',description:'Hollows arrive with 28% more health. The Citadel pays extra salvage.',bonus:{parts:10,quartz:4}},
@@ -69,5 +118,5 @@ var StormwatchOperations = (() => {
    Object.keys(profile.archive?.traps||{}).length;
   return {orders,alert,contract,weekly,count,archiveGoals};
  }
- return {missions,windows,statline,dailyAlert,roll,accrue,board,archiveGoals,hollowIds};
+ return {missions,windows,statline,dailyAlert,roll,accrue,board,archiveGoals,hollowIds,payout,assaultFronts,assaultGroups,campaignProgress,fieldMarks};
 })();

@@ -2,10 +2,47 @@
    party keeps its connections while its host changes operations. */
 var StormwatchSquad=(()=>{
  const prefix='sd-stormwatch-';
- const clean=value=>String(value||'Operator').trim().slice(0,20)||'Operator';
- const address=code=>prefix+code.toLowerCase();
+ const clean=value=>onlineName(value,'Operator');
+ function inviteGate(link,identity,host,ready){
+  if(!identity){link.on('open',ready);return ()=>true}
+  let verified=false,nonce='',pending=false;
+  const random=()=>Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
+  if(host)link.on('open',()=>{nonce=random();sendPeerPacket(link,{type:'invite-challenge',nonce})});
+  return data=>{
+   if(verified)return true;
+   const proofType=host?'invite-answer':'invite-proof';
+   const validNonce=typeof data.nonce==='string'&&/^[0-9a-f]{32}$/.test(data.nonce);
+   if(!host&&data.type==='invite-challenge'&&!pending&&validNonce){
+    pending=true;nonce=random();
+    const binding=privateChannelBinding(link);
+    if(!binding){link.close();return false}
+    identity.proof('guest',data.nonce+'\n'+binding).then(proof=>{
+     if(link.open)sendPeerPacket(link,{type:'invite-answer',nonce,proof});
+    }).catch(()=>link.close());
+   }else if(data.type===proofType&&nonce&&(!host||!pending&&validNonce)){
+    if(host)pending=true;
+    const challenge=nonce;nonce='';
+    const binding=privateChannelBinding(link);
+    if(!binding){link.close();return false}
+    Promise.resolve(identity.verify(host?'guest':'host',challenge+'\n'+binding,data.proof)).then(async valid=>{
+     if(!valid||!link.open){link.close();return}
+     if(host){
+      const proof=await identity.proof('host',data.nonce+'\n'+binding);
+      if(!link.open)return;
+      sendPeerPacket(link,{type:'invite-proof',proof});
+     }
+     verified=true;ready();
+    }).catch(()=>link.close());
+   }
+   return false;
+  };
+ }
  function open(name,update,config){
   let peer=null,host=null,room='',isHost=false,publicRoom=false,starting=false,locked=false,round=0,sequence=0;
+  let identity=null;
+  const peerOptions=privatePeerConfig();
+  if(config?.config?.iceServers)peerOptions.config.iceServers=config.config.iceServers;
+  const address=code=>identity?.id||prefix+code.toLowerCase();
   let message='Deploy solo or open a squad.',timer=0,search=0,attempt=0,closed=false,queued=null;
   const members=new Map(),removed=new Set(),received=new Map();
   const listeners=new Set();
@@ -21,15 +58,20 @@ var StormwatchSquad=(()=>{
    if(data.round!==round||!Number.isSafeInteger(data.sequence)||data.sequence<=(received.get(id)||0))return false;
    received.set(id,data.sequence);return true;
   }
-  function send(data){const packet=stamp(data);if(isHost){for(const {link,name} of members.values())if(name&&link.open)link.send(packet)}else if(host?.open)host.send(packet)}
-  function direct(id,data){const link=members.get(id)?.link;if(link?.open)link.send(stamp(data))}
+  function send(data){
+   const frame=encodePeerPacket(stamp(data));
+   if(frame===null)return;
+   if(isHost){for(const {link,name} of members.values())if(name&&link.open)link.send(frame)}
+   else if(host?.open)host.send(frame);
+  }
+  function direct(id,data){const link=members.get(id)?.link;if(link?.open)sendPeerPacket(link,stamp(data))}
   function publish(){
    const list=[{id:peer.id,name,host:true},...Array.from(members.values()).filter(m=>m.name).map(m=>({id:m.link.peer,name:m.name}))];
    send({type:'roster',list,locked});status(list.length+' / 4 in squad'+(locked?' · Locked':''));
   }
   function reset(){
    clearTimeout(timer);clearTimeout(search);timer=search=0;const old=peer;peer=null;host=null;members.clear();roster=null;
-   removed.clear();received.clear();room='';isHost=false;starting=false;publicRoom=false;locked=false;round=sequence=0;queued=null;
+   removed.clear();received.clear();identity=null;room='';isHost=false;starting=false;publicRoom=false;locked=false;round=sequence=0;queued=null;
    old?.destroy();
   }
   function leave(){attempt++;reset();status('Deploy solo or open a squad.')}
@@ -41,14 +83,15 @@ var StormwatchSquad=(()=>{
   function arm(p,fn){clearTimeout(timer);timer=setTimeout(()=>{if(peer===p)fn()},12500)}
   function accept(link,p){
    if(removed.has(link.peer)||peer!==p||!isHost||locked||starting||members.size>=3||members.has(link.peer)){
-    link.on('open',()=>{link.send({type:removed.has(link.peer)?'removed':locked?'locked':'busy'});setTimeout(()=>link.close(),300)});return;
+    link.on('open',()=>{sendPeerPacket(link,{type:removed.has(link.peer)?'removed':locked?'locked':'busy'});setTimeout(()=>link.close(),300)});return;
    }
    const item={link,name:null};members.set(link.peer,item);
    const hello=setTimeout(()=>{if(!item.name)link.close()},8500);
+   const allowed=inviteGate(link,identity,true,()=>{});
    peerPackets(link,'type',d=>{
-    if(peer!==p||members.get(link.peer)!==item)return;
+    if(peer!==p||members.get(link.peer)!==item||!allowed(d))return;
     if(d.type==='hello'&&!item.name&&typeof d.name==='string'){
-     if(locked){link.send({type:'locked'});setTimeout(()=>link.close(),300);return}
+     if(locked){sendPeerPacket(link,{type:'locked'});setTimeout(()=>link.close(),300);return}
      clearTimeout(hello);item.name=clean(d.name);publish();
      if(queued&&!search)launch(queued);return;
     }
@@ -64,7 +107,7 @@ var StormwatchSquad=(()=>{
    const item=members.get(id);
    if(!isHost||!item)return;
    removed.add(id);members.delete(id);
-   if(item.link.open)item.link.send({type:'removed'});
+   if(item.link.open)sendPeerPacket(item.link,{type:'removed'});
    emit({type:'left'},id);publish();
    setTimeout(()=>item.link.close(),300);
   }
@@ -75,7 +118,7 @@ var StormwatchSquad=(()=>{
   }
   function create(code,spec,onTaken){
    isHost=true;publicRoom=!!spec;room=code;status(spec?'Opening a public squad…':'Opening a private squad…');
-   const p=peer=new Peer(address(code),config);
+   const p=peer=createDataPeer(address(code),peerOptions);
    arm(p,()=>fail('Could not register with matchmaking. Try again.'));
    p.on('open',()=>{
     if(peer!==p)return;
@@ -100,12 +143,12 @@ var StormwatchSquad=(()=>{
   }
   function connect(code,spec,onMissing){
    room=code;publicRoom=!!spec;status(spec?'Searching for a public squad…':'Joining squad '+code+'…');
-   const p=peer=new Peer(undefined,config);
+   const p=peer=createDataPeer(undefined,peerOptions);
    arm(p,()=>fail('The squad did not respond. Check the code and connection.'));
    p.on('open',()=>{
     if(peer!==p)return;
-    const link=host=p.connect(address(code),{reliable:true,serialization:'json'});
-    link.on('open',()=>{if(peer===p)link.send({type:'hello',name})});
+    const link=host=connectDataPeer(p,address(code));
+    const allowed=inviteGate(link,identity,false,()=>{if(peer===p)sendPeerPacket(link,{type:'hello',name:clean(name)})});
     peerPackets(link,'type',d=>{
      if(peer!==p)return;
      if(d.type==='removed'){emit({type:'lost'},link.peer);fail('You were removed from the squad.');return}
@@ -115,6 +158,7 @@ var StormwatchSquad=(()=>{
       else fail('The squad is full or already deployed.');
       return;
      }
+     if(!allowed(d))return;
      if(d.type==='roster'){
       if(!Array.isArray(d.list)||d.list.length<1||d.list.length>4||
          !d.list.every(m=>m&&typeof m.id==='string'&&typeof m.name==='string'))return;
@@ -136,6 +180,17 @@ var StormwatchSquad=(()=>{
     fail(error.type==='peer-unavailable'?'No squad found with that code.':'Matchmaking error · '+(error.type||'connection failed'));
    });
   }
+  async function privateRoom(code,hostRoom){
+   leave();
+   const token=attempt;
+   status(hostRoom?'Opening a private squad…':'Verifying the squad invitation…');
+   try{
+    const verified=await inviteIdentity('squad',code);
+    if(closed||token!==attempt)return;
+    identity=verified;
+    if(hostRoom)create(code);else connect(code);
+   }catch(error){if(!closed&&token===attempt)status(error.message)}
+  }
   function launch(spec){
    if(!isHost||!peer?.open||starting)return false;
    clearTimeout(search);search=0;queued=null;starting=true;
@@ -150,13 +205,12 @@ var StormwatchSquad=(()=>{
    subscribe(fn){listeners.add(fn);return ()=>listeners.delete(fn)},send,direct,launch,leave,status,remove,toggleLock,
    create(){
     if(!peersAvailable())return;
-    leave();const code=Array.from(crypto.getRandomValues(new Uint8Array(6)),n=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[n&31]).join('');
-    create(code);
+    privateRoom(makeInviteCode(),true);
    },
    join(value){
-    const code=value.trim().toUpperCase();
-    if(!/^[A-Z2-9]{6}$/.test(code)){status('Enter the six-character squad code.');return}
-    if(peersAvailable()){leave();connect(code)}
+    const code=readInviteCode(value);
+    if(!code){status('Enter the 12-character squad code.');return}
+    if(peersAvailable())privateRoom(code,false);
    },
    quick(spec){
     if(!peersAvailable())return;

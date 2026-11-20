@@ -332,7 +332,7 @@ function haptic(strong,ms,weak,hand){if(!HAP.on)return;strong=Math.max(0,Math.mi
  const gq=q('#gq'),brL=q('#br')&&q('#br').parentElement,vlOld=q('#vl'),skOld=q('#sk');
  const gqOpts=gq?[...gq.options].map(o=>[o.value,o.textContent]):[['high','Ultra'],['med','Medium'],['low','Low']];
  const mbl=mkSel('Motion blur','mbl',OO),mbl2=mkSel('Motion blur','mbl2',OO),fps=mkSel('FPS counter','fps',OO),fps2=mkSel('FPS counter','fps2',OO),vib2=mkSel('Controller vibration','vib2',OO),gq2=mkSel('Graphics','gq2',gqOpts),
-  vl3=mkRng('Volume','vl3',0,1,.05),sk3=mkRng('Screen shake','sk3',0,1,.1);
+  vl3=mkRng('Master volume','vl3',0,1,.05),sk3=mkRng('Screen shake','sk3',0,1,.1);
  const fpsLimitRows=['fpsLimit','fpsLimit2'].map(id=>{
   const row=mkRng('FPS limit ',id,fpsLimitMin,fpsLimitUnlimited,1),value=document.createElement('span');
   const input=row.querySelector('input');
@@ -346,8 +346,16 @@ function haptic(strong,ms,weak,hand){if(!HAP.on)return;strong=Math.max(0,Math.mi
  if(SP){if(brL){brL.after(vl3);vl3.after(sk3)}else{SP.appendChild(vl3);SP.appendChild(sk3)}const anchor=gq&&gq.parentElement;if(anchor)anchor.after(mbl,limitMain.row,fps,rgbM);else SP.append(mbl,limitMain.row,fps,rgbM)}
  if(PC&&EX)EX.before(gq2,mbl2,limitPause.row,fps2,rgbP,vib2,vrL2);
  /* --- values: restore what was saved, then link every pair --- */
- vol=+ld('sdrill-vol',vol);shk=+ld('sdrill-shk',shk);
- link(['vl','vl3'],v=>{vol=+v;sv('sdrill-vol',v)},vol);link(['sk','sk3'],v=>{shk=+v;sv('sdrill-shk',v)},shk);
+ vol=PlayerAudio.master;shk=+ld('sdrill-shk',shk);
+ link(['vl','vl3'],v=>PlayerAudio.set('master',v),vol);link(['sk','sk3'],v=>{shk=+v;sv('sdrill-shk',v)},shk);
+ PlayerAudio.subscribe((name,value)=>{
+  if(name!=='master')return;
+  vol=value;
+  for(const id of ['vl','vl3'])q('#'+id).value=value;
+ });
+ SP.insertAdjacentHTML('beforeend',PlayerAudio.controls());
+ EX.insertAdjacentHTML('beforebegin',PlayerAudio.controls());
+ PlayerAudio.bind(SP);PlayerAudio.bind(PC);
  if(gq){gq.onchange=null;link(['gq','gq2'],v=>setGfx(v),gq.value||gfxQ)}else link(['gq2'],v=>setGfx(v),gfxQ);
  link(['mbl','mbl2'],v=>{LX.mblur=+v;sv('sdrill-mblur',v)},LX.mblur?1:0);
  const savedLimit=Number(ld('sdrill-fps-limit',fpsLimitUnlimited));
@@ -943,16 +951,19 @@ function stormwatchOpen(){
  if(stormwatchHub)return;
  const home=$('#home'),menu=$('#menu');
  home.inert=menu.inert=true;document.body.classList.add('stormwatch-open');
+ const local=window.SD_SPLIT?.app==='sw';
  stormwatchHub=StormwatchHub.mount({
   name:$('#nm').value.trim()||'Operator',peerConfig:PCFG,canEquip:key=>hasOwn(W,key),exit:stormwatchGoHome,
-  connectSquad:partyActive?partyStormwatchAdapter:null,
+  ...(local?{local:true,exit:()=>parent.postMessage('stormwatch-exit-split',location.origin),connectSquad:stormwatchSplitAdapter}:
+   {split:!partyActive&&location.protocol!=='file:'&&typeof BroadcastChannel==='function'?()=>launchSplit({app:'sw'}):null,
+    connectSquad:partyActive?partyStormwatchAdapter:null}),
   clearMission(){stormwatch?.close();stormwatch=null},
   deploy(settings,back){
    let cleared=0,bonusAwarded=false;
    try{
     stormwatch=Stormwatch.mount({
-     ...settings,hub:true,renderer:R,gear:stormwatchGear(),tier:passTier(),
-     config:{sensitivity:+$('#sn').value,quality:gfxQ,pad:PG.pref,vibration:!!HAP.on},
+     ...settings,hub:true,local,renderer:R,gear:stormwatchGear(),tier:passTier(),
+     config:{sensitivity:+$('#sn').value,quality:local?'low':gfxQ,pad:PG.pref,vibration:!!HAP.on},
      award(wave,bonus){
       if(wave!==cleared+1||wave>5)return;
       const bonusEarned=bonus&&!bonusAwarded;
@@ -1200,6 +1211,9 @@ const sdSplit=window.SD_SPLIT;
 function splitPads(){
  try{return [...(navigator.getGamepads?.()||[])].filter(g=>g?.connected&&g.axes.length>=4)}catch(e){return []}
 }
+function launchSplit(settings){
+ StormwatchHub.launchLocal(settings,new URL(location.href));
+}
 class SplitEvents{
  constructor(){this.events=new Map()}
  on(name,fn){if(!this.events.has(name))this.events.set(name,[]);this.events.get(name).push(fn);return this}
@@ -1251,8 +1265,44 @@ class SplitPeer extends SplitEvents{
  reconnect(){}
  destroy(){this.open=false;for(const link of this.links.values())link.close();this.channel.close()}
 }
+function stormwatchSplitAdapter(update){
+ const host=sdSplit.seat===1,hostId='local-stormwatch-host',guestId='local-seat-2';
+ const peer=new SplitPeer(host?hostId:undefined),listeners=new Set();
+ const names=new Map([[hostId,'Player 1'],[guestId,'Player 2']]);
+ let link=null,round=0,starting=false;
+ const notify=(data,id)=>{for(const fn of listeners)fn(data,id)};
+ const status=()=>update({room:'local',isHost:host,connected:!!link?.open,starting,publicRoom:false,
+  message:!link?.open?'Connecting both local seats…':host?'Player 1 chooses the operation.':'Waiting for Player 1 to deploy.',
+  members:[...names].map(([id,name])=>({id,name,host:id===hostId}))});
+ function attach(connection){
+  if(connection.peer!==(host?guestId:hostId)){connection.close(false);return}
+  link=connection;
+  connection.on('open',status);
+  connection.on('close',()=>{if(link===connection){link=null;starting=false;notify({type:host?'left':'lost'},connection.peer);status()}});
+  peerPackets(connection,'type',data=>{
+   if(data.type==='launch'&&!host&&Number.isSafeInteger(data.round)&&data.round>round&&data.spec){
+    round=data.round;starting=true;notify(data,connection.peer);status();
+   }else if(starting&&data.round===round&&data.type!=='launch'&&
+     (!host||['pose','action','withdraw'].includes(data.type)))notify(data,connection.peer);
+  },()=>connection.close());
+ }
+ peer.on('connection',attach);
+ if(!host)peer.on('open',()=>attach(peer.connect(hostId)));
+ return {id:peer.id,host,size:2,names,status,
+  subscribe(fn){listeners.add(fn);return ()=>listeners.delete(fn)},
+  send(data){sendPeerPacket(link,data)},direct(id,data){if(id===link?.peer)sendPeerPacket(link,data)},
+  launch(spec){
+   if(!host||!link?.open||starting)return false;
+   starting=true;
+   const data={type:'launch',round:++round,spec:{...spec,seed:crypto.getRandomValues(new Uint32Array(1))[0]}};
+   sendPeerPacket(link,data);notify(data,peer.id);status();return true;
+  },
+  returns(){starting=false;status()},close(){listeners.clear();peer.destroy()}
+ };
+}
 function bootSplitSeat(){
  document.body.classList.add('split-seat');
+ if(sdSplit.app==='sw'){stormwatchOpen();return}
  $('#split-start').closest('.split-entry').hidden=true;
  $('#host').disabled=$('#join').disabled=true;
  $('#leave').hidden=true;
@@ -1278,6 +1328,10 @@ function bootSplitSeat(){
 }
 addEventListener('sd-ready',()=>{
  if(sdSplit){bootSplitSeat();return}
+ if(new URLSearchParams(location.search).get('openStormwatch')==='1'){
+  const url=new URL(location.href);url.searchParams.delete('openStormwatch');history.replaceState(null,'',url);
+  stormwatchOpen();
+ }
  const button=$('#split-start'),help=$('#split-help');
  if(typeof BroadcastChannel!=='function'){help.textContent='Local split screen needs a browser with BroadcastChannel support.';return}
  const update=()=>{
@@ -1287,14 +1341,7 @@ addEventListener('sd-ready',()=>{
  };
  addEventListener('gamepadconnected',update);addEventListener('gamepaddisconnected',update);
  setInterval(()=>{if($('#p-priv.on')&&$('#menu').style.display!=='none')update()},750);
- button.onclick=()=>{
-  const [p1,p2]=splitPads();
-  if(!p2)return;
-  const u=new URL(location.href),room=Math.random().toString(36).slice(2,12).padEnd(6,'0');
-  const options={split:room,map:$('#pm').value,mode:$('#pmode').value,bots:$('#pbots').value,app,g1:p1.index,g2:p2.index};
-  for(const [key,value] of Object.entries(options))u.searchParams.set(key,value);
-  location.assign(u);
- };
+ button.onclick=()=>launchSplit({map:$('#pm').value,mode:$('#pmode').value,bots:$('#pbots').value,app});
  update();
 });
 
@@ -1642,6 +1689,7 @@ function lobbyStageRender(){
   </div>
   <div class="lobby-roster">${players.map((p,i)=>idrPlate(idrRead(p.look),p.nm,i===0?'You':'In party')).join('')}</div></div>
   <div class="lobby-links">
+   ${!net&&!window.SD_SPLIT?`<button data-lobby="training"><span><b>Basic training</b><small>${trainingComplete()?'Replay the movement and weapons drills':'Learn movement, shooting and weapon handling'}</small></span><span aria-hidden="true">↗</span></button>`:''}
    ${!net&&!window.SD_SPLIT?'<button data-lobby="practice"><span><b>Practice range</b><small>Test your loadout on moving targets</small></span><span aria-hidden="true">↗</span></button>':''}
    <button data-lobby="priv"><span><b>Private match</b><small>Online lobbies and local split screen</small></span><span aria-hidden="true">↗</span></button>
    <button data-lobby="record"><span><b>Combat record</b><small>Results and stats from recent matches</small></span><span aria-hidden="true">↗</span></button>
@@ -1655,7 +1703,7 @@ $('#p-lobby').addEventListener('click',e=>{
  const action=e.target.closest('[data-lobby]')?.dataset.lobby;
  if(!action)return;
  if(action==='deploy')return $(net&&!partyActive?'#startnet':'#go').click();
- if(action==='practice')return $('#practice-start').click();
+ if(action==='training'||action==='practice')return $('#'+action+'-start').click();
  openMenuPanel(action);
 });
 $('#nm').addEventListener('input',lobbyStageRender);

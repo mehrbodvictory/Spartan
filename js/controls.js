@@ -99,6 +99,7 @@ function drawMap(){
  c.save();c.translate(X(P.x),Z(P.z));c.rotate(-yaw);c.fillStyle='#fff';c.strokeStyle='#000';c.lineWidth=1.5;c.beginPath();c.moveTo(0,-10);c.lineTo(-6.5,8);c.lineTo(0,4);c.lineTo(6.5,8);c.closePath();c.fill();c.stroke();c.restore()}
 /* ---------- keyboard + mouse ---------- */
 function kbDown(e){const c=RB(e.code);if(['Space','Tab','AltLeft','F1','F3','F6','ControlLeft'].includes(c)||c.startsWith('Arrow'))e.preventDefault();key[c]=1;
+ if(zQuestCutActive()&&!['F1','F3','F6','KeyO'].includes(c)){key[c]=0;return}
  switch(c){
   case'Space':actJumpPress();break;
   case'ShiftLeft':if(!e.repeat){if(t0-ST.lastShift<.32&&ST.tacCd<=0)ST.tac=4;ST.lastShift=t0}break;
@@ -315,7 +316,12 @@ function vrPost(dt){if(!xrS)return;xrEye=C.position.clone();const rh=vrHand('rig
  if(typeof fpArm!='undefined')for(const a of[fpArm.r,fpArm.l])a.up.visible=a.fo.visible=false;
  if(lh&&xrWrist&&inMatch()){if(xrWrist.m.parent!==lh)lh.add(xrWrist.m);xrWristT-=dt;if(xrWristT<=0){xrWristT=.2;const g=xrWrist.g;g.clearRect(0,0,256,160);g.fillStyle='rgba(8,18,24,.78)';g.fillRect(0,0,256,160);g.fillStyle='#fff';g.font='bold 34px sans-serif';g.fillText($('#am').textContent||'',12,44);
    const bar=(y,col,el)=>{g.fillStyle='rgba(255,255,255,.15)';g.fillRect(12,y,232,14);g.fillStyle=col;g.fillRect(12,y,232*Math.max(0,Math.min(1,parseFloat(el.style.width)/100||0)),14)};bar(62,'#62e0f0',$('#sh'));bar(84,'#6bd66b',$('#hp'));
-   g.font='24px sans-serif';g.fillStyle='#ffd27a';g.fillText(mode=='Zombies'?('Round '+($('#zr').textContent||'')+'   '+($('#zpt').textContent||'')):('Kills '+kills),12,128);xrWrist.t.needsUpdate=true}}
+   g.font='24px sans-serif';g.fillStyle='#ffd27a';
+   if(practiceSession?.training){
+    g.fillText(trainingCoach.children[1].textContent,12,124,232);
+    g.font='13px sans-serif';g.fillText(trainingCoach.children[2].textContent,12,147,232);
+   }else g.fillText(mode=='Zombies'?('Round '+($('#zr').textContent||'')+'   '+($('#zpt').textContent||'')):('Kills '+kills),12,128);
+   xrWrist.t.needsUpdate=true}}
  else if(xrWrist&&xrWrist.m.parent)xrWrist.m.parent.remove(xrWrist.m)}
 function enterVR(){if(!navigator.xr)return false;navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','bounded-floor']}).then(s=>{xrS=s;s.addEventListener('end',vrEnd);R.xr.enabled=true;R.xr.setReferenceSpaceType('local-floor');return R.xr.setSession(s)}).then(()=>{if(xrS)vrStart()}).catch(()=>{xrS=null;if(run)_lockPtr()});return true}
 var _lockPtr=lockPtr;
@@ -527,7 +533,7 @@ function mkNitroFist(side){const g=new THREE.Group(),M=c=>new THREE.MeshLambertM
  const bl=B(.008,.17,.07,side*.098,-.15,.01,stl,0,0,side*.28),bl2=B(.008,.07,.05,side*.118,-.245,.01,stl,0,0,side*.5);B(.012,.05,.05,side*.092,-.075,.01,stl2);
  g.userData={fl,core};return g}
 var NF={rev:0,last:-9,boost:0,out:0,al:0,idle:null,rt:0};
-function nfBus(){ac=ac||new AudioContext();if(!NF.bus){const c=ac.createDynamicsCompressor();c.threshold.value=-24;c.knee.value=12;c.ratio.value=10;c.attack.value=.003;c.release.value=.15;c.connect(ac.destination);NF.bus=c;const n=ac.sampleRate*1,b=ac.createBuffer(1,n,ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;NF.nb=b}return NF.bus}
+function nfBus(){ac=ac||new AudioContext();if(!NF.bus){const c=ac.createDynamicsCompressor();c.threshold.value=-24;c.knee.value=12;c.ratio.value=10;c.attack.value=.003;c.release.value=.15;c.connect(PlayerAudio.output(ac));NF.bus=c;const n=ac.sampleRate*1,b=ac.createBuffer(1,n,ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;NF.nb=b}return NF.bus}
 /* engine: a saw and a square through a rising low-pass with a cylinder-like tremolo, plus an exhaust whoosh; every strike in a chain starts higher and chugs faster */
 function nfEngine(rev){try{const bus=nfBus(),t=ac.currentTime,v=vol*.55;if(v<=0)return;const f0=58+rev*14,dur=.3,o=ac.createOscillator(),o2=ac.createOscillator(),lp=ac.createBiquadFilter(),am=ac.createGain(),g=ac.createGain(),lfo=ac.createOscillator(),lg=ac.createGain();
  o.type='sawtooth';o2.type='square';o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f0*(2.3+rev*.14),t+dur*.8);o2.frequency.setValueAtTime(f0*.5,t);o2.frequency.exponentialRampToValueAtTime(f0*1.15,t+dur*.8);

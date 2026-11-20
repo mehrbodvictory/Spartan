@@ -147,7 +147,9 @@ function zQuestHazardTick(q,dt,players){
    if(hit&&!wave)hit=pl.y<1.65;
    if(!hit)continue;
    h.hits.add(pl.id);
-   zQuestTouch(q,pl,q.actor,wave?32+q.phase*5:h.kind==='hex'?(h.age<.75?28:12):27+q.phase*5);
+   const damage=q.fight?(wave?37+q.phase*5:h.kind==='hex'?(h.age<.75?34+q.phase*4:13):32+q.phase*5):
+    (wave?32:h.kind==='hex'?(h.age<.75?28:12):27);
+   zQuestTouch(q,pl,q.actor,damage);
   }
  }
 }
@@ -178,8 +180,51 @@ const ZMAIN={
  }
 };
 const ZMAIN_ARENA_X=240,ZMAIN_EDGE=23;
+const ZMAIN_PHASE_END=[1,.68,.34,0],ZMAIN_OPENINGS=[4,4,5];
+const ZMAIN_CUT_TIME={arrival:5.8,final:2.9,victory:4.3};
+const zQuestCutActive=()=>mode==='Zombies'&&!!zq?.main?.cut&&zQuestInArena(P.x,P.z);
 const zQuestActive=()=>!!(zq?.main&&(zq.main.fight||zq.main.trial));
 function zQuestInArena(x,z){return Math.abs(x-ZMAIN_ARENA_X)<ZMAIN_EDGE+1&&Math.abs(z)<ZMAIN_EDGE+1}
+function zQuestCinema(q,kind,left=ZMAIN_CUT_TIME[kind]){
+ if(!Object.hasOwn(ZMAIN_CUT_TIME,kind))return;
+ q.cut={kind,until:q.clock+cl(left,0,ZMAIN_CUT_TIME[kind])};
+ if(zQuestCutActive()){zq.dash.t=0;trig=fresh=0}
+}
+function zQuestCinemaView(q){
+ const active=zQuestCutActive(),el=$('#zcinema'),kind=active?q.cut.kind:'';
+ if((el.dataset.scene||'')===kind)return;
+ el.dataset.scene=kind;el.hidden=!active;
+ document.body.classList.toggle('zquest-cinematic',active);
+ if(!active)return;
+ const box=el.firstElementChild,[label,title,caption]=box.children;
+ el.style.setProperty('--chapter-ink','#'+q.def.color.toString(16));
+ label.textContent=q.def.realm;
+ title.textContent=kind==='arrival'?q.def.boss:kind==='final'?q.def.phases[2]:q.london?'Silence at Last':'The Oath Is Broken';
+ caption.textContent=kind==='arrival'?(q.london?'The clock strikes beyond its final hour.':'Something beneath the estate answers.'):
+  kind==='final'?(q.london?'The gears lose their rhythm.':'The court rises with its keeper.'):
+   q.london?'The bells fall silent above London.':'The passage back to the estate opens.';
+}
+function zQuestViewCamera(){
+ if(!zQuestCutActive()||xrS)return null;
+ const q=zq.main,kind=q.cut.kind,actor=q.actor,cut=q.camera||=new THREE.PerspectiveCamera(46,C.aspect,.08,140);
+ q.reducedMotion??=matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const t=q.reducedMotion?.68:cl(1-(q.cut.until-q.clock)/ZMAIN_CUT_TIME[kind],0,1);
+ const eased=t*t*(3-2*t),arrival=kind==='arrival',victory=kind==='victory';
+ const angle=(q.london?-.66:.72)+(q.london?1:-1)*eased*(arrival?1.16:.87);
+ const radius=arrival?21-9*eased:victory?9+8*eased:11+3*eased;
+ const x=actor?.x??ZMAIN_ARENA_X,z=actor?.z??-5;
+ cut.position.set(cl(x+Math.sin(angle)*radius,ZMAIN_ARENA_X-23,ZMAIN_ARENA_X+23),
+  arrival?(q.london?8.6-4.7*eased:3.1+3.5*eased):victory?4+5*eased:6.35,
+  cl(z+Math.cos(angle)*radius,-23,23));
+ cut.lookAt(x,arrival?3.75:kind==='final'?3.35:1.8,z);
+ if(cut.aspect!==C.aspect){cut.aspect=C.aspect;cut.updateProjectionMatrix()}
+ cut.updateMatrixWorld();
+ return cut;
+}
+function zQuestResetCinema(){
+ $('#zcinema').hidden=true;$('#zcinema').dataset.scene='';
+ document.body.classList.remove('zquest-cinematic');
+}
 function zQuestStart(){
  const h=$('#zmain');h.hidden=true;
  const def=ZMAIN[sel.map];if(!def)return;
@@ -233,12 +278,13 @@ function zQuestStrike(q,by,x,y,z,kind){
  if(!pl||Math.abs(y)>3.5||Math.hypot(pl.x-x,pl.z-z)>(kind==='dash'?4:36))return;
  if(kind!==(q.london?'steam':'dash'))return;
  if(q.fight){
+  if(q.cut)return;
   if(!zQuestInArena(pl.x,pl.z))return;
   q.locks.forEach((lock,i)=>{
    const bit=1<<i;
    if(!(q.ward&bit)||Math.hypot(x-lock.x,z-lock.z)>(q.london?2:1.65))return;
    q.ward&=~bit;zQuestCue(q,lock.x,lock.z,true);
-   if(!q.ward){q.next=2;zQuestNotice(q,'The core is exposed. Make it count.')}
+   if(!q.ward){q.readyAt=Math.max(q.readyAt,q.clock+.6);zQuestNotice(q,'Ward shattered. Dodge the next attack for an opening.')}
   });
   return;
  }
@@ -460,6 +506,7 @@ function zQuestArena(q){
  eMk(root,EG.cyl,edge,0,1.12,19.4,1.09,.21,1.09);
  eMk(root,q.shardGeo||new THREE.OctahedronGeometry(1),light,0,1.51,19.4,.3,.47,.3);
  zQuestInteract(q,'arenaAmmo',ZMAIN_ARENA_X,19.4,()=>q.fight?'Resupply · 25s recharge':'',by=>{
+  if(q.cut)return;
   q.supplied ||= new Map();
   if(q.clock<(q.supplied.get(by)||0))return;
   q.supplied.set(by,q.clock+25);
@@ -490,11 +537,13 @@ function zQuestBegin(q){
  const players=zPlayers();if(!players.length)return;
  if(zq.hound&&!zq.hound.done){zQuestNotice(q,'Finish the Hellhound round before opening the passage.');return}
  const x=ZMAIN_ARENA_X,z=-5,b=mkZombie(x,z,true);
- zQuestDress(b,q);b.hp=b.mhp=Math.round((q.london?15000:17900)*(1+.52*(players.length-1)));
- q.credit=players.map(p=>p.id);q.phase=0;q.ward=0;q.warm=3;q.next=3.5;q.attack=0;q.fight=true;
+ zQuestDress(b,q);b.hp=b.mhp=Math.round((q.london?21500:24600)*(1+.55*(players.length-1)));
+ q.credit=players.map(p=>p.id);q.phase=0;q.ward=q.london?1:4;q.warm=.8;q.next=2.65;q.attack=0;q.fight=true;
+ q.exposed=q.openIn=q.breaks=0;q.readyAt=q.clock;
  q.visit++;q.fightAt=q.clock;q.supplied=new Map();
  if(!q.arena)zQuestArena(q);
  zQuestTeleport(q,q.visit,true,q.credit);
+ zQuestCinema(q,'arrival');
  if(netOn)netSend({t:'zmainnote',visit:q.visit,fight:true,ids:q.credit});
 }
 function zQuestDress(b,q){
@@ -558,30 +607,39 @@ function zQuestDress(b,q){
  const shield=put(new THREE.IcosahedronGeometry(1,1),new THREE.MeshBasicMaterial({
   color:q.def.color,transparent:true,opacity:.26,wireframe:true,depthWrite:false
  }),0,2.45,0,2.55,2.78,2.32);
- b.zquestArt={g,arms,rotor,shield,core};q.actor=b;
+ const focus=put(halo,new THREE.MeshBasicMaterial({color:0xffedc6}),0,q.london?2.95:3.67,.93,.72,.72,.7);
+ focus.visible=false;b.zquestArt={g,arms,rotor,shield,core,focus};q.actor=b;
 }
 function zQuestHitPoints(b){
  const london=zq.main.london,face=b.tyaw||0,scale=london?1.37:1.46,height=(london?2.95:3.67)*scale;
- const coreOffset=.62*scale;
- return [V(b.x+Math.sin(face)*coreOffset,height,b.z+Math.cos(face)*coreOffset),
-  V(b.x,(london?2.84:2.04)*scale,b.z),(london?.61:.63)*scale,(london?1.57:1.25)*scale];
+ const coreOffset=.82*scale,lift=b.zquestArt?.g.position.y||0;
+ return [V(b.x+Math.sin(face)*coreOffset,height+lift,b.z+Math.cos(face)*coreOffset),
+  V(b.x,(london?2.84:2.04)*scale+lift,b.z),(london?.61:.63)*scale,(london?1.10:1.25)*scale];
 }
 function zQuestDamage(b,d,head,by){
- const q=zq.main;if(q?.actor!==b||!q.fight||!Number.isFinite(d)||d<=0||q.ward||q.warm>0)return;
+ const q=zq.main;if(q?.actor!==b||!q.fight||!Number.isFinite(d)||d<=0||q.ward||q.cut||q.exposed<=0)return;
  const p=zPlayers().find(p=>p.id===by);
  if(!p||!zQuestInArena(p.x,p.z)||Math.hypot(p.x-b.x,p.z-b.z)>47)return;
- const floor=q.phase===0?Math.ceil(b.mhp*.68):q.phase===1?Math.ceil(b.mhp*.34):0;
- const weak=head||q.exposed>0,hit=Math.min(d*(weak?1.33:.62),b.mhp*.037,b.hp-floor);
+ const start=ZMAIN_PHASE_END[q.phase],end=ZMAIN_PHASE_END[q.phase+1],count=ZMAIN_OPENINGS[q.phase];
+ const floor=Math.round(b.mhp*(start-(start-end)*(q.breaks+1)/count));
+ const hit=Math.min(d*(head?1.16:.44),b.mhp*.023,b.hp-floor);
  b.hp-=hit;b.lh=t0;
  if(p.me){hits++;juiceHit(b,Math.round(hit),head);$('#hm').className='on'+(head?' hd':'');hmT=.12}
- if(b.hp<=0){zQuestEnd(q,true);return}
- if(b.hp===floor){
-  q.phase++;q.warm=1.6;q.ward=q.phase===1?3:7;q.next=2.45;q.exposed=0;
-  zQuestCue(q,b.x,b.z,true);zQuestNotice(q,q.london?'Vent the lit condensers with The Brew.':'Nitro-dash through the lit pillars.');
+ if(b.hp>floor+.000001)return;
+ b.hp=floor;
+ q.exposed=0;q.breaks++;q.readyAt=Math.max(q.readyAt,q.clock+5.6);
+ if(b.hp<=0){
+  zQuestClear(q);zQuestCinema(q,'victory');zQuestCue(q,b.x,b.z,true);
+  return;
  }
+ if(q.breaks<count)return;
+ q.phase++;q.breaks=0;q.warm=1.3;q.ward=q.phase===1?(q.london?6:3):7;q.next=2.65;q.openIn=0;
+ zQuestClear(q);zQuestCue(q,b.x,b.z,true);
+ if(q.phase===2)zQuestCinema(q,'final');
+ zQuestNotice(q,q.london?'Vent the lit condensers with The Brew.':'Nitro-dash through the lit pillars.');
 }
 function zQuestEnd(q,won){
- q.won=won;q.fight=false;q.ward=0;q.warm=0;q.visit++;
+ q.won=won;q.fight=false;q.cut=null;q.ward=0;q.warm=0;q.visit++;
  if(q.actor){q.actor.al=0;q.actor.atk=0;S.remove(q.actor.m);const i=bots.indexOf(q.actor);if(i>=0)bots.splice(i,1);q.actor=null}
  zQuestClear(q);
  if(won){burst(V(ZMAIN_ARENA_X,3,-4),90,q.def.color,12,1.4,.2);zQuestCue(q,ZMAIN_ARENA_X,-4,true)}
@@ -596,6 +654,13 @@ function zQuestBossTick(q,dt,players){
   return;
  }
  q.fightAt=q.clock;q.warm=Math.max(0,q.warm-dt);q.exposed=Math.max(0,(q.exposed||0)-dt);
+ if(q.openIn>0){
+  q.openIn=Math.max(0,q.openIn-dt);
+  if(q.openIn===0&&!q.ward){
+   q.exposed=q.phase===2?5.2:6.1;q.readyAt=q.clock+(q.phase===2?9.6:11.5);
+   zQuestCue(q,b.x,b.z,false);
+  }
+ }
  const p=players.reduce((a,c)=>Math.hypot(c.x-b.x,c.z-b.z)<Math.hypot(a.x-b.x,a.z-b.z)?c:a);
  const dx=p.x-b.x,dz=p.z-b.z,dist=Math.hypot(dx,dz)||1;
  b.tyaw=Math.atan2(dx,dz);
@@ -607,8 +672,8 @@ function zQuestBossTick(q,dt,players){
  b.m.position.set(b.x,0,b.z);
  q.next-=dt;
  if(q.next>0||q.warm>0)return;
- const n=q.attack++,phase=q.phase,wind=1.55-phase*.15;
- q.next=(q.london?4.25:4.8)-phase*.45;
+ const n=q.attack++,phase=q.phase,wind=1.69-phase*.14;
+ q.next=(q.london?4.43:4.95)-phase*.48;
  if(q.london){
   if(n%3===0||phase===2&&n%3===1){
    zQuestHazard(q,'wave',b.x,b.z,31,wind);
@@ -616,7 +681,9 @@ function zQuestBossTick(q,dt,players){
   }else{
    const horizontal=n%2===0;
    for(let i=-4;i<=4;i++)zQuestHazard(q,'bolt',horizontal?ZMAIN_ARENA_X+i*5.1:p.x,horizontal?p.z:i*5.1,3.05,wind+Math.abs(i)*.10);
-   if(phase===2)zQuestHazard(q,'bolt',p.x,p.z,4.1,wind+.75);
+   if(phase===2){
+    for(const along of [-2,0,2])zQuestHazard(q,'bolt',horizontal?p.x:p.x+along*3,horizontal?p.z+along*3:p.z,3.55,wind+.89+Math.abs(along)*.15);
+   }
   }
  }else{
   for(const pl of players){
@@ -624,15 +691,20 @@ function zQuestBossTick(q,dt,players){
    if(phase>0)zQuestHazard(q,'hex',pl.x+Math.sin(n*2.4)*5,pl.z+Math.cos(n*2.4)*5,3.2,wind+.48);
   }
   if(n%2===1||phase===2)zQuestHazard(q,'wave',b.x,b.z,29,wind+.52);
+  if(phase>0&&n%3===1){
+   for(const side of [-1,1])zQuestHazard(q,'bolt',p.x+side*7,p.z-3,3.2,wind+1.04);
+  }
  }
- q.exposed=q.ward?0:2.1;
+ if(!q.ward&&!q.exposed&&!q.openIn&&q.clock>=q.readyAt)q.openIn=wind+1.17;
 }
 function zQuestHud(q){
  const h=$('#zmain'),visible=q.step>0;
  h.hidden=!visible;
  if(!visible)return;
  const n=q.nodes[q.step-2],t=q.trial;
- const line=q.won?'Quest complete':q.fight?(q.ward?(q.london?'Vent the lit condensers · The Brew':'Shatter the lit pillars · Nitrogen Fists'):q.def.phases[q.phase]):
+ const line=q.won?'Quest complete':q.fight?(q.ward?(q.london?'Vent the lit condensers with The Brew':'Dash through the lit pillars'):
+  q.exposed>0?'Core exposed · '+Math.ceil(q.exposed)+'s · '+(q.breaks+1)+'/'+ZMAIN_OPENINGS[q.phase]:
+   q.def.phases[q.phase]+' · Dodge to expose the core'):
   q.step===1?(q.london?'Restore power · recover the Abbey escapement':'Recover the family seal · master’s study'):
   t?n.site+' · '+Math.min(t.kills,n.kills)+'/'+n.kills+' kills · '+Math.max(0,Math.ceil(n.seconds-t.time))+'s in ring':
   n?n.site+' · '+(zq.r<n.round?'opens on round '+n.round:q.london?(!zq.tea?'Unlock The Brew':'Vent the condenser with The Brew'):'Dash into the seal'):
@@ -646,11 +718,15 @@ function zQuestHud(q){
  h.querySelector('small').textContent=line;track.hidden=!q.fight&&!t;
  track.setAttribute('aria-label',q.fight?'Boss health':'Ritual progress');
  track.setAttribute('aria-valuenow',progress);track.firstElementChild.style.width=progress+'%';
- h.classList.toggle('warded',!!q.ward);
+ h.classList.toggle('warded',q.fight&&q.exposed<=0);
 }
 function zQuestTick(dt){
  const q=zq.main;if(!q)return;
  q.clock+=dt;
+ if(q.cut&&q.clock>=q.cut.until){
+  const won=q.cut.kind==='victory';q.cut=null;
+  if(won&&!zCli())zQuestEnd(q,true);
+ }
  {
   const active=q.nodes[q.step-2];
   for(const prop of q.props){
@@ -665,32 +741,40 @@ function zQuestTick(dt){
   q.skyRotor.rotation.y=q.clock*(q.london?.12:.035);
   for(const lock of q.locks){lock.g.visible=!!(q.ward&(1<<lock.i));lock.gem.rotation.y=q.clock*2.8}
  }
- if(q.fight&&!zCli())zQuestBossTick(q,dt,zPlayers().filter(p=>zQuestInArena(p.x,p.z)));
+ if(q.fight&&!q.cut&&!zCli())zQuestBossTick(q,dt,zPlayers().filter(p=>zQuestInArena(p.x,p.z)));
  if(q.trial&&!zCli())zQuestTrial(q,dt);
  if(q.fight||q.trial)zQuestHazardTick(q,dt,zCli()?null:zPlayers().filter(p=>zQuestInArena(p.x,p.z)===q.fight));
  if(q.fight&&q.actor?.zquestArt){
-  const b=q.actor,{g,arms,rotor,shield,core}=b.zquestArt,time=q.clock;
+  const b=q.actor,{g,arms,rotor,shield,core,focus}=b.zquestArt,time=q.clock;
   b.m.rotation.y+=(angD(b.tyaw||0,b.m.rotation.y))*Math.min(1,dt*7);
-  g.position.y=Math.sin(time*2)*(q.london?.26:.14);
+  const collapse=q.cut?.kind==='victory'?cl(1-(q.cut.until-time)/ZMAIN_CUT_TIME.victory,0,1):0;
+  g.position.y=Math.sin(time*2)*(q.london?.26:.14)-collapse*2.7;
+  g.rotation.z=collapse*(q.london?.42:-.6);
   if(q.london)rotor.rotation.z=time*(.49+q.phase*.19);
   for(const [i,arm] of arms.entries()){
    arm.rotation.z=Math.sin(time*(q.london?2.7:1.7)+i*1.7)*(.53+q.phase*.13);
    arm.rotation.x=Math.sin(time*2.1+i*2)*.35;
   }
-  shield.visible=!!q.ward||q.warm>0;shield.rotation.y=time*.95;
-  core.color.setHex(q.def.color).multiplyScalar(1.07+.27*Math.sin(time*5));
+  shield.visible=q.exposed<=0&&!collapse;shield.rotation.y=time*.95;
+  shield.material.opacity=q.ward?.38:.19+.09*Math.sin(time*5);
+  focus.visible=q.exposed>0;
+  core.color.setHex(q.def.color).multiplyScalar((q.exposed>0?1.62:1.07)+.27*Math.sin(time*5)-collapse*.68);
  }
+ zQuestCinemaView(q);
  zQuestHud(q);
 }
 function zQuestPack(q){
  if(!q)return null;
  return {s:q.step,trial:q.trial&&{time:q.trial.time,kills:q.trial.kills},p:q.phase,w:q.ward,i:q.actor?.i,
   hp:q.actor?.hp,max:q.actor?.mhp,warm:q.warm,fight:q.fight,won:q.won,visit:q.visit,ids:q.credit,
+  e:q.exposed||0,b:q.breaks||0,cut:q.cut?.kind,left:q.cut?Math.max(0,q.cut.until-q.clock):0,
   a:[...q.hazards.values()].map(h=>[h.id,h.kind,h.x,h.z,h.r,h.wind,h.duration,+h.age.toFixed(2)])};
 }
 function zQuestSync(s){
  const q=zq.main;if(!q||!s)return;
  q.step=s.s;q.trial=s.trial;q.phase=s.p;q.ward=s.w;q.warm=s.warm;q.fight=!!s.fight;q.won=!!s.won;q.credit=s.ids;
+ q.exposed=s.e||0;q.breaks=s.b||0;
+ if(s.cut&&Number.isFinite(s.left))zQuestCinema(q,s.cut,s.left);else q.cut=null;
  if(q.credit.length)zQuestTeleport(q,s.visit,q.fight,q.credit);
  if(q.fight){
   if(!q.arena)zQuestArena(q);
@@ -728,6 +812,7 @@ function zQuestNet(d,cn){
   if(Number.isInteger(d.visit)&&Array.isArray(d.ids)){
    q.fight=d.fight;q.won=!!d.won;q.credit=d.ids;
    if(q.fight&&!q.arena)zQuestArena(q);
+   if(q.fight&&q.localVisit!==d.visit)zQuestCinema(q,'arrival');else if(!q.fight)q.cut=null;
    zQuestTeleport(q,d.visit,d.fight,d.ids);
    if(q.won)zQuestReward(q);
   }

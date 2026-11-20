@@ -17,6 +17,26 @@ button.primary{background:var(--accent);color:#2a1c17;border-color:var(--accent)
 h1,h2,p{margin:0}
 kbd{font:750 .76rem system-ui;padding:.13em .4em;background:#40332c;border-radius:2px}
 #hud{position:absolute;inset:0;pointer-events:none;user-select:none}
+#field-sound-captions{position:absolute;left:50%;bottom:clamp(116px,21vh,172px);transform:translateX(-50%);display:grid;justify-items:center;gap:4px;width:max-content;max-width:64vw;text-align:center}
+#field-sound-captions>div{padding:4px 10px;border:1px solid #ead8c676;background:#171416e8;color:#fff;font:650 13px/1.35 system-ui;border-radius:3px}
+@media(max-height:450px){
+ :host([data-local]) #vitals,:host([data-local]) #objective,:host([data-local]) #mission{top:7px}
+ :host([data-local]) #vitals{left:8px;width:min(124px,24vw)}
+ :host([data-local]) #mission{right:8px;width:min(132px,26vw)}
+ :host([data-local]) #radar{width:78px;height:78px;margin-left:auto}
+ :host([data-local]) #sheet{padding:13px}
+}
+#field-audio-settings{display:grid;gap:8px;margin-top:14px;max-width:360px}
+#field-audio-settings label{display:grid;grid-template-columns:minmax(0,1fr) 5ch;gap:4px 8px;align-items:center;font:650 13px/1.35 system-ui}
+#field-audio-settings label span{grid-column:1/-1}#field-audio-settings input{width:100%;accent-color:var(--accent)}
+#field-audio-settings output{text-align:right;font-variant-numeric:tabular-nums}
+#field-audio-settings .audio-checkbox span{grid-column:1}#field-audio-settings .audio-checkbox input{justify-self:end;width:18px;height:18px}
+#field-audio-settings input:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+#operation-rewards{margin-top:12px;padding:9px 12px;border-left:3px solid #9bdbc7;background:#203432;color:#d4f3e7;font:650 13px/1.5 system-ui}
+#mission[data-assault=arming] #status{color:#ffe2b4;border-color:#fec78e;background:#613a31;animation:assault-signal .8s ease-in-out alternate infinite}
+#mission[data-assault=active] #status{border-color:#db92d9;background:#47284f}
+@keyframes assault-signal{to{box-shadow:0 0 18px #ffa36ca8}}
+@media(prefers-reduced-motion:reduce){#mission[data-assault=arming] #status{animation:none}}
 #vitals{position:absolute;top:22px;left:22px;width:clamp(128px,16vw,225px);display:grid;gap:5px}
 .vital{position:relative;height:22px;border:1px solid #ffead295;border-left:3px solid var(--meter);background:#1a1719b9;overflow:hidden}
 .vital label{position:absolute;inset:0;display:flex;gap:5px;align-items:center;padding:0 7px;font:800 14px/1 var(--display);text-shadow:0 1px 3px #0f0b0a}
@@ -211,6 +231,7 @@ meter::-webkit-meter-optimum-value{background:linear-gradient(180deg,color-mix(i
 }
 </style>
 <div id="hud" hidden>
+ <div id="field-sound-captions" aria-live="polite" aria-label="Sound captions" hidden></div>
  <section id="vitals" aria-label="Vitals and materials">
   <div class="vital" id="shield"><meter id="shield-meter" aria-label="Shield" min="0" max="60" value="60"></meter><label for="shield-meter"><i>◇</i><span id="shield-text"></span></label></div>
   <div class="vital" id="health"><meter id="health-meter" aria-label="Health" min="0" max="100" value="100"></meter><label for="health-meter"><i>✚</i><span id="health-text"></span></label></div>
@@ -222,7 +243,7 @@ meter::-webkit-meter-optimum-value{background:linear-gradient(180deg,color-mix(i
   </div>
  </section>
  <section id="objective" aria-label="Objective">
-  <div class="objective-line"><b id="atlas-name">ATLAS</b><small id="atlas-text"></small><meter id="atlas-meter" aria-label="ATLAS integrity" min="0" max="900" value="900"></meter></div>
+  <div class="objective-line"><b id="atlas-name">Signal Relay</b><small id="atlas-text"></small><meter id="atlas-meter" aria-label="Signal Relay integrity" min="0" max="900" value="900"></meter></div>
   <div class="objective-line" id="boss" hidden><b id="boss-name">Stormbreaker</b><small id="boss-text"></small><meter id="boss-meter" aria-label="Stormbreaker health" min="0" max="760" value="760"></meter></div>
  </section>
  <section id="mission" aria-label="Mission">
@@ -251,7 +272,8 @@ meter::-webkit-meter-optimum-value{background:linear-gradient(180deg,color-mix(i
   <div id="kicker" class="eyebrow">Relay Ridge · Solo PvE</div>
   <h1 id="title">Stormwatch</h1>
   <h2 id="operation-title"></h2>
-  <p id="summary">Defend the ATLAS through five waves.</p>
+  <p id="summary">Restore power to the relay and defend it through five assaults.</p>
+  <p id="operation-rewards" aria-live="polite" hidden></p>
   <div id="profile" hidden></div>
   <div id="citadel-root" hidden></div>
   <div id="pack" hidden>
@@ -274,6 +296,7 @@ meter::-webkit-meter-optimum-value{background:linear-gradient(180deg,color-mix(i
    <button id="citadel" data-action="citadel" disabled>Citadel</button>
    <button id="citadel-back" data-action="citadelBack" hidden>Back</button>
    <button id="help" data-action="help" aria-expanded="false">Controls</button>
+   <button id="field-audio" data-action="audio" aria-controls="field-audio-settings" aria-expanded="false" hidden>Audio</button>
    <button id="craft" data-action="craft" hidden>Craft ammo</button>
    <button id="fabricate" data-action="fabricate" hidden>Fabricate weapon</button>
    <button id="traps" data-action="traps" hidden>Select trap</button>
@@ -282,6 +305,7 @@ meter::-webkit-meter-optimum-value{background:linear-gradient(180deg,color-mix(i
   <div id="guide" hidden>
    <p id="controls-fight"></p><p id="controls-build"></p><p id="controls-mission"></p>
   </div>
+  <div id="field-audio-settings" hidden>${PlayerAudio.controls(true)}</div>
  </div>
  <section id="board" aria-label="Deployment board">
   <div class="board-head">
@@ -303,18 +327,27 @@ meter::-webkit-meter-optimum-value{background:linear-gradient(180deg,color-mix(i
 return {mount(options={}){
 const host = document.createElement('article');
 host.id = 'stormwatch-mode';
+if(options.local)host.dataset.local='';
 const surface = host.attachShadow({mode:'open'});
 surface.innerHTML = stormwatchMarkup;
 document.body.append(host);
 const ui = Object.fromEntries([...surface.querySelectorAll('[id]')].map(el => [el.id, el]));
+const fieldCaptions=PlayerAudio.captions(ui['field-sound-captions']);
+const unbindFieldAudio=PlayerAudio.bind(ui['field-audio-settings']);
 const embedded = !!options.renderer;
 const coop=options.squad;
-let coopReady=false,remoteSeat=null;
+let coopReady=false,remoteSeat=null,savingResult=false;
 const controller = new AbortController();
+let padFocus=null;
 function listen(target,name,handler,settings={}){
  target.addEventListener(name,handler,{...settings,signal:controller.signal});
 }
+listen(surface,'focusin',event=>{padFocus=event.target});
+function fieldFocus(){
+ return surface.activeElement||(options.local&&padFocus?.getClientRects().length&&!padFocus.disabled?padFocus:null);
+}
 function exit(){
+ if(savingResult)return;
  if(options.leave)options.leave('exit');
  else location.assign('index.html');
 }
@@ -358,7 +391,7 @@ const pick = items => items[Math.floor(rand()*items.length)];
 const engineering = StormwatchEngineering;
 const operations = StormwatchOperations;
 const GRID = engineering.CELL, LEVEL = GRID, BOUND = 52, ATLAS_HP = 900, MAX_WAVES = 5;
-const OPENING_PREP=60, BETWEEN_WAVES=25, SEAL_DURATION=240, SEAL_SLICE=SEAL_DURATION/5;
+const ASSAULT_WARNING=4, SEAL_DURATION=240, SEAL_SLICE=SEAL_DURATION/5;
 const NEST_DURATION=420, PAYLOAD_PREP=40, PAYLOAD_DURATION=145, PAYLOAD_HP=760;
 const nestCrews=[
  ['husk','husk','runner','runner','husk'],
@@ -376,12 +409,16 @@ const pieces = engineering.ARCHETYPES;
 const portals = [[0,-44-Math.floor(rand()*3)],[-43-Math.floor(rand()*3),-1],
  [43+Math.floor(rand()*3),-1],[0,43+Math.floor(rand()*3)]];
 const waves = [
- {name:'Northern breach',lanes:[0],units:['husk','husk','runner','husk','husk','runner','husk','husk']},
- {name:'Through the pines',lanes:[1,0],units:['runner','husk','husk','runner','spitter','husk','runner','husk','demolisher','runner','husk','husk']},
+ {name:'Scavengers',lanes:[0],units:['husk','husk','runner','husk','husk','runner','husk','husk','runner']},
+ {name:'Cover Breakers',lanes:[1,0],units:['runner','husk','husk','runner','spitter','husk','runner','husk','demolisher','runner','husk','husk']},
  {name:'Crossfire',lanes:[2,1,0],units:['husk','runner','spitter','brute','demolisher','runner','mortar','husk','phantasm','husk','husk','spitter','husk','brute']},
- {name:'The south approach',lanes:[3,2,1],units:['runner','beam','runner','brute','husk','catapult','husk','runner','mortar','brute','spitter','phantasm','husk','demolisher','runner','juggernaut']},
+ {name:'Siege Crew',lanes:[3,2,1],units:['runner','beam','runner','brute','husk','catapult','husk','runner','mortar','brute','spitter','phantasm','husk','demolisher','runner','juggernaut']},
  {name:'Stormbreaker',lanes:[0,3,2,1],units:['boss','runner','husk','beam','runner','demolisher','brute','mortar','husk','phantasm','husk','spitter','juggernaut','catapult','husk','brute','runner','mortar','husk']}
 ];
+const assaultLanes=waves.map(wave=>operations.assaultFronts(mapSeed,wave.lanes));
+const frontNames=['North','West','East','South'];
+const noFronts=[];
+let assaultQueue=[],assaultGroup=0,assaultUnit=0;
 const husks = {
  husk:{hp:80,speed:2.1,hit:18,scale:1.05,skin:0x9e99a6,suit:0x542e61,eye:0xffb364},
  runner:{hp:55,speed:3.7,hit:13,scale:.88,skin:0xb5a9c2,suit:0x822f62,eye:0xff8589},
@@ -513,7 +550,7 @@ const keys=new Set();
 const hero={pos:vec(-3,0,11),vy:0,ground:true,yaw:.18,pitch:-.14,hp:100,shield:60,hitAgo:20,reload:0,emote:0,
  maxhp:100,maxShield:60,heat:0,shout:0,rotary:0,tempGun:null,dash:0,extraJump:false,weapon:0,shot:0,swingTime:0,anim:0,bob:0,pulse:0,stacks:[40,30,20],cache:0,repairs:2,sprint:false,aim:false,move:0};
 const state={mission:Object.hasOwn(operations.missions,initialMission)?initialMission:'defense',modifier:null,
- alertRequested:!!options.alert,started:0,flux:0,siege:0,nestsCleared:0,nest:null,stormRadius:49.7,phase:'prep',wave:0,prep:OPENING_PREP,elapsed:0,waveTime:0,pending:0,takedowns:0,atlas:ATLAS_HP,spawnIn:0,
+ alertRequested:!!options.alert,started:0,flux:0,siege:0,nestsCleared:0,nest:null,stormRadius:49.7,phase:'scout',wave:0,prep:0,elapsed:0,waveTime:0,pending:0,takedowns:0,atlas:ATLAS_HP,spawnIn:0,
  building:false,piece:0,material:0,recipe:0,ability:0,edit:null,deployed:false,finished:false,paused:true,screen:'brief',toasted:0,damage:0,hit:0,
  xp:0,tier:options.tier??null,allClear:false,mouse:false,look:'keys',pointerHint:false};
 const gear=options.gear;
@@ -544,25 +581,29 @@ function collectPart(id,count){
 }
 function bankSalvage(victory,wave){
  fileFieldReport(victory);
- if(!citadel)return;
- const bag=fieldBag,found=[...discoveries.values()];
- if(!wave&&!found.length&&!Object.values(bag).some(Boolean))return;
- fieldBag=StormwatchCitadel.emptyBag();discoveries.clear();
- citadel.dispatch({type:wave?'debrief':'salvage',bag,discoveries:found,victory}).then(saved=>{
+ if(!citadel)return Promise.resolve(false);
+ const bag=fieldBag,found=victory?[...discoveries.values()]:[];
+ if(!victory&&!wave&&!Object.values(bag).some(Boolean))return Promise.resolve(true);
+ fieldBag=StormwatchCitadel.emptyBag();if(victory)discoveries.clear();
+ const action={type:wave?'debrief':'salvage',bag,discoveries:found,victory,mission:state.mission,
+  region:regionId,completionId:fieldReportId,operative:squad.lead.id};
+ return citadel.dispatch(action).then(saved=>saved||!victory?saved:citadel.dispatch(action)).then(saved=>{
   if(!saved&&!controller.signal.aborted){
    for(const [key,n] of Object.entries(bag))collectPart(key,n);
    for(const item of found)discoveries.set(item.id,item);
    notice('Citadel salvage could not be saved');
   }
+  return saved;
  });
 }
 const fallbackGun={name:'Assault rifle',stats:{d:30,m:30,au:1,rl:1.5,r:.12,sp:.009,pel:1}};
-function armWeapon(weapon,power,element='Kinetic'){
+function armWeapon(weapon,power,element){
  const base=weapon.baseStats||weapon.stats,blueprint=StormwatchCitadel.tune(profile.blueprints[weapon.k]);
- const stats={...base,d:base.d*blueprint.boost*(1+(squad.vital.Impact-10)*.005),
+ const research=StormwatchCitadel.fieldResearch(profile);
+ const stats={...base,d:base.d*blueprint.boost*(1+(squad.vital.Impact-10)*.005)*(1+.03*research.ordnance),
   m:Math.round(base.m*blueprint.mag),rl:base.rl*blueprint.reload};
- return {...weapon,stats,baseStats:base,power:Math.max(power,Math.round(blueprint.power)),element:blueprint.element||element,
-  blueprint,mag:stats.m,reserve:Math.max(72,stats.m*5)};
+ return {...weapon,stats,baseStats:base,power:Math.max(power,Math.round(blueprint.power)),element:element||blueprint.element||'Kinetic',
+  blueprint,mag:stats.m,reserve:Math.max(72,stats.m*5)+18*research.logistics};
 }
 const guns=(gear?.weapons.length?gear.weapons:[fallbackGun]).map(weapon=>armWeapon(weapon,12));
 const currentGun=()=>hero.tempGun||guns[hero.weapon];
@@ -578,8 +619,10 @@ const aimDirection = vec(), aimPoint = vec();
 let aimed=null, blueprint=null;
 const screenVector = new T.Vector2();
 let audio=null;
-function sound(kind) {
+const fieldSoundLabels={pulse:'Energy pulse',hurt:'Taking damage',pickup:'Pickup chime'};
+function sound(kind,caption=fieldSoundLabels[kind]) {
  if(remoteSeat)return;
+ if(caption&&!state.paused)fieldCaptions.show(caption);
  if (!audio || audio.state!=='running')return;
  const [low,high,duration,volume,type] = {
   rifle:[125,38,.07,.105,'sawtooth'],hit:[565,285,.064,.044,'triangle'],swing:[280,102,.11,.041,'triangle'],
@@ -593,7 +636,7 @@ function sound(kind) {
  oscillator.frequency.exponentialRampToValueAtTime(high,now+duration);
  gain.gain.setValueAtTime(volume,now);
  gain.gain.exponentialRampToValueAtTime(.001,now+duration);
- oscillator.connect(gain).connect(audio.destination);
+ oscillator.connect(gain).connect(PlayerAudio.output(audio,'effects',true));
  oscillator.start();
  oscillator.stop(now+duration);
 }
@@ -606,7 +649,7 @@ function unlockAudio(){
   for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;
   const wind=audio.createBufferSource(),filter=audio.createBiquadFilter(),gain=audio.createGain();
   wind.buffer=buffer;wind.loop=true;filter.type='lowpass';filter.frequency.value=158;
-  gain.gain.value=.006;wind.connect(filter).connect(gain).connect(audio.destination);wind.start();
+  gain.gain.value=.006;wind.connect(filter).connect(gain).connect(PlayerAudio.output(audio,'ambience',true));wind.start();
   ambient={wind,filter,gain};
  }
  audio?.resume().catch(()=>{});
@@ -1008,8 +1051,11 @@ function makePortals(){
    extrusion.rotation.z=s*.26;
   }
   const survey=mesh(gate,gem,mat(0x6d5c8c,0x38256a),0,.57,0,.38,.72,.36,false);
+  const warning=groupAt(gate),light=new T.MeshBasicMaterial({color:0xffbf79,transparent:true,opacity:.61,depthWrite:false});
+  mesh(warning,cyl,light,0,5.4,0,.095,10.8,.095,false);
+  ring(warning,light,1.48,.046,.13,32);warning.visible=false;
   rot.visible=false;
-  portalFx.push({flare,rot,outer,arch,survey,active:false});
+  portalFx.push({flare,rot,outer,arch,survey,warning,active:false});
  }
 }
 
@@ -1079,7 +1125,7 @@ function useChest(){
    const found={id:chest.reward.k,name:chest.reward.name};
    if(remoteSeat)sendGame('feedback',{discovery:found},remoteSeat.id);else discoveries.set(found.id,found);
   }
-  notice(chest.reward.name+' · P'+chest.power+' '+chest.element);
+  notice(chest.reward.name+' · P'+chest.power+' '+chest.element+(chest.reward.k&&!profile.blueprints[chest.reward.k]?' · Extract to recover the pattern':''));
  }else{
   const drop={...chest.reward,power:chest.power,element:chest.element};
   if(remoteSeat)sendGame('feedback',{weapon:drop},remoteSeat.id);else equipLoot(drop);
@@ -2230,7 +2276,7 @@ function attack(){
  if(hero.reload>0)return;
  if(gun.mag<=0){
   reload();
-  if(hero.reload===0){notice('Out of ammo');sound('empty');hero.shot=.36}
+  if(hero.reload===0){notice('Out of ammo');sound('empty','Out of ammo');hero.shot=.36}
   return;
  }
  const {r,pel,sp,d}=gun.stats;
@@ -2374,11 +2420,11 @@ listen(ui['edit-grid'],'pointerover',event=>{
 listen(window,'pointerup',()=>{if(state.edit)state.edit.paint=null});
 function editPad(edge){
  const list=[...ui['edit-grid'].children,...ui['edit-actions'].querySelectorAll('button:not(:disabled)')];
- let index=list.indexOf(surface.activeElement);
+ let index=list.indexOf(fieldFocus());
  const move=edge(14)?-1:edge(15)?1:edge(12)?-engineering.dimensions(state.edit.item.piece):edge(13)?engineering.dimensions(state.edit.item.piece):0;
  if(move)list[(index+move+list.length)%list.length]?.focus({preventScroll:true});
  if(edge(padFamily==='ns'?1:0)){
-  const active=surface.activeElement;
+  const active=fieldFocus();
   if(active?.dataset.bit!==undefined)togglePanel(+active.dataset.bit);
   else if(active===ui['edit-apply'])applyEdit(false);
   else active?.click();
@@ -2683,7 +2729,7 @@ function hurtHero(amount){
 function hurtAtlas(amount){
  if(!atlasBody.alive||state.finished)return;
  state.atlas=Math.max(0,state.atlas-amount);
- if(state.atlas===0)finish(false,state.mission==='payload'?'The recovery pod was lost':state.mission==='seal'?'The Rift Anchor failed':'The ATLAS went offline');
+ if(state.atlas===0)finish(false,state.mission==='payload'?'The recovery pod was lost':state.mission==='seal'?'The Rift Anchor failed':'The Signal Relay went offline');
 }
 function hurtStructure(item,amount,attacker=null){
  if(aegisTiles.has(item)){
@@ -2776,13 +2822,13 @@ function moveBolts(dt){
  }
 }
 function addFluxCrystals(){
- const sites=[[-12,12],[14,-9],[-13,-16]];
+ const sites=state.mission==='defense'
+  ?[[-16,13],[16,-12]]
+  :[[-12,12],[14,-9],[-13,-16]];
  for(const [gx,gz] of sites){
-  let x=gx+(rand()-.5)*5,z=gz+(rand()-.5)*4;
-  for(let attempt=0;attempt<18&&playerBlocked(x,z,terrainHeight(x,z));attempt++){
-   x+=Math.sin(attempt*1.4)*1.7+.2;z+=Math.cos(attempt*1.4)*1.9;
-  }
-  addFluxAt(x,z);
+  const site=safeFieldPoint(gx+(rand()-.5)*5,gz+(rand()-.5)*4,.8)||safeFieldPoint(gx,gz,.65);
+  if(site)addFluxAt(site.x,site.z);
+  else addFluxAt(0,gz);
  }
 }
 function addFluxAt(x,z){
@@ -2800,11 +2846,15 @@ function activePickups(dt){
   item.marker.rotation.y+=dt*1.6;
   item.marker.position.y=1.36+Math.sin(state.elapsed*3+item.x)*.21;
   if(guest||hero.hp<=0||item.kind==='chest')continue;
-  if(hero.pos.y>item.y+1.9||Math.hypot(hero.pos.x-item.x,hero.pos.z-item.z)>1.74)continue;
+  if(Math.abs(hero.pos.y-item.y)>1.9||Math.hypot(hero.pos.x-item.x,hero.pos.z-item.z)>1.74||
+    wallBetween(hero.pos.x,hero.pos.z,item.x,item.z,.02,hero.pos.y+.42))continue;
   item.active=false;stage.remove(item.group);item.flare.material.dispose();
   if(item.kind==='flux'){
    state.flux++;
-   notice(state.flux===3?'Return to the Rift Anchor':state.flux+' / 3 Flux Crystals');
+   if(state.mission==='defense'){
+    if(state.flux===2)state.phase='prep';
+    notice(state.flux===2?'Relay powered · Fortify the marked front':'Power cell recovered · 1 / 2');
+   }else notice(state.flux===3?'Return to the Rift Anchor':state.flux+' / 3 Flux Crystals');
   }else if(item.kind==='cache'){
    hero.cache++;fieldMetrics.caches++;
    hero.stacks=hero.stacks.map((n,i)=>Math.min(999,n+[20,15,10][i]));
@@ -3287,26 +3337,37 @@ function updateHusks(dt){
   enemy.root.rotation.y=facing+Math.atan2(Math.sin(enemy.yaw-facing),Math.cos(enemy.yaw-facing))*Math.min(dt*11,1);
  }
 }
+function plannedFronts(){
+ if(state.mission!=='defense'||state.finished)return noFronts;
+ return assaultLanes[state.phase==='active'||state.phase==='arming'?state.wave-1:state.wave]||noFronts;
+}
 function startWave(){
  if(state.phase!=='prep'||state.finished)return;
- state.wave++;state.waveTime=0;state.phase='active';
+ const seats=coop?livePlayers().length:1;
+ state.wave++;state.waveTime=0;state.phase='arming';state.prep=ASSAULT_WARNING;
  const wave=waves[state.wave-1];
- state.pending=wave.units.length;state.spawnIn=.12;
- for(const i of wave.lanes)portalFx[i].active=true;
- notice('Rifts opening · '+wave.name);sound('wave');rumble(.43,140);
+ assaultQueue=operations.assaultGroups(wave,plannedFronts(),seats);
+ assaultGroup=assaultUnit=0;
+ state.pending=assaultQueue.reduce((sum,group)=>sum+group.units.length,0);state.spawnIn=.12;
+ notice(wave.name+' · '+plannedFronts().map(lane=>frontNames[lane]).join(' / '));
+ sound('wave','Assault incoming');rumble(.43,140);
 }
 function spawnHusk(){
- const wave=waves[state.wave-1],index=wave.units.length-state.pending,lane=wave.lanes[index%wave.lanes.length];
- const [x,z]=portals[lane];
- makeHusk(wave.units[index],x+(rand()-.5)*2.7,z+(rand()-.5)*2.1);
- addSparks(vec(x,1.62,z),0xaf72ff,10,5.6);
- state.pending--;state.spawnIn=state.wave===1?1.23:Math.max(.67,1.24-state.wave*.124);
+ const group=assaultQueue[assaultGroup];
+ const [x,z]=portals[group.lane];
+ const drop=safeFieldPoint(x+(rand()-.5)*2.8,z+(rand()-.5)*2.8,.65);
+ makeHusk(group.units[assaultUnit++],drop?.x??x,drop?.z??z);
+ addSparks(vec(x,terrainHeight(x,z)+1.4,z),0xaf72ff,9,5.6);
+ state.pending--;
+ if(assaultUnit===group.units.length){
+  assaultGroup++;assaultUnit=0;state.spawnIn=Math.max(3.3,6.8-state.wave*.66);
+ }else state.spawnIn=.53;
 }
 function clearWave(){
  const bonus=hero.cache===3&&!state.allClear;
  if(bonus)state.allClear=true;
  awardWave(bonus);
- bankSalvage(state.wave===MAX_WAVES,true);
+ bankSalvage(false,true);
  if(!embedded)notice('Wave '+state.wave+' cleared');
  portalFx.forEach(portal=>{portal.active=false});
  for(const bolt of bolts){
@@ -3316,8 +3377,8 @@ function clearWave(){
  for(let i=trapShots.length-1;i>=0;i--)removeTrapShot(trapShots[i],i);
  for(const field of trapFields){scene.remove(field.cloud);field.cloud.material.dispose()}
  trapFields.length=0;
- if(state.wave===MAX_WAVES){finish(true,'All five waves cleared');return}
- state.phase='prep';state.prep=BETWEEN_WAVES;
+ if(state.wave===MAX_WAVES){finish(true,'All five assaults repelled');return}
+ state.phase='prep';state.prep=0;
  hero.hp=Math.min(hero.maxhp,hero.hp+17);
  hero.shield=Math.max(hero.shield,32);
  for(const gun of guns)gun.reserve=Math.max(48,gun.reserve);
@@ -3325,7 +3386,7 @@ function clearWave(){
  const points=[[-5,7],[6,5],[-6,-6],[6,-6]];
  const [x,z]=points[dropIndex++%points.length];
  addCache(x,z,'airdrop');
- if(!embedded)notice('Wave '+state.wave+' cleared · Airdrop landed');
+ notice('Assault repelled · Resupply and prepare for the next front');sound('pickup','Resupply delivered');
 }
 const nests=[];
 let pod=null;
@@ -3387,15 +3448,33 @@ function availableNest(){
 function scanNest(nest){
  state.nest=nest;state.wave=state.nestsCleared+1;
  nest.crew=[...nestCrews[state.nestsCleared]];nest.remaining=nest.crew.length;nest.spawnIn=.20;
- notice('Guardians incoming');sound('wave');
+ notice('Guardians incoming');sound('wave','Guardians incoming');
+}
+function missionInteraction(){
+ if(hero.hp<=0||Math.hypot(hero.pos.x,hero.pos.z)>4.8||Math.abs(hero.pos.y)>2.25)return '';
+ if(state.mission==='defense'&&state.phase==='prep')return 'Launch assault '+(state.wave+1);
+ if(state.mission==='seal'&&state.phase==='fuel'&&state.flux===3)return 'Activate Rift Anchor';
+ return '';
 }
 function interactField(){
  if(hero.hp<=0)return false;
- if(guest){coopAction('interact');return true}
+ if(guest){
+  const teammate=[...mates.values()].some(m=>m.ready&&m.down&&m.target.distanceTo(hero.pos)<2.65);
+  if(teammate||availableNest()||availableChest()){coopAction('interact');return true}
+  return false;
+ }
  if(coop&&reviveMate())return true;
  const nest=availableNest();
  if(nest){scanNest(nest);return true}
- return useChest();
+ if(useChest())return true;
+ if(!missionInteraction()||remoteSeat||coop&&!coopStarted)return false;
+ if(state.mission==='defense')startWave();
+ else{
+  state.phase='seal';state.wave=1;state.spawnIn=.35;
+  portalFx.forEach(portal=>{portal.active=true});
+  notice('Anchor online · Keep it intact');sound('wave','Anchor online');
+ }
+ return true;
 }
 function updateNest(nest,dt){
  nest.gemstone.rotation.y+=dt*.75;
@@ -3422,7 +3501,7 @@ function stageReward(){
  const bonus=hero.cache===3&&!state.allClear;
  if(bonus)state.allClear=true;
  awardWave(bonus);
- bankSalvage(state.wave===MAX_WAVES,true);
+ bankSalvage(false,true);
 }
 function hurtNest(nest,damage,point){
  if(state.nest!==nest||!nest.active||!nest.hit||state.finished)return;
@@ -3476,7 +3555,7 @@ function landPayload(){
  obstaclesDirty=true;
  state.phase='payload';state.wave=1;state.spawnIn=1;
  addSparks(vec(0,.2,0),0xe6ae7b,26,6);
- notice('Pod landed');sound('wave');rumble(.45,135);
+ notice('Pod landed');sound('wave','Pod landed');rumble(.45,135);
 }
 function payloadTick(dt,realTime){
  if(state.phase==='drop'){
@@ -3514,11 +3593,6 @@ function payloadTick(dt,realTime){
 function sealTick(dt,realTime){
  if(state.phase==='fuel'){
   trapTick(dt);
-  if(state.flux===3&&(coop?livePlayers().some(p=>Math.hypot(p.pos.x,p.pos.z)<3.8):Math.hypot(hero.pos.x,hero.pos.z)<3.8)){
-   state.phase='seal';state.wave=1;state.spawnIn=.35;
-   portalFx.forEach(portal=>{portal.active=true});
-   notice('Anchor primed');sound('wave');
-  }
   return;
  }
  state.siege=Math.min(SEAL_DURATION,state.siege+realTime);
@@ -3537,7 +3611,7 @@ function sealTick(dt,realTime){
   const bonus=hero.cache===3&&!state.allClear;
   if(bonus)state.allClear=true;
   awardWave(bonus);
-  bankSalvage(state.wave===MAX_WAVES,true);
+  bankSalvage(false,true);
   if(state.wave===MAX_WAVES){finish(true,'Rift sealed');return}
   state.wave++;
   hero.hp=Math.min(hero.maxhp,hero.hp+13);restock(21);
@@ -3549,15 +3623,16 @@ function waveTick(dt,realTime=dt){
  if(state.mission==='nests'){nestTick(dt,realTime);return}
  if(state.mission==='payload'){payloadTick(dt,realTime);return}
  if(state.mission==='seal'){sealTick(dt,realTime);return}
- if(state.phase==='prep'){
+ if(state.phase==='arming'){
   state.prep=Math.max(0,state.prep-realTime);
   if(state.prep>0){trapTick(dt);return}
-  startWave();
+  state.phase='active';
+  for(const lane of plannedFronts())portalFx[lane].active=true;
  }
- if(state.phase!=='active')return;
+ if(state.phase!=='active'){trapTick(dt);return}
  state.waveTime+=dt;
  state.spawnIn-=dt;
- if(state.pending>0&&state.spawnIn<=0)spawnHusk();
+ if(state.pending>0&&state.spawnIn<=0&&enemies.filter(enemy=>enemy.active).length<24)spawnHusk();
  trapTick(dt);
  updateHusks(dt);
  if(state.finished)return;
@@ -3574,9 +3649,12 @@ function animateWorld(dt){
  atlasRing.rotation.z+=dt*.48;
  atlasRing.rotation.y=Math.sin(state.elapsed*2)*.31;
  atlasBeacon.material.opacity=(.08+Math.sin(state.elapsed*2.01)*.03)*Math.max(.24,state.atlas/ATLAS_HP);
- for(const portal of portalFx){
+ const fronts=plannedFronts();
+ for(const [index,portal] of portalFx.entries()){
   portal.rot.visible=portal.active;
   portal.survey.visible=!portal.active;
+  portal.warning.visible=!portal.active&&fronts.includes(index);
+  if(portal.warning.visible)portal.warning.scale.setScalar(.92+Math.sin(state.elapsed*3+index)*.08);
   portal.outer.rotation.y+=dt*.88;
   portal.rot.rotation.z=Math.sin(state.elapsed*2.4)*.18;
   portal.flare.material.opacity=portal.active?.9+Math.sin(state.elapsed*5.2)*.1:.08;
@@ -3625,8 +3703,7 @@ function rumble(strength,duration){
  try{padInfo?.vibrationActuator?.playEffect('dual-rumble',{duration,strongMagnitude:strength,weakMagnitude:strength*.66}).catch(()=>{})}catch(error){}
 }
 function pollController(dt){
- try{padInfo=Array.from(navigator.getGamepads?.()||[]).find(g=>g?.connected&&g.axes.length>=4)||null}
- catch(error){padInfo=null}
+ padInfo=options.local||config.pad!=='kb'?StormwatchHub.controllerPad():null;
  if(!padInfo){
   lastPad=[];padIndex=-1;padMenuMove=false;
   if(state.look==='pad'){state.look='keys';syncBriefing()}
@@ -3638,7 +3715,7 @@ function pollController(dt){
  const dz=n=>Math.abs(n)>.16?Math.sign(n)*(Math.abs(n)-.16)/.84:0;
  const [side,negativeAhead,rx,ry]=Array.from({length:4},(_,i)=>dz(padInfo.axes[i]||0));
  const type=family(padInfo);
- if(config.pad!=='kb'&&(buttons.some(Boolean)||[side,negativeAhead,rx,ry].some(n=>Math.abs(n)>.15))&&(state.look!=='pad'||type!==padFamily)){
+ if((buttons.some(Boolean)||[side,negativeAhead,rx,ry].some(n=>Math.abs(n)>.15))&&(state.look!=='pad'||type!==padFamily)){
   state.look='pad';padFamily=type;padLabels=families[type];syncBriefing();
  }
  if(state.edit){editPad(edge);return padResult()}
@@ -3647,12 +3724,18 @@ function pollController(dt){
   const axisMove=Math.abs(side)>.48||Math.abs(negativeAhead)>.48;
   const move=edge(14)||edge(12)?-1:edge(15)||edge(13)?1:axisMove&&!padMenuMove?(Math.abs(side)>.48?Math.sign(side):Math.sign(negativeAhead)):0;
   padMenuMove=axisMove;
-  if(move&&boardFocus(surface.activeElement,edge(14)?-1:edge(15)?1:0,edge(12)?-1:edge(13)?1:0))return padResult();
-  if(move&&surface.activeElement===ui['trap-picker']&&Math.abs(move)===1&&(edge(14)||edge(15))){
+  const current=fieldFocus();
+  if(move&&boardFocus(current,edge(14)?-1:edge(15)?1:0,edge(12)?-1:edge(13)?1:0))return padResult();
+  if(move&&current===ui['trap-picker']&&Math.abs(move)===1&&(edge(14)||edge(15))){
    state.recipe=(state.recipe+move+trapRecipes.length)%trapRecipes.length;updateTrapPicker();
   }else if(move){
-   const available=[...ui.screen.querySelectorAll('button:not([hidden]):not(:disabled),select:not(:disabled)')].filter(node=>!node.closest('[hidden]'));
-   const control=surface.activeElement;
+   const available=[...ui.screen.querySelectorAll('button:not(:disabled),select:not(:disabled),input[data-audio-option]')].filter(node=>!node.closest('[hidden]'));
+   const control=current;
+   if(control?.matches('input[type=range]')&&(edge(14)||edge(15))){
+    if(edge(14))control.stepDown();else control.stepUp();
+    control.dispatchEvent(new Event('input',{bubbles:true}));
+    return padResult();
+   }
    if(control?.matches('select')&&(edge(14)||edge(15))){
     control.selectedIndex=(control.selectedIndex+move+control.options.length)%control.options.length;
     control.dispatchEvent(new Event('change',{bubbles:true,composed:true}));
@@ -3662,9 +3745,9 @@ function pollController(dt){
    if(available.length)available[(index+move+available.length)%available.length].focus({preventScroll:true});
   }
   if(edge(confirm)){
-   const current=surface.activeElement,action=current?.dataset.action;
+   const current=fieldFocus(),action=current?.dataset.action;
    if(action)menuAction(action,false);
-   else if(current?.matches('button'))current.click();
+   else if(current?.matches('button,input[type=checkbox]'))current.click();
   }else if(edge(back)){
    menuAction(state.screen==='citadel'?'citadelBack':state.screen==='pause'||state.screen==='pack'?'deploy':'exit',false);
   }else if(edge(9)&&(state.screen==='pause'||state.screen==='pack')||edge(8)&&state.screen==='pack')menuAction('deploy',false);
@@ -3717,6 +3800,7 @@ function bodyPause(){
  showScreen('pause');
 }
 function requestMouse(){
+ if(options.local)return;
  state.look='keys';syncBriefing();
  if(document.pointerLockElement===canvas)return;
  if(!canvas.requestPointerLock){state.pointerHint=true;return}
@@ -3727,7 +3811,9 @@ function requestMouse(){
 function deploy(lock){
  unlockAudio();
  if(state.finished)return;
- if(!state.deployed&&!options.hub&&!coop&&StormwatchCitadel.rating(citadel?.snapshot()||profile).power<region.floor){
+ const savedProfile=citadel?.snapshot()||profile;
+ if(!state.deployed&&!options.hub&&!coop&&StormwatchCitadel.rating(savedProfile).power<region.floor&&
+   !operations.campaignProgress(savedProfile).unlocked.includes(regionId)){
   ui.summary.textContent=region.name+' requires Power '+region.floor;return;
  }
  if(!state.deployed){
@@ -3741,9 +3827,11 @@ function deploy(lock){
    state.phase='fuel';if(!guest)addFluxCrystals();text(ui['atlas-name'],'Rift Anchor');
    ui['atlas-meter'].setAttribute('aria-label','Rift Anchor integrity');
   }
-  profile=citadel?.snapshot()||profile;squad=StormwatchCitadel.rating(profile);
-  hero.maxhp=100+(squad.vital.Vitality-10)*2;
-  hero.maxShield=60+Math.round((squad.vital.Toughness-10)*1.3);
+  if(state.mission==='defense'&&!guest)addFluxCrystals();
+  profile=savedProfile;squad=StormwatchCitadel.rating(profile);
+  const resilience=StormwatchCitadel.fieldResearch(profile).resilience;
+  hero.maxhp=100+(squad.vital.Vitality-10)*2+6*resilience;
+  hero.maxShield=60+Math.round((squad.vital.Toughness-10)*1.3)+3*resilience;
   hero.hp=hero.maxhp;hero.shield=hero.maxShield;
   for(let i=0;i<guns.length;i++){
    const key=profile.fieldLoadout?.[i];
@@ -3781,8 +3869,13 @@ function menuAction(action,lock){
   ui.help.setAttribute('aria-expanded',String(!ui.guide.hidden));
   syncBriefing();
  }
+ if(action==='audio'){
+  const panel=ui['field-audio-settings'],button=ui['field-audio'];
+  panel.hidden=!panel.hidden;button.setAttribute('aria-expanded',String(!panel.hidden));
+  if(!panel.hidden)panel.querySelector('input').focus();
+ }
 }
-for(const button of [ui.deploy,ui.retry,ui.pass,ui.help,ui.craft,ui.fabricate,ui.traps,ui.citadel,ui['citadel-back']]){
+for(const button of [ui.deploy,ui.retry,ui.pass,ui.help,ui.craft,ui.fabricate,ui.traps,ui.citadel,ui['citadel-back'],ui['field-audio']]){
  button.onclick=event=>menuAction(button.dataset.action,event.detail>0||state.look!=='pad');
 }
 function focusedButton(){
@@ -3795,7 +3888,7 @@ function syncBriefing(){
   'WASD move · Space jump · LMB attack · 1–3 / V equip · R reload';
  ui['controls-build'].textContent=p?p.lb+' build · D-pad pieces · '+p.lt+' material · '+p.rt+' place · '+p.rs+' edit':
   'Q build · 1–4 pieces · T trap · RMB material · B edit · G repair';
- ui['controls-mission'].textContent=p?p.view+' field kit · '+p.x+' chest · '+p.rb+' ability · D-pad ←/→ select · ↑ craft ammo':
+ ui['controls-mission'].textContent=p?p.view+' field kit · '+p.x+' interact / reload · '+p.rb+' ability · D-pad ←/→ select · ↑ craft ammo':
   'Tab field kit · F chest · 5–8 abilities · C craft ammo';
 }
 const trapPicker=ui['trap-picker'];
@@ -3858,10 +3951,11 @@ function fillPack(){
 }
 const regionPicker=ui['region-picker'];
 function updateRegions(){
- const power=StormwatchCitadel.rating(citadel?.snapshot()||profile).power;
+ const saved=citadel?.snapshot()||profile,power=StormwatchCitadel.rating(saved).power;
+ const unlocked=operations.campaignProgress(saved).unlocked;
  regionPicker.replaceChildren(...Object.entries(regions).map(([id,preset])=>{
   const option=document.createElement('option');option.value=id;
-  option.disabled=preset.floor>power;
+  option.disabled=preset.floor>power&&!unlocked.includes(id);
   option.textContent=preset.name+' · '+preset.floor+'–'+preset.ceiling;
   return option;
  }));
@@ -3981,6 +4075,7 @@ updateRegions();
 function showScreen(mode){
  if(state.edit)closeEditor(false);
  state.paused=true;state.screen=mode;
+ fieldCaptions.clear();
  mouseFire=mouseAim=mouseLook=false;keys.clear();
  if(document.pointerLockElement===canvas)document.exitPointerLock();
  ui.screen.hidden=false;ui.screen.dataset.mode=mode;
@@ -3993,9 +4088,10 @@ function showScreen(mode){
  ui.pack.hidden=ui.craft.hidden=ui.traps.hidden=!pack;
  ui.fabricate.hidden=!pack;
  ui.guide.hidden=true;ui.help.hidden=mode==='result'||pack||citadelPanel;ui.help.setAttribute('aria-expanded','false');
+ ui['field-audio'].hidden=mode!=='pause';ui['field-audio'].setAttribute('aria-expanded','false');ui['field-audio-settings'].hidden=true;
  ui.deploy.hidden=mode==='result'||citadelPanel;
  ui.retry.hidden=mode!=='result';
- ui.pass.hidden=mode!=='result'||!embedded;
+ ui.pass.hidden=mode!=='result'||!embedded||options.local;
  if(mode==='brief'){
   text(ui.kicker,region.site+' · Solo PvE');text(ui.title,'Stormwatch');
   updateMissionBrief();text(ui.deploy,'Deploy');
@@ -4016,7 +4112,7 @@ let outcome='';
 function resultsSummary(){
  const next=embedded?' '+state.xp+' Battle Pass XP saved'+(state.tier===null?'': ' · Tier '+state.tier)+'.':'';
  const result=state.mission==='nests'?state.nestsCleared+' / 5 nests':
-  Math.round(state.atlas)+' '+(state.mission==='payload'?'pod':state.mission==='seal'?'Anchor':'ATLAS')+' integrity';
+  Math.round(state.atlas)+' '+(state.mission==='payload'?'pod':state.mission==='seal'?'Anchor':'Relay')+' integrity';
  ui.summary.textContent=outcome+'. '+state.takedowns+' Hollows defeated · '+result+'.'+next;
 }
 function awardWave(bonus){
@@ -4043,10 +4139,20 @@ function finish(win,message,remote=false){
  if(coop&&!guest&&!remote&&!state.finished)sendGame('end',{win,message});
  if(state.finished)return;
  state.finished=true;outcome=message;
- if(!win)bankSalvage(false,false);
+ savingResult=win;ui.retry.disabled=win;ui.pass.disabled=win;
+ const rewards=ui['operation-rewards'];rewards.hidden=!win;
+ const patterns=[...discoveries.values()].filter(item=>!Object.hasOwn(profile.blueprints,item.id)).length;
+ const payout=StormwatchCitadel.payoutText(state.mission,regionId)+(patterns?' · '+patterns+' recovered pattern'+(patterns===1?'':'s'):'');
+ if(win)text(rewards,'Victory payout · '+payout+' · Saving…');
+ bankSalvage(win,false).then(saved=>{
+  if(!win||controller.signal.aborted)return;
+  savingResult=false;ui.retry.disabled=false;ui.pass.disabled=false;
+  text(rewards,saved?'Deposited at the Citadel · '+payout:'Victory payout could not be saved');
+  focusedButton();
+ });
  if(options.hub){ui.retry.dataset.action='exit';ui.retry.textContent='Return to Command';ui.exit.hidden=true;}
  ui.kicker.textContent=region.site+' · Mission report';
- ui.title.textContent=win?({seal:'Rift sealed',payload:'Payload recovered',nests:'Hunt complete',defense:'ATLAS secured'})[state.mission]:'Operation failed';
+ ui.title.textContent=win?({seal:'Rift sealed',payload:'Payload recovered',nests:'Hunt complete',defense:'Relay secured'})[state.mission]:'Operation failed';
  resultsSummary();
  if(gear?.profile){ui.profile.innerHTML=gear.profile;ui.profile.hidden=false}
  showScreen('result');
@@ -4176,13 +4282,19 @@ function drawRadar(){
  if(state.mission==='payload'){
   radar.strokeStyle='#d9a8f18a';radar.beginPath();radar.arc(middle,middle,state.stormRadius*scale,0,TAU);radar.stroke();
  }
+ const fronts=plannedFronts();
  for(let i=0;i<portals.length&&state.mission!=='nests';i++){
   const [x,z]=portals[i];
-  dot(x,z,portalFx[i].active?'#dc83ff':'#7c6f9e',portalFx[i].active?5:2.4);
+  if(fronts.includes(i)){
+   radar.strokeStyle=portalFx[i].active?'#dd85fa91':'#ffc786a5';radar.lineWidth=2;
+   radar.beginPath();radar.moveTo(middle+x*scale,middle+z*scale);
+   radar.lineTo(middle+x*scale*.22,middle+z*scale*.22);radar.stroke();
+  }
+  dot(x,z,portalFx[i].active?'#dc83ff':fronts.includes(i)?'#ffc786':'#7c6f9e',fronts.includes(i)||portalFx[i].active?5:2.4);
  }
  for(const item of loot)if(item.active){
   const color=item.kind==='flux'?'#c0edd6':item.kind==='cache'?'#fbc477':item.kind==='chest'&&!item.opened?'#df9c69':'#69d6ff';
-  dot(item.x,item.z,color,item.kind==='chest'?3.2:2.65);
+  dot(item.x,item.z,color,item.kind==='flux'?4.2:item.kind==='chest'?3.2:2.65);
  }
  for(const enemy of enemies)if(enemy.active)dot(enemy.x,enemy.z,enemy.kind==='boss'?'#ffc484':'#ff8495',enemy.kind==='boss'?4.7:2.4);
  radar.save();
@@ -4245,12 +4357,17 @@ function updateHUD(){
   text(ui.remaining,prep?'Fortify · '+time(Math.ceil(state.prep)):time(Math.ceil(PAYLOAD_DURATION-state.siege))+' · Hold the pod');
  }else if(state.mission==='seal'){
   text(ui.status,state.phase==='fuel'?'Fuel the Anchor':'Seal · '+time(Math.ceil(SEAL_DURATION-state.siege)));
-  text(ui.remaining,state.phase==='fuel'?(state.flux===3?'Return to the Anchor':'Flux Crystals '+state.flux+' / 3'):'Hold the Anchor');
+  text(ui.remaining,state.phase==='fuel'?(state.flux===3?'Fortify, then activate the Anchor':'Flux Crystals '+state.flux+' / 3'):'Hold the Anchor');
  }else{
-  text(ui.status,'Wave '+Math.min(MAX_WAVES,state.wave+(state.phase==='prep'?1:0))+' / '+MAX_WAVES);
-  text(ui.remaining,state.phase==='active'?left+' Hollows left':'Fortify · '+time(Math.ceil(state.prep)));
+  const planning=state.phase==='prep'||state.phase==='scout';
+  if(ui.mission.dataset.assault!==state.phase)ui.mission.dataset.assault=state.phase;
+  text(ui.status,state.phase==='scout'?'Restore the Signal Relay':'Assault '+Math.min(MAX_WAVES,state.wave+Number(planning))+' / '+MAX_WAVES);
+  text(ui.remaining,state.phase==='scout'?'Power cells '+state.flux+' / 2 · Mint markers on radar':
+   state.phase==='arming'?'Rifts opening in '+Math.ceil(state.prep)+'s':
+   state.phase==='active'?left+' Hollows left':guest?'Build defenses · Leader starts the assault':'Build defenses · Start at the relay');
  }
- text(ui.task,hero.cache<3?'Caches '+hero.cache+'/3':'');
+ const fronts=plannedFronts();
+ text(ui.task,fronts.length?'Threat · '+fronts.map(lane=>frontNames[lane]).join(' / '):hero.cache<3?'Caches '+hero.cache+'/3':'');
  text(ui.passStatus,state.phase==='prep'&&loot.some(item=>item.active&&item.kind==='airdrop')?'Airdrop on radar':'');
  text(ui.wood,hero.stacks[0]);text(ui.stone,hero.stacks[1]);text(ui.metal,hero.stacks[2]);
  const gun=currentGun();
@@ -4269,9 +4386,11 @@ function updateHUD(){
  let focus='';
  teamHud();
  const nearbyNest=availableNest(),chest=availableChest();
+ const control=missionInteraction();
  if(coop&&[...mates.values()].some(m=>m.ready&&m.down&&m.target.distanceTo(hero.pos)<2.65))focus=(p?p.x:'F')+' · Revive squadmate';
  else if(nearbyNest)focus=(p?p.x:'F')+' · Scan nest';
  else if(chest)focus=(p?p.x:'F')+(chest.opened?' · Equip '+chest.reward.name+' · P'+chest.power+' '+chest.element:' · Open chest');
+ else if(control)focus=guest?'Squad leader · '+control:coop&&!coopStarted?'Waiting for squad link':(p?p.x:'F')+' · '+control;
  else if(blueprint?.reason)focus=blueprint.reason;
  else if(existing?.type==='structure'&&aimed.distance<12){
   const stats=Math.ceil(existing.hp)+' / '+existing.max;
@@ -4279,7 +4398,7 @@ function updateHUD(){
    existing.construction>0?'Constructing '+pieces[existing.piece]:
    (p?p.rs:'B')+' edit · '+(p?p.b:'G')+' reinforce · R'+existing.rank+' '+stats;
  }
- else if(existing?.type==='atlas'&&state.phase==='prep'&&state.atlas<ATLAS_HP&&hero.pos.length()<8.5)focus=(p?p.b:'G')+' · Repair ATLAS';
+ else if(existing?.type==='atlas'&&state.phase==='prep'&&state.atlas<ATLAS_HP&&hero.pos.length()<8.5)focus=(p?p.b:'G')+' · Repair relay';
  const harvest=focusedProp?.alive?focusedProp:null;
  const husk=existing?.type==='enemy'&&existing.active&&existing.kind!=='boss'?existing:null;
  const core=existing?.type==='nest'&&existing.hit?existing:null;
@@ -4583,7 +4702,16 @@ function syncEnemies(list){
 function syncScene(d){
  if(!coopStarted&&!d.started)return;
  coopStarted=d.started;
+ const phase=state.phase;
  for(const [i,k] of coopFields.entries())if(d.state[i]!=null)state[k]=d.state[i];
+ if(phase!==state.phase&&state.phase==='arming'){
+  const wave=waves[state.wave-1];
+  if(wave)notice(wave.name+' · '+plannedFronts().map(lane=>frontNames[lane]).join(' / '));
+  sound('wave','Assault incoming');rumble(.43,140);
+ }
+ if(phase==='active'&&state.phase==='prep'){
+  notice('Assault repelled · Resupply and prepare for the next front');sound('pickup','Resupply delivered');
+ }
  d.portals.forEach((active,i)=>{portalFx[i].active=active});
  const living=new Set();
  for(const [id,p,yaw,hp,operator] of d.players){
@@ -4675,7 +4803,7 @@ function receiveGame(d,id){
  }
  if(d.type==='reward'&&!state.finished){
   const wave=state.wave;state.wave=d.wave;
-  awardWave(d.bonus);bankSalvage(d.wave===MAX_WAVES,true);state.wave=wave;
+  awardWave(d.bonus);bankSalvage(false,true);state.wave=wave;
  }
  if(d.type==='end'){
   if(d.hostLeft&&!state.finished)finish(false,'The host returned to command',true);
@@ -4817,7 +4945,8 @@ return {close(){
  unmountCitadel?.();citadel?.close();
  controller.abort();
  if(document.pointerLockElement===canvas)document.exitPointerLock();
- audio?.close();
+ unbindFieldAudio();fieldCaptions.close();
+ if(audio){PlayerAudio.release(audio);audio.close()}
  physics?.close();
  for(const batch of structureBatches.values())batch.dispose?.();
  actor.baseModel?.parent?.remove(actor.baseModel);
