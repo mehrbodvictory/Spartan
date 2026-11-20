@@ -133,7 +133,9 @@ var StormwatchEngineering = (() => {
   {name:'Dynamo Grid', id:'dynamo', mount:'wall', cost:[3,8,17], range:2.15, reload:4, charges:13, element:'Volt'},
   {name:'Miasma Diffuser', id:'miasma', mount:'ceiling', cost:[7,10,12], range:2.9, reload:5, charges:12, element:'Aether'},
   {name:'Arc Coil', id:'coil', mount:'ceiling', cost:[2,12,19], range:1.5*CELL, reload:5.6, charges:10, element:'Volt'},
-  {name:'Tire Dropper', id:'tires', mount:'ceiling', cost:[6,9,14], range:2.25, reload:6.2, charges:9, element:'Kinetic'}
+  {name:'Tire Dropper', id:'tires', mount:'ceiling', cost:[6,9,14], range:2.25, reload:6.2, charges:9, element:'Kinetic'},
+  {name:'Rime Chandelier', id:'rime', mount:'ceiling', cost:[4,14,9], range:2.6, reload:5.2, charges:13, element:'Frost'},
+  {name:'Tow Winch', id:'winch', mount:'wall', cost:[8,4,14], range:6, reload:4.8, charges:14, element:'Kinetic'}
  ];
 
  return {CELL, ARCHETYPES, dimensions, fullMask, present, connectedMask, patchBounds, bitAt, surfaceHeight,

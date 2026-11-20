@@ -6,6 +6,21 @@ var StormwatchHub=(()=>{
   const assigned=window.SD_SPLIT?.pad;
   return pads().find(g=>assigned==null||g.index===assigned);
  }
+ function directionalControl(controls,current,x,y){
+  if(!controls.length)return null;
+  const index=controls.indexOf(current);
+  if(index<0)return controls[0];
+  const origin=current.getBoundingClientRect();
+  let best=null,score=Infinity;
+  for(const item of controls){
+   if(item===current)continue;
+   const rect=item.getBoundingClientRect(),dx=rect.left+rect.width/2-origin.left-origin.width/2,
+    dy=rect.top+rect.height/2-origin.top-origin.height/2;
+   const forward=x*dx+y*dy,across=Math.abs(x*dy-y*dx),cost=forward+across*2.6;
+   if(forward>4&&cost<score){best=item;score=cost}
+  }
+  return best||controls[(index+(x+y>0?1:-1)+controls.length)%controls.length];
+ }
  function launchLocal(settings,url){
   const [first,second]=pads();if(!second)return;
   url.searchParams.delete('openStormwatch');
@@ -31,7 +46,7 @@ var StormwatchHub=(()=>{
   *{box-sizing:border-box}[hidden]{display:none!important}button,input,select{font:inherit;color:inherit}
   button{cursor:pointer;background:#233942;border:1px solid #5c7881;border-radius:5px;padding:.62rem .88rem;font-weight:650}
   button:disabled{opacity:.38;cursor:default}button:not(:disabled):is(:hover,:focus-visible){border-color:#b5ffeb;background:#315760}
-  button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #b5ffeb;outline-offset:3px}
+  button:focus-visible,select:focus-visible,input:focus-visible,[data-pad-focus]{outline:2px solid #b5ffeb;outline-offset:2px}
   h1,h2,p,ul{margin:0}main{height:100%;display:flex;flex-direction:column}
   header{flex:none;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:13px clamp(12px,2.4vw,35px);background:#14232b;border-bottom:1px solid #425862}
   h1{font:800 clamp(1.45rem,2.9vw,2.48rem)/1 'Barlow Condensed','Arial Narrow',system-ui;letter-spacing:.045em;text-transform:uppercase}
@@ -64,7 +79,15 @@ var StormwatchHub=(()=>{
   .audio-checkbox span{grid-column:1}.audio-checkbox input{justify-self:end;width:19px;height:19px}
   #invite-keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(39px,1fr));gap:4px}
   #invite-keys button{padding:.4rem}
-  @media(max-height:450px){header{padding:5px 10px;gap:4px}header h1{font-size:1.45rem}nav button{padding:.32rem .52rem}.panel{padding:9px}.campaign-hero{min-height:initial;padding:14px}.campaign-hero h2{font-size:2rem}}
+  @media(max-height:540px){
+   header{padding:5px 10px;gap:4px}header h1{font-size:1.45rem}nav button{padding:.32rem .52rem}
+   .panel{padding:9px}.campaign-hero{min-height:initial;padding:14px}.campaign-hero h2{font-size:2rem}
+   #map-panel{grid-template-columns:minmax(0,1fr) minmax(170px,32%);align-items:start;gap:8px}
+   #viewport{min-height:190px;height:calc(100dvh - 76px)}
+   #map-panel aside{padding:9px;gap:6px}#map-panel aside h2{font-size:1.1rem}
+   #map-panel aside button{padding:.35rem .5rem}
+  }
+  @media(max-height:540px) and (max-width:480px){#map-panel{grid-template-columns:1fr}#viewport{height:180px;min-height:0}}
   #campaign-panel .stack{max-width:1120px}
   .campaign-hero{position:relative;isolation:isolate;overflow:hidden;min-height:300px;grid-template-columns:minmax(0,1fr);gap:14px;align-content:center;padding:clamp(18px,4vw,54px);border-color:#78959a;border-left:4px solid var(--chapter-signal,#addac6);background:#1a2b35;box-shadow:0 18px 32px #08101a8c}
   .campaign-hero #campaign-scene{z-index:-2;position:absolute;width:100%;height:100%;object-fit:cover;object-position:right center}
@@ -101,7 +124,8 @@ var StormwatchHub=(()=>{
   input[type=text],select{border:1px solid #618089;background:#101e27;border-radius:4px;padding:.59rem .75rem}
   #code{font-size:1.6rem;color:#a6f3df;letter-spacing:.21em}#members{padding-left:1.2rem;line-height:1.8}
   #status{min-height:1.5em}#citadel-root{max-width:1020px;margin:auto}
-  @media(max-width:760px){header{flex-wrap:wrap}nav{order:3;width:100%}#map-panel{grid-template-columns:1fr}#viewport{min-height:clamp(290px,51vh,490px)}aside{padding:12px}.pin.world{font-size:.68rem;padding:.42rem}}
+  @media(max-width:760px){header{flex-wrap:wrap}nav{order:3;width:100%}aside{padding:12px}.pin.world{font-size:.68rem;padding:.42rem}}
+  @media(max-width:760px) and (min-height:541px){#map-panel{grid-template-columns:1fr}#viewport{min-height:clamp(290px,51vh,490px)}}
   @media(prefers-reduced-motion:reduce){.pin.node,#campaign-panel:not([hidden]) .campaign-hero,.campaign-region li[aria-current=step]::before{animation:none}}
  </style>`;
  function mount(options){
@@ -119,7 +143,7 @@ var StormwatchHub=(()=>{
      <div class="campaign-pay"><b class="eyebrow" id="chapter-payout-label">Chapter reward</b><p id="chapter-payout" class="small"></p>
       <progress id="campaign-progress" aria-label="Campaign progress"></progress><small id="campaign-count" class="small"></small>
      </div>
-     <div class="campaign-actions"><button id="chapter-mission" class="primary">Find operation on map</button><button id="chapter-claim" class="primary" hidden>Claim chapter reward</button><button id="to-research">Citadel research</button></div>
+     <div class="campaign-actions"><button id="chapter-mission" class="primary">Find operation on map</button><button id="chapter-claim" class="primary" hidden>Claim chapter reward</button><button id="to-quests">Daily quests</button><button id="to-llamas">Supply llamas</button><button id="to-command">Commander training</button><button id="to-research">Citadel research</button></div>
     </article>
     <div id="campaign-route" class="campaign-route"></div><p id="chapter-status" class="small campaign-foot" role="status"></p>
    </div></section>
@@ -171,7 +195,10 @@ var StormwatchHub=(()=>{
   const controller=new AbortController(),{signal}=controller;
   const listen=(target,name,fn)=>target.addEventListener(name,fn,{signal});
   let padFocus=null;
-  listen(root,'focusin',event=>{padFocus=event.target});
+  listen(root,'focusin',event=>{
+   padFocus?.removeAttribute('data-pad-focus');padFocus=event.target;
+   if(options.local)padFocus.setAttribute('data-pad-focus','');
+  });
   const ops=StormwatchOperations.missions;
   let account=null,loadError=false,unmountCitadel=null,worldView=true,region='timbervale',mission='defense',tab='campaign',squadState=null;
   let selection=null,animation=0,drag=null,cam={x:480,y:330},aim={...cam},zoom=1,hidden=false,saving=false;
@@ -180,8 +207,8 @@ var StormwatchHub=(()=>{
   const profile=()=>account?.snapshot()||model.blank();
   const level=()=>model.rating(profile()).power;
   const alert=()=>StormwatchOperations.board(profile(),Date.now());
-  const spec=()=>({region,mission,alert:$('alert').checked});
-  const squad=options.connectSquad?options.connectSquad(updateSquad):StormwatchSquad.open(options.name||'Operator',updateSquad,options.peerConfig);
+  const spec=()=>({region,mission,relaySite:account?.snapshot().relaySites?.[region],alert:$('alert').checked});
+  const squad=options.connectSquad?options.connectSquad(updateSquad):StormwatchSquad.open(options.name||'Operator',updateSquad);
   const unsubscribe=squad.subscribe(d=>{
    if(d.type==='launch')start({...d.spec,squad,round:d.round});
   });
@@ -226,7 +253,7 @@ var StormwatchHub=(()=>{
   }
   function showInfo(){
    const entry=world[region],current=ops[mission],{alert:daily,orders}=alert();
-   $('power').textContent='Power '+level();
+   $('power').textContent='Commander '+model.commander(profile()).level+' · Power '+level();
    $('tools').hidden=worldView;$('ops').hidden=worldView;
    $('region-name').textContent=worldView?'Operations command':entry.name+' · Power '+entry.floor+'–'+entry.ceiling;
    $('title').textContent=worldView?'Choose a region':current.name;
@@ -240,8 +267,8 @@ var StormwatchHub=(()=>{
    const room=squadState?.room,hostReady=squadState?.connected&&squadState?.isHost;
    $('queue').textContent=options.local?(hostReady?'Deploy both players':'Waiting for Player 1'):
     room?(options.connectSquad?'Deploy Party':'Deploy Squad'):'Find Squad';
-   $('queue').disabled=!allow()||!!room&&(!hostReady||squadState.starting||squadState.publicRoom);
-   $('solo').hidden=!!room;$('solo').disabled=!allow();
+   $('queue').disabled=mission==='defense'&&!account||!allow()||!!room&&(!hostReady||squadState.starting||squadState.publicRoom);
+   $('solo').hidden=!!room;$('solo').disabled=mission==='defense'&&!account||!allow();
    if(!worldView)$('map-name').textContent=entry.site+' / Sector Map';
    for(const b of $('ops').children)b.setAttribute('aria-current',String(b.dataset.id===mission));
   }
@@ -413,6 +440,9 @@ var StormwatchHub=(()=>{
    }
    if(tab==='campaign')($('chapter-claim').hidden?$('chapter-mission').hidden?$('to-research'):$('chapter-mission'):$('chapter-claim')).focus();
   };
+  $('to-quests').onclick=()=>setTab('citadel',{panel:'Operations'});
+  $('to-llamas').onclick=()=>setTab('citadel',{panel:'Supply Llamas'});
+  $('to-command').onclick=()=>setTab('citadel',{panel:'Command'});
   $('to-research').onclick=()=>setTab('citadel',{panel:'Research'});
   function inventory(){
    const save=profile();
@@ -652,39 +682,40 @@ var StormwatchHub=(()=>{
   });
   listen(view,'lostpointercapture',()=>{drag=null;view.classList.remove('dragging')});
   listen(window,'resize',queueFrame);
-  let previousPad=[],previousIndex=-1,stickDirection=0;
+  let previousPad=[],previousIndex=-1,stickDirection='';
   const padTimer=setInterval(()=>{
    if(hidden||document.hidden)return;
    if(tab==='squad')splitStatus();
    const pad=controllerPad();
-   if(!pad){previousPad=[];previousIndex=-1;stickDirection=0;return}
+   if(!pad){previousPad=[];previousIndex=-1;stickDirection='';return}
    const buttons=Array.from(pad.buttons,b=>b.pressed),edge=i=>pad.index===previousIndex&&buttons[i]&&!previousPad[i];
    const nintendo=/057e|nintendo|switch|joy-con|wii/i.test(pad.id);
-   const stick=Math.abs(pad.axes[1])>.58?Math.sign(pad.axes[1]):0;
-   const direction=edge(12)?-1:edge(13)?1:edge(14)?-1:edge(15)?1:stick!==stickDirection?stick:0;
+   const [sx,sy]=pad.axes,stick=Math.max(Math.abs(sx),Math.abs(sy))>.58?
+    Math.abs(sx)>Math.abs(sy)?sx>0?'right':'left':sy>0?'down':'up':'';
+   const direction=edge(12)?'up':edge(13)?'down':edge(14)?'left':edge(15)?'right':stick!==stickDirection?stick:'';
    stickDirection=stick;
+   const x=direction==='left'?-1:direction==='right'?1:0,y=direction==='up'?-1:direction==='down'?1:0;
    const control=root.activeElement||(options.local&&padFocus?.getClientRects().length&&!padFocus.disabled?padFocus:null);
-   if(control?.matches('select,input[type=range]')&&(edge(14)||edge(15))){
+   if(control?.matches('select,input[type=range]')&&x){
     if(control.matches('select')){
-     control.selectedIndex=Math.max(0,Math.min(control.options.length-1,control.selectedIndex+(edge(14)?-1:1)));
-     control.dispatchEvent(new Event('change',{bubbles:true}));
+     const selected=Array.from(control.options).find((item,i)=>!item.disabled&&i===control.selectedIndex+x);
+     if(selected){control.value=selected.value;control.dispatchEvent(new Event('change',{bubbles:true}))}
     }else{
-     if(edge(14))control.stepDown();else control.stepUp();
+     if(x<0)control.stepDown();else control.stepUp();
      control.dispatchEvent(new Event('input',{bubbles:true}));
     }
    }else if(direction){
     const focusable=[...(keyPanel.hidden?root:keyPanel).querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled)')]
      .filter(e=>e.getClientRects().length&&(!e.classList.contains('pin')||worldView||
       e.getBoundingClientRect().left>=view.getBoundingClientRect().left&&e.getBoundingClientRect().right<=view.getBoundingClientRect().right));
-    const index=focusable.indexOf(control);
-    if(focusable.length){
-     const next=focusable[(index<0?0:(index+direction+focusable.length)%focusable.length)];
+    const next=directionalControl(focusable,control,x,y);
+    if(next){
      next.focus({preventScroll:true});next.scrollIntoView({block:'nearest',inline:'nearest'});
     }
    }
    if(tab==='map'&&!worldView){
-    const x=pad.axes[0]||0,y=pad.axes[1]||0;
-    if(Math.abs(x)>.28||Math.abs(y)>.28)pan(x*21,y*21);
+    const panX=pad.axes[2]||0,panY=pad.axes[3]||0;
+    if(Math.abs(panX)>.28||Math.abs(panY)>.28)pan(panX*21,panY*21);
    }
    if(edge(nintendo?1:0)){
     if(control===codeInput)showKeypad();
@@ -708,5 +739,5 @@ var StormwatchHub=(()=>{
    if(commandAudio){PlayerAudio.release(commandAudio);commandAudio.close()}
   }};
  }
- return {mount,controllerPad,launchLocal};
+ return {mount,controllerPad,launchLocal,directionalControl};
 })();

@@ -18,7 +18,7 @@ PROJECT RULES (kept here so every future session starts from them)
 -->
 <html lang="en"><head><meta charset="utf-8"><title>Spartan Drill</title>
 <!-- Update the CSP hash if this page’s inline loader changes. -->
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' blob: 'wasm-unsafe-eval' 'sha256-8x0ZTfnCfOGwguD+3vttYRc8ZbbNn+OMCt8i0vHSBzg=' https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js; connect-src 'self' blob: https://0.peerjs.com wss://0.peerjs.com https://cdn.jsdelivr.net; script-src-attr 'none'; worker-src blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' blob: 'wasm-unsafe-eval' 'sha256-C/PwCe3oBDlIVV1JI0NmrAUl2l3a7Xgt0MbGKpVf4HA=' https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js; connect-src 'self' blob: https://0.peerjs.com wss://0.peerjs.com https://cdn.jsdelivr.net; script-src-attr 'none'; worker-src blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@500;600&family=Teko:wght@500;700&display=swap" rel="stylesheet">
@@ -100,7 +100,7 @@ PROJECT RULES (kept here so every future session starts from them)
     <button id="host" class="big">Create lobby</button>
     <div id="hostbox" style="display:none"><div class="party-code"><span>Match code</span><strong id="code"></strong><button class="btn alt sm" data-room-lock hidden type="button"></button></div><button id="startnet" class="big">Start match</button></div></div>
     <div class="card2"><h3>Join a match</h3><label for="jc">Match code</label><input id="jc" type="text" maxlength="14" placeholder="XXXX-XXXX-XXXX" autocapitalize="characters" autocomplete="off"><button id="join" class="big alt">Join lobby</button></div></div>
-   <p class="sub">Players in your room can see your display name and equipped cosmetics. Online connections use a relay, and the host routes team chat.</p>
+   <p class="sub">Players in your room can see your display name and equipped cosmetics. The host routes team chat.</p>
    <div class="party-status"><p id="lb" role="status"></p><ul id="plist"></ul><button id="leave" class="big alt" style="display:none">Leave lobby</button></div>
    <div class="split-entry"><div><h3>Local split screen</h3><small id="split-help">Connect two controllers and press a button on each.</small></div><button id="split-start" class="btn alt" disabled>Start split screen</button></div>
   </section>
@@ -198,10 +198,10 @@ PROJECT RULES (kept here so every future session starts from them)
  <form id="party-join-form">
   <button id="party-create" type="button">Create party</button>
   <label for="party-join-code">Friend’s party code</label>
-  <div class="party-join-row"><input id="party-join-code" maxlength="14" placeholder="XXXX-XXXX-XXXX" required autocomplete="off" autocapitalize="characters"><button>Join</button></div>
+  <div class="party-join-row"><input id="party-join-code" maxlength="6" placeholder="XXXXXX" required autocomplete="off" autocapitalize="characters"><button>Join</button></div>
  </form>
 </dialog>
-<div id="pause"><div class="card"><h2 id="pt">Paused</h2><button id="resume" class="big">Resume</button>
+<div id="pause"><div class="card"><h2 id="pt">Paused</h2><p id="match-intel" class="sub"></p><button id="resume" class="big">Resume</button>
  <label>Aim assist<select id="aa2"><option value="0">Off</option><option value="0.6">Light</option><option value="1">Strong</option><option value="1.5">Very strong</option></select></label>
  <label>Look sensitivity<input id="sn2" type="range" min="0.3" max="2.5" step="0.1"></label>
  <label class="aim-option">Aim-down-sights sensitivity<input data-aim-option="ads" type="range" min="25" max="150" step="5" value="55"><output data-aim-value="ads">55%</output></label>
@@ -250,8 +250,12 @@ PROJECT RULES (kept here so every future session starts from them)
   };
   toolbar.querySelector('button').onclick=leave;
   addEventListener('message',event=>{
-   if(event.origin===location.origin&&event.data==='stormwatch-exit-split'&&
-      [...layout.children].some(frame=>frame.contentWindow===event.source))leave();
+   if(event.origin!==location.origin||![...layout.children].some(frame=>frame.contentWindow===event.source))return;
+   if(event.data==='stormwatch-exit-split')leave();
+   if(event.data==='spartan-restart-split'){
+    url.searchParams.set('split',crypto.getRandomValues(new Uint32Array(2)).reduce((id,n)=>id+n.toString(16).padStart(8,'0'),''));
+    location.replace(url);
+   }
   });
   document.body.replaceChildren(toolbar,layout);
   for(const seat of [1,2]){

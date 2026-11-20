@@ -37,11 +37,9 @@ var StormwatchSquad=(()=>{
    return false;
   };
  }
- function open(name,update,config){
+ function open(name,update){
   let peer=null,host=null,room='',isHost=false,publicRoom=false,starting=false,locked=false,round=0,sequence=0;
   let identity=null;
-  const peerOptions=privatePeerConfig();
-  if(config?.config?.iceServers)peerOptions.config.iceServers=config.config.iceServers;
   const address=code=>identity?.id||prefix+code.toLowerCase();
   let message='Deploy solo or open a squad.',timer=0,search=0,attempt=0,closed=false,queued=null;
   const members=new Map(),removed=new Set(),received=new Map();
@@ -80,7 +78,7 @@ var StormwatchSquad=(()=>{
    if(window.Peer)return true;
    status('The matchmaking service library could not load. Solo deployment is available.');return false;
   }
-  function arm(p,fn){clearTimeout(timer);timer=setTimeout(()=>{if(peer===p)fn()},12500)}
+  function arm(p,fn,timeout=12500){clearTimeout(timer);timer=setTimeout(()=>{if(peer===p)fn()},timeout)}
   function accept(link,p){
    if(removed.has(link.peer)||peer!==p||!isHost||locked||starting||members.size>=3||members.has(link.peer)){
     link.on('open',()=>{sendPeerPacket(link,{type:removed.has(link.peer)?'removed':locked?'locked':'busy'});setTimeout(()=>link.close(),300)});return;
@@ -118,7 +116,7 @@ var StormwatchSquad=(()=>{
   }
   function create(code,spec,onTaken){
    isHost=true;publicRoom=!!spec;room=code;status(spec?'Opening a public squad…':'Opening a private squad…');
-   const p=peer=createDataPeer(address(code),peerOptions);
+   const p=peer=createDataPeer(address(code));
    arm(p,()=>fail('Could not register with matchmaking. Try again.'));
    p.on('open',()=>{
     if(peer!==p)return;
@@ -143,10 +141,11 @@ var StormwatchSquad=(()=>{
   }
   function connect(code,spec,onMissing){
    room=code;publicRoom=!!spec;status(spec?'Searching for a public squad…':'Joining squad '+code+'…');
-   const p=peer=createDataPeer(undefined,peerOptions);
+   const p=peer=createDataPeer();
    arm(p,()=>fail('The squad did not respond. Check the code and connection.'));
    p.on('open',()=>{
     if(peer!==p)return;
+    arm(p,()=>fail('Could not connect directly to the squad.'),25000);
     const link=host=connectDataPeer(p,address(code));
     const allowed=inviteGate(link,identity,false,()=>{if(peer===p)sendPeerPacket(link,{type:'hello',name:clean(name)})});
     peerPackets(link,'type',d=>{
@@ -224,7 +223,10 @@ var StormwatchSquad=(()=>{
       create(code,spec,()=>connect(code,spec,()=>find(slot+1)));
      });
     }
-    find(0);
+    status('Connecting to matchmaking…');
+    try{
+     find(0);
+    }catch(error){if(!closed&&attempt===token)fail(error.message)}
    },
    returns(){
     if(!starting)return;

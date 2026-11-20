@@ -767,6 +767,24 @@ function ragTick(b,dt){const r=b.rag;if(!r)return;r.t+=dt;const g=b.rig,m=b.m,o=
 /* killed bots tumble instead of vanishing; zombies start their own in zDamage */
 function bodyFall(b,dx,dz){if(b.zom)return;if(dx==null){dx=b.x-P.x;dz=b.z-P.z}ragStart(b,dx,dz);b.fall=0;if(!falls.includes(b))falls.push(b)}
 function fallTick(dt){for(let i=falls.length-1;i>=0;i--){const b=falls[i];if(b.fall==null){falls.splice(i,1);continue}b.fall+=dt;ragTick(b,dt);if(b.fall>2.4){b.m.visible=false;ragReset(b);b.fall=null;falls.splice(i,1)}}}
+function updatePlayerNameplate(b){
+ let tag=b.nameplate;
+ if(!b.al||!b.nm){if(tag)tag.visible=false;return}
+ if(!tag){
+  const canvas=document.createElement('canvas');canvas.width=384;canvas.height=64;
+  const ctx=canvas.getContext('2d');
+  ctx.font='bold 38px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.strokeStyle='#10151c';ctx.lineWidth=6;ctx.lineJoin='round';
+  ctx.strokeText(b.nm,192,32,370);ctx.fillStyle='#fff';ctx.fillText(b.nm,192,32,370);
+  const texture=new THREE.CanvasTexture(canvas);
+  tag=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,depthWrite:false}));
+  tag.scale.set(2.9,.48,1);b.m.add(tag);b.nameplate=tag;
+  const release=()=>{b.m.removeEventListener('removed',release);b.m.remove(tag);texture.dispose();tag.material.dispose();b.nameplate=null};
+  b.m.addEventListener('removed',release);
+ }
+ tag.visible=true;tag.position.y=2.25-(b.pc||0)*.4-(b.pp||0)*1.1;
+ tag.material.color.setHex(ally(b)?0x70b9ff:0xff6868);
+}
 function animBot(b,dt){const r=b.rig,g=b.hg;if(!r)return;const mdx=b.x-(b.px==null?b.x:b.px),mdz=b.z-(b.pz==null?b.z:b.pz),back=b.net&&!b.zom&&b.ry!=null&&(mdx*Math.sin(b.ry)+mdz*Math.cos(b.ry))<-.015;
  const sp=Math.min(9,Math.hypot(b.x-(b.px==null?b.x:b.px),b.z-(b.pz==null?b.z:b.pz))/Math.max(dt,.001)),mvf=Math.min(1,sp/3);b.px=b.x;b.pz=b.z;
  const tgt=b.tyaw!=null?b.tyaw:b.m.rotation.y;if(b.ry==null)b.ry=tgt;b.ry+=angD(tgt,b.ry)*Math.min(1,dt*(b.zom?7:11));b.m.rotation.y=b.ry;
@@ -833,7 +851,7 @@ function tryWall(){if(mode=='Zombies'||(P.wj||0)>=3||t0<(P.wcd||0))return;
 /* ---------- simulated PvP (bots fight each other), Team Deathmatch, Capture the Flag, popups, killstreak panel; solo and private matches ---------- */
 var ts={},lastBot=null,ksC='',flags=[],cs={A:0,B:0},myTeam='A',mpTeams={},obText='',fcc=0,zones=[],ds={A:0,B:0},dtk=0,zcc=0;
 var teamMode=()=>mode=='Team Deathmatch'||mode=='Kill Confirmed'||mode=='Capture the Flag'||mode=='Domination'||mode=='Hardpoint',pTeam=()=>teamMode()?myTeam:'p',ally=b=>mode=='Zombies'?!b.zom:teamMode()&&b.team==pTeam(),hl=()=>PK('Hardline')?1:0,tmOf=e=>e===P?pTeam():e.team,fl=t=>flags.find(f=>f.team==t),tn=t=>t=='A'?'Blue':'Red';
-var hname=()=>netOn?myName:'You',feedAll=t=>{feed(t);if(netOn&&isHost)netSend({t:'feed',s:t})},popAll=(a,b)=>{popup(a,b);if(netOn&&isHost)netSend({t:'pop',a,b})};
+var hname=()=>netOn?myName:'You',feedAll=t=>{feed(t);if(netOn&&isHost)netSend({t:'feed',s:t})};
 function leader(){const c=[{nm:hname(),k:kills,me:1},...bots.map(b=>({nm:b.nm,k:b.k||0}))];return c.reduce((a,b)=>b.k>a.k?b:a)}
 function clearFlags(){for(const f of flags){S.remove(f.m);S.remove(f.ring)}flags=[];clearZones()}
 var PBOTS=null;var botN=d=>PBOTS==null?d:PBOTS;
@@ -854,7 +872,7 @@ function ctfTick(dt){for(const f of flags){if(f.st=='carried'){const e=f.by;if(e
  for(const e of[...(P.dead?[]:[P]),...bots.filter(b=>b.al)]){const tm=tmOf(e),OF=fl(tm),EF=fl(tm=='A'?'B':'A');
   if(!e.cf&&EF.st!='carried'&&Math.hypot(e.x-EF.x,e.z-EF.z)<1.8){EF.st='carried';EF.by=e;e.cf=EF;feedAll(`${e===P?hname():e.nm} took the ${tn(EF.team)} flag`);if(e===P)msg('You have the flag! Bring it home',2.5)}
   if(OF.st=='dropped'&&Math.hypot(e.x-OF.x,e.z-OF.z)<1.8)retFlag(OF,e);
-  if(e.cf&&OF.st=='home'&&Math.hypot(e.x-OF.hx,e.z-OF.hz)<2.5){cs[tm]++;retFlag(e.cf);e.cf=null;popAll('FLAG CAPTURED',tn(tm)+' team scores');if(e===P)bonusXP(.12)}}
+  if(e.cf&&OF.st=='home'&&Math.hypot(e.x-OF.hx,e.z-OF.hz)<2.5){cs[tm]++;retFlag(e.cf);e.cf=null;if(e===P)bonusXP(.12)}}
  if(netOn&&isHost){fcc+=dt;if(fcc>.12){fcc=0;netSend({t:'f',cs,f:flags.map(f=>[f.st,+f.x.toFixed(1),+f.z.toFixed(1),f.by?(f.by===P?myId:f.by.net?f.by.id:'b'+f.by.i):''])})}}}
 /* ---------- Domination: three zones, hold them to score, first team to 350 ---------- */
 function clearZones(){for(const z of zones)S.remove(z.m);zones=[]}
@@ -870,7 +888,7 @@ function domTick(dt){const ents=[...(P.dead?[]:[P]),...bots.filter(b=>b.al)];
  for(const z of zones){let a=0,b=0;for(const e of ents)if(Math.hypot(e.x-z.x,e.z-z.z)<z.r&&(e.y||0)<4){if(tmOf(e)=='A')a++;else b++}
   z.a=a;z.b=b;if(a&&!b)z.cp=Math.min(1,z.cp+dt*.22*Math.min(a,3));else if(b&&!a)z.cp=Math.max(-1,z.cp-dt*.22*Math.min(b,3));
   let o=z.o;if(z.cp>=1)o='A';else if(z.cp<=-1)o='B';else if((o=='A'&&z.cp<=0)||(o=='B'&&z.cp>=0))o='';
-  if(o!=z.o){z.o=o;popAll(o?`ZONE ${z.n} CAPTURED`:`ZONE ${z.n} NEUTRALISED`,o?tn(o)+' team':'No one holds it');if(o&&o==pTeam())bonusXP(.02)}
+  if(o!=z.o){z.o=o;if(o&&o==pTeam())bonusXP(.02)}
   zoneVis(z)}
  dtk+=dt;while(dtk>=2){dtk-=2;for(const z of zones)if(z.o)ds[z.o]++}
  if(netOn&&isHost){zcc+=dt;if(zcc>.15){zcc=0;netSend({t:'z',ds,z:zones.map(z=>[z.o,+z.cp.toFixed(2)])})}}}
@@ -887,10 +905,10 @@ function hpPlace(i){clearZones();hpPos=MAPS[sel.map].zn||[[-H*.62,0],[0,0],[H*.6
 function setupHP(){hpTL=60;hpS=0;hpPlace(Math.random()*3|0)}
 function hpApply(h){if(!zones[0]||zones[0].idx!=h.i){clearZones();zones=[hpMake(h.x,h.z,h.i)]}const z=zones[0];z.st=h.st;z.o=h.st=='A'||h.st=='B'?h.st:'';hpTL=h.tl;hpVis(z)}
 function hpTick(dt){const z=zones[0];if(!z)return;const ents=[...(P.dead?[]:[P]),...bots.filter(b=>b.al)];let a=0,b=0;for(const e of ents)if(Math.hypot(e.x-z.x,e.z-z.z)<z.r&&(e.y||0)<4){if(tmOf(e)=='A')a++;else b++}
- const st=a&&b?'c':a?'A':b?'B':'';if(st!=z.st){z.st=st;z.o=st=='A'||st=='B'?st:'';hpVis(z);if(st=='A'||st=='B')popAll(st==pTeam()?'HARDPOINT SECURED':'HARDPOINT LOST',tn(st)+' team holds it');else if(st=='c')popAll('HARDPOINT CONTESTED','Both teams inside')}
+ const st=a&&b?'c':a?'A':b?'B':'';if(st!=z.st){z.st=st;z.o=st=='A'||st=='B'?st:'';hpVis(z)}
  z.a=a;z.b=b;hpS+=dt;while(hpS>=1){hpS-=1;if(a&&!b)ds.A++;else if(b&&!a)ds.B++}
  const pre=hpTL;hpTL-=dt;if(Math.floor(pre)!=Math.floor(hpTL)&&hpTL<=5&&hpTL>0)beep(700,.08,'square',.05);
- if(hpTL<=0){hpTL=60;hpPlace(hpIdx+1);popAll('HARDPOINT MOVING','New location marked on the radar')}
+ if(hpTL<=0){hpTL=60;hpPlace(hpIdx+1)}
  if(netOn&&isHost){zcc+=dt;if(zcc>.15){zcc=0;const q=zones[0];netSend({t:'z',ds,z:[[q.o,0]],hp:{i:hpIdx,x:q.x,z:q.z,tl:+hpTL.toFixed(1),st:q.st}})}}}
 /* bots head for the zone that is nearest and not already theirs; defenders also stay on zones their team owns */
 function domGoal(b){if(!zones.length)return null;if(b.zi==null||t0>(b.zr||0)){b.zr=t0+3+Math.random()*3;const tm=b.team;b.zi=zones.map((z,i)=>({i,s:Math.hypot(z.x-b.x,z.z-b.z)+(z.o==tm?(b.role=='def'?0:60):0)+Math.random()*25})).sort((p,q)=>p.s-q.s)[0].i}

@@ -953,7 +953,7 @@ function stormwatchOpen(){
  home.inert=menu.inert=true;document.body.classList.add('stormwatch-open');
  const local=window.SD_SPLIT?.app==='sw';
  stormwatchHub=StormwatchHub.mount({
-  name:$('#nm').value.trim()||'Operator',peerConfig:PCFG,canEquip:key=>hasOwn(W,key),exit:stormwatchGoHome,
+  name:$('#nm').value.trim()||'Operator',canEquip:key=>hasOwn(W,key),exit:stormwatchGoHome,
   ...(local?{local:true,exit:()=>parent.postMessage('stormwatch-exit-split',location.origin),connectSquad:stormwatchSplitAdapter}:
    {split:!partyActive&&location.protocol!=='file:'&&typeof BroadcastChannel==='function'?()=>launchSplit({app:'sw'}):null,
     connectSquad:partyActive?partyStormwatchAdapter:null}),
@@ -1288,7 +1288,7 @@ function stormwatchSplitAdapter(update){
  }
  peer.on('connection',attach);
  if(!host)peer.on('open',()=>attach(peer.connect(hostId)));
- return {id:peer.id,host,size:2,names,status,
+ return {id:peer.id,host,room:'local',size:2,names,status,
   subscribe(fn){listeners.add(fn);return ()=>listeners.delete(fn)},
   send(data){sendPeerPacket(link,data)},direct(id,data){if(id===link?.peer)sendPeerPacket(link,data)},
   launch(spec){
@@ -1320,7 +1320,7 @@ function bootSplitSeat(){
   const wait=setInterval(()=>{
    if(conns.some(c=>c.vf)&&Object.keys(names).length>=2){clearInterval(wait);hostStart()}
   },150);
-  setTimeout(()=>clearInterval(wait),12000);
+  addEventListener('pagehide',()=>clearInterval(wait),{once:true});
  }else{
   $('#jc').value=sdSplit.room.slice(0,5).toUpperCase();
   joinMatch();

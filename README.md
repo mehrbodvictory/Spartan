@@ -5,6 +5,10 @@
 Deploy: push this folder to a GitHub repo, then Settings > Pages > deploy from the branch root.
 Local test: run `python3 -m http.server` in this folder and open http://localhost:8000.
 
+## Online parties and co-op
+
+Serve the game over HTTPS. Closed-alpha parties, private matches, and Stormwatch squads use encrypted direct WebRTC connections. PeerJS handles signaling and STUN helps browsers discover a route. Players may see each other's public IP addresses. Networks that block direct connections can prevent online play.
+
 ## Files
 - `favicon.svg` game icon (crosshair)
 - `index.html` menu, HUD, pause screen and the match-end overlay

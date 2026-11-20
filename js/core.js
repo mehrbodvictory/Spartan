@@ -370,7 +370,7 @@ function upd(dt){t0+=dt;ctlTick(dt);
  kick*=Math.exp(-9*dt);const mvs=Math.hypot(P.mx||0,P.mz||0),f_=P.dead?0:Math.min(1,mvs/7),spr=P.spr||0;sprF+=(((trig&&rng()&&spr>.15&&!P.dead)?1:0)-sprF)*Math.min(1,dt*12);const sgp=spr*(1-.9*sprF);P.sprG=sgp;bobP+=dt*(6.5+spr*3.5)*f_;if(P.on&&!wasOn){const fv=Math.min(15,Math.max(0,-(P.lvy||0)));landD=.06+fv*.012;if(typeof feelLand=='function')feelLand(fv)}wasOn=P.on;landD*=Math.exp(-9*dt);cRoll+=(-((key.KeyD?1:0)-(key.KeyA?1:0))*.02*(P.on?1:.4)*(P.dead?0:1)-cRoll)*Math.min(1,dt*8);
  if(P.dead){if(mode=='Zombies')zDownCam(dt);else deathCam(dt)}else{C.position.set(P.x,P.y+ST.eye+Math.sin(bobP*2)*.014*f_*(1+spr)-landD,P.z);C.rotation.set(pitch+kick,yaw,cRoll+(P.swimming?Math.sin(t0*4)*.021:0))}
  gun.position.x+=(.2*(1-ST.ads)+ST.ax*ST.ads-rlX()-sgp*.07+Math.cos(bobP)*(.006+.03*spr)*f_-gun.position.x)*10*dt;gun.position.y=-.2*(1-ST.ads)+ST.ay*ST.ads+Math.sin(bobP*2)*(.006+.03*spr)*(1-ST.ads*.8)*f_-sgp*.1+rlY()+bashY();gun.position.z+=(-.45*(1-ST.ads)+ST.az*ST.ads+sgp*(.04+.06*Math.sin(bobP*2+1))+bashZ()-gun.position.z)*12*dt;gun.rotation.x=rlRot()+bashRot()-sgp*(.62+.1*Math.sin(bobP*2));
- voxelTick(dt);juiceTick(dt);gun.rotation.z-=sgp*(.3+.07*Math.cos(bobP));gun.rotation.y+=sgp*(.42+.05*Math.sin(bobP));featTick(dt);fpUpdate(dt);updBots(dt);for(const b of bots)if(b.al)animBot(b,dt);fallTick(dt);gfxTick(dt);modeTick(dt);
+ voxelTick(dt);juiceTick(dt);gun.rotation.z-=sgp*(.3+.07*Math.cos(bobP));gun.rotation.y+=sgp*(.42+.05*Math.sin(bobP));featTick(dt);fpUpdate(dt);updBots(dt);for(const b of bots){if(mode!=='Zombies'&&!b.practice)updatePlayerNameplate(b);if(b.al)animBot(b,dt)}fallTick(dt);gfxTick(dt);modeTick(dt);
  for(let i=grs.length-1;i>=0;i--){const g=grs[i];g.t-=dt;
   if(g.g.stk){const rate=g.stuck?Math.max(.07,.32*g.t/g.g.fuse):.2;g.bt-=dt;if(g.bt<=0){g.bt=rate;g.blk=!g.blk;if(g.blk&&g.stuck)beep(1900-g.t*180,.03,'square',.03)}const led=g.m.userData.led;if(led)led.material.color.setHex(g.blk?0xffe0a0:0xff2200);g.m.scale.setScalar(.13*(1+(g.blk?.12:0)))
    if(g.stuck){if(g.sb){if(!g.sb.al){g.stuck=0;g.sb=null;g.v.set(0,0,0)}else g.p.set(g.sb.x,(g.sb.y||0)+1.1,g.sb.z)}
@@ -443,11 +443,12 @@ try{const wk=new Worker(URL.createObjectURL(new Blob(['setInterval(()=>postMessa
 /* ===================== input.js ===================== */
 /* ---------- input ---------- */
 $('#go').onclick=()=>beginMatchSearch();$('#again').onclick=()=>{
+ if(window.SD_SPLIT){parent.postMessage('spartan-restart-split',location.origin);return}
  if(!partyActive){startGame();return}
  const map=sel.map,m=mode;
  if(isHost){exitNetworkMatch(true);startNetworkMatch(map,m,true)}
  else{exitNetworkMatch(true);openGameParty()}
-};$('#tomenu').onclick=()=>{if(partyActive){exitNetworkMatch(true);return}netClose();for(const b of bots)S.remove(b.m);bots=[];clearFlags();buildMap();showRank();$('#end').style.display=$('#hud').style.display='none';$('#menu').style.display='block'};
+};$('#tomenu').onclick=()=>{if(window.SD_SPLIT){parent.postMessage('stormwatch-exit-split',location.origin);return}if(partyActive){exitNetworkMatch(true);return}netClose();for(const b of bots)S.remove(b.m);bots=[];clearFlags();buildMap();showRank();$('#end').style.display=$('#hud').style.display='none';$('#menu').style.display='block'};
 
 document.addEventListener('pointerlockchange',()=>{const l=document.pointerLockElement==R.domElement;if(run){paused=!l;(l?hidePause:showPause)()}});
 addEventListener('mousemove',e=>{if(!run||paused||zQuestCutActive()||(typeof EMO!='undefined'&&EMO.open))return;const k=.0022*sens*fr;yaw-=e.movementX*k;pitch=cl(pitch-e.movementY*k,-1.45,1.45);sw.x=cl(sw.x-e.movementX*.0012,-.1,.1);sw.y=cl(sw.y-e.movementY*.0012,-.08,.08)});

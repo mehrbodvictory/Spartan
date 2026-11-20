@@ -11,16 +11,16 @@ var PAUTO=5;
 function permHas(v){return !!(prof.master||(prof.pres>0&&UNL[v]<=PAUTO*prof.pres)||(prof.perm&&prof.perm.includes(v)))}
 function unlocked(v){return !UNL[v]||prof.master||prof.all||prof.lvl>=UNL[v]||permHas(v)}
 function tokenSpend(v){if(!UNL[v]||unlocked(v)||!(prof.tok>0)||prof.master)return false;const label=v.startsWith('sk:')?(STK[v.slice(3)]?STK[v.slice(3)].n:v):(W[v]?W[v].n:v);if(!confirm(`Spend 1 unlock token to permanently unlock ${label}? It stays unlocked through every future prestige.`))return false;
- prof.perm=prof.perm||[];prof.perm.push(v);prof.tok--;save();popup('PERMANENT UNLOCK',label);showRank();try{ldRender()}catch(e){}return true}
+ prof.perm=prof.perm||[];prof.perm.push(v);prof.tok--;save();showRank();try{ldRender()}catch(e){}return true}
 function sanitize(){const u=unlocked;if(!u(L.p))L.p='AR';if(L.s&&!u(L.s))L.s='MG';if(L.g&&!u(L.g))L.g=null;L.pa=L.pa.filter(a=>u(a)&&attachmentFits(L.p,a));L.sa=L.sa.filter(a=>u(a)&&attachmentFits(L.s,a));L.pk=L.pk.filter(u);if(!L.s)L.sa=[]}
 function rankTxt(){return prof.master?`Prestige Master ${prof.ml} / 1250 · ${prof.xp}/1500 XP`:`${prof.pres?'Prestige '+prof.pres+' · ':''}${prof.tok>0?prof.tok+(prof.tok>1?' unlock tokens · ':' unlock token · '):''}Level ${prof.lvl}${prof.lvl<55?` · ${prof.xp}/${need()} XP`:' (max) · ready to prestige'}`}
 var mUps=[],won=0,mCost=1500;
-function giveXP(g){if(prof.master){prof.xp+=g;while(prof.xp>=1500&&prof.ml<1250){prof.xp-=1500;prof.ml++;popup('PRESTIGE MASTER','Level '+prof.ml)}if(prof.ml>=1250)prof.xp=0}
- else if(prof.lvl<55){prof.xp+=g;while(prof.xp>=need()&&prof.lvl<55){prof.xp-=need();prof.lvl++;const u=[];for(const k in UNL)if(UNL[k]==prof.lvl&&!permHas(k))u.push(nm(k));mUps.push(...u);popup('LEVEL UP','Level '+prof.lvl+(u.length?' · Unlocked '+u.join(', '):prof.lvl>=55?' · Prestige available!':''))}if(prof.lvl>=55)prof.xp=0}save()}
+function giveXP(g){if(prof.master){prof.xp+=g;while(prof.xp>=1500&&prof.ml<1250){prof.xp-=1500;prof.ml++}if(prof.ml>=1250)prof.xp=0}
+ else if(prof.lvl<55){prof.xp+=g;while(prof.xp>=need()&&prof.lvl<55){prof.xp-=need();prof.lvl++;const u=[];for(const k in UNL)if(UNL[k]==prof.lvl&&!permHas(k))u.push(nm(k));mUps.push(...u)}if(prof.lvl>=55)prof.xp=0}save()}
 function killXP(head){const x=Math.min(Math.round(mCost*(.06+(head?.03:0)+Math.min(streak,5)*.005)),Math.max(0,2.5*mCost-mxp));mxp+=x;giveXP(x);return x}
 function bonusXP(f){const x=Math.min(Math.round(mCost*f),Math.max(0,3*mCost-mxp));mxp+=x;giveXP(x)}
 function awardXP(){let b=Math.min(Math.round(mCost*(.5+(won?.5:0))),Math.max(0,3*mCost-mxp));if(mxp+b<mCost)b=mCost-mxp;if(b>0){giveXP(b);mxp+=b}return `+${mxp} XP (${(mxp/mCost).toFixed(1)} levels) · ${rankTxt()}${mUps.length?'<br>Unlocked: '+mUps.join(', '):''}${prof.lvl>=55&&!prof.master?'<br>Open the menu to prestige!':''}`}
-function doPrestige(){if(prof.master||prof.lvl<55)return;if(!confirm(prof.pres<10?`Prestige ${prof.pres+1}? You go back to level 1 and your unlocks reset. Camos are kept. You earn 1 permanent unlock token, and everything up to level ${PAUTO*(prof.pres+1)} is unlocked permanently.`:'Become Prestige Master? Everything is unlocked permanently and levels now go up to 1250.'))return;if(prof.pres<10){prof.pres++;prof.tok=(prof.tok|0)+1}else{prof.master=1;prof.ml=1}prof.lvl=1;prof.xp=0;save();showRank();popup(prof.master?'PRESTIGE MASTER':'PRESTIGE '+prof.pres,prof.master?'Everything is unlocked':'+1 permanent unlock token')}
+function doPrestige(){if(prof.master||prof.lvl<55)return;if(!confirm(prof.pres<10?`Prestige ${prof.pres+1}? You go back to level 1 and your unlocks reset. Camos are kept. You earn 1 permanent unlock token, and everything up to level ${PAUTO*(prof.pres+1)} is unlocked permanently.`:'Become Prestige Master? Everything is unlocked permanently and levels now go up to 1250.'))return;if(prof.pres<10){prof.pres++;prof.tok=(prof.tok|0)+1}else{prof.master=1;prof.ml=1}prof.lvl=1;prof.xp=0;save();showRank()}
 function showRank(){$('#rank').textContent=rankTxt();homeStats();const b=$('#prest');b.style.display=!prof.master&&prof.lvl>=55?'inline-block':'none';b.textContent=prof.pres<10?'Prestige '+(prof.pres+1)+' · +1 unlock token':'Become Prestige Master · unlock everything';sanitize();ui();masteryUI()}
 /* weapon mastery: level every 15 kills (max 20), then prestige the weapon (3 times) */
 var wd=k=>prof.wk[k]||(prof.wk[k]={k:0,c:0,p:0,z:0}),wlv=k=>Math.min(20,1+Math.floor(wd(k).c/15)),catOf=k=>Object.keys(CATS).find(c=>CATS[c].includes(k));
@@ -42,11 +42,25 @@ function zcamos(k){const w=wd(k),z=w.z||0,zb=prof.zbest||0,
  return[...kc,...rc,{n:'Inferno',c:'#ff6a1a',ok:inf,rq:'500 zombie kills',anim:1},{n:'Necrotic',c:'#3cff9a',ok:nec,rq:'500 zombie kills on every '+catOf(k)+' weapon',anim:1},{n:'Abyss',c:'#14061e',ok:aby,rq:'500 zombie kills on every weapon',anim:1}].map(c=>({...c,ok:c.ok||!!prof.all}))}
 var allCamos=k=>[...camos(k),...zcamos(k)];
 var okSet=()=>{const s=new Set();for(const k in W)for(const c of allCamos(k))if(c.ok)s.add(k+':'+c.n);return s};
-function wkill(k){if(!k||!W[k])return;const w=wd(k),b=okSet(),l=wlv(k);w.k++;w.c++;for(const x of okSet())if(!b.has(x)){const[a,c]=x.split(':');popup('CAMO UNLOCKED',`${c} · ${nm(a)}`);feed(`Camo unlocked: ${c} (${nm(a)})`)}
- if(wlv(k)>l)popup('WEAPON LEVEL UP',`${nm(k)} · Level ${wlv(k)}`+(wlv(k)==20?' · Prestige it in the menu':''));save()}
-function wzkill(k){if(!k||!W[k])return;const w=wd(k),b=okSet();w.z=(w.z||0)+1;for(const x of okSet())if(!b.has(x)){const[a,c]=x.split(':');popup('CAMO UNLOCKED',`${c} · ${nm(a)}`);feed(`Camo unlocked: ${c} (${nm(a)})`)}save()}
-function zRoundDone(r){if(r<=(prof.zbest||0))return;const b=okSet();prof.zbest=r;const n=new Set();for(const x of okSet())if(!b.has(x))n.add(x.split(':')[1]);for(const c of n){popup('CAMO UNLOCKED',c+' · all weapons');feed('Camo unlocked: '+c)}save()}
-function wpres(k){const w=wd(k);if(wlv(k)<20||w.p>=3)return;w.p++;w.c=0;popup('WEAPON PRESTIGE',`${nm(k)} · Prestige ${w.p}`);prof.camo[k]=['Ember','Frost','Aurora'][w.p-1];save();masteryUI()}
+function announceCamoUnlocks(previous){
+ const unlocks=new Map();
+ for(const entry of okSet()){
+  if(previous.has(entry))continue;
+  const [weapon,camo]=entry.split(':');
+  if(!unlocks.has(camo))unlocks.set(camo,[]);
+  unlocks.get(camo).push(weapon);
+ }
+ if(!unlocks.size)return;
+ const detail=Array.from(unlocks,([camo,weapons])=>
+  weapons.length===1?camo+' · '+nm(weapons[0]):
+  weapons.length===Object.keys(W).length?camo+' · All weapons':
+  camo+' · '+weapons.length+' weapons').join(' / ');
+ popup(unlocks.size===1?'CAMO UNLOCKED':'CAMOS UNLOCKED',detail);
+}
+function wkill(k){if(!k||!W[k])return;const before=okSet(),w=wd(k);w.k++;w.c++;save();announceCamoUnlocks(before)}
+function wzkill(k){if(!k||!W[k])return;const before=okSet(),w=wd(k);w.z=(w.z||0)+1;save();announceCamoUnlocks(before)}
+function zRoundDone(r){if(r<=(prof.zbest||0))return;const before=okSet();prof.zbest=r;save();announceCamoUnlocks(before)}
+function wpres(k){const w=wd(k);if(wlv(k)<20||w.p>=3)return;const before=okSet();w.p++;w.c=0;prof.camo[k]=['Ember','Frost','Aurora'][w.p-1];save();masteryUI();announceCamoUnlocks(before)}
 function camoTex(col,st){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');g.fillStyle=col;g.fillRect(0,0,64,64);
  if(st=='z'){for(let k=0;k<10;k++){g.fillStyle=`rgba(0,0,0,${.18+Math.random()*.2})`;g.beginPath();g.arc(Math.random()*64,Math.random()*64,3+Math.random()*9,0,7);g.fill()}for(let k=0;k<7;k++){const x=Math.random()*64;g.fillStyle='rgba(255,255,255,.2)';g.fillRect(x,Math.random()*30,1+Math.random()*2,10+Math.random()*30)}}
  else for(let k=0;k<16;k++){g.fillStyle=`rgba(${k%2?'0,0,0':'255,255,255'},.22)`;g.beginPath();g.ellipse(Math.random()*64,Math.random()*64,5+Math.random()*10,3+Math.random()*7,Math.random()*3,0,7);g.fill()}return new THREE.CanvasTexture(c)}
@@ -188,8 +202,7 @@ function deathCam(dt){
 }
 
 /* ===================== net.js ===================== */
-/* Private rooms use encrypted WebRTC data channels over relay-only ICE. */
-var PCFG=privatePeerConfig();
+/* Private rooms use encrypted WebRTC data channels with direct ICE. */
 var hostPid='',hostBye=0,rcTry=0,rcTimer=0;var grace=Object.create(null);
 var net=null,myId='',myName='',conns=[],isHost=0,netOn=0,scores={},names=Object.create(null),lastAtk='',nacc=0,bacc=0,oacc=0,soloMode=null,maxP=0;
 const peerLooks=new Map();
@@ -306,7 +319,6 @@ function netClose(){
  clearTimeout(rcTimer);rcTry=0;for(const k in grace){clearTimeout(grace[k]);delete grace[k]}for(const c of conns)try{if(c.open)sendPeerPacket(c,{t:'bye',id:myId})}catch(e){}for(const c of conns)try{c.close()}catch(e){}conns=[];if(net)try{net.destroy()}catch(e){}net=null;netOn=0;isHost=0;names=Object.create(null);peerLooks.clear();scores={};document.body.classList.remove('net');$('#hostbox').style.display='none';lobbyList();if(soloMode!=null){sel.mode=soloMode;soloMode=null;ui()}}
 /* a match ended: everybody stays connected and returns to the same lobby; only leaving the lobby disconnects */
 function netEnd(){netOn=0;setRoomRound(0);scores={};document.body.classList.remove('net');if(soloMode!=null){sel.mode=soloMode;soloMode=null;ui()}lobbyList();lobby(partyActive?(isHost?'Party ready for another match.':'Waiting for the leader to deploy.'):isHost?'Match over. Everyone is still here. Pick a mode and map, then press Start match.':'Match over. Waiting for the host to start the next one…')}
-function createMatchPeer(id){return window.SD_SPLIT?new SplitPeer(id):createDataPeer(id,PCFG)}
 async function roomAddress(code,party,opening){
  if(window.SD_SPLIT)return 'sdrill-'+code;
  const auth=await inviteIdentity(party?'party':'match',code);
@@ -316,14 +328,14 @@ async function roomAddress(code,party,opening){
 async function hostMatch(localCode,wantsParty=false){
  netClose();partyActive=wantsParty===true;maxP=partyActive||app==='zm'?4:12;
  myName=onlineName($('#nm').value,'Host');
- const opening=roomOpening,code=window.SD_SPLIT?localCode:makeInviteCode();
+ const opening=roomOpening,code=window.SD_SPLIT?localCode:makeInviteCode(wantsParty?partyInviteLength:inviteLength);
  lobby('Connecting…');
  let peer;
  try{
   const address=await roomAddress(code,partyActive,opening);
   if(opening!==roomOpening)return;
-  peer=net=createMatchPeer(address);
- }catch(error){if(opening===roomOpening)lobby(error.message);return}
+  peer=net=window.SD_SPLIT?new SplitPeer(address):createDataPeer(address);
+ }catch(error){if(opening===roomOpening){netClose();if(wantsParty)partyStatus(error.message);else lobby(error.message)}return}
  if(partyActive)partyCode=code;
  peer.on('disconnected',()=>{if(net===peer)try{peer.reconnect()}catch{}});
  peer.on('open',id=>{
@@ -340,9 +352,9 @@ async function hostMatch(localCode,wantsParty=false){
 }
 async function joinMatch(value,wantsParty=false){
  const raw=typeof value==='string'?value:$('#jc').value;
- const code=window.SD_SPLIT?raw.trim().toUpperCase():readInviteCode(raw);
+ const code=window.SD_SPLIT?raw.trim().toUpperCase():readInviteCode(raw,wantsParty?partyInviteLength:inviteLength);
  if(!code){
-  const line='Enter the 12-character '+(wantsParty?'party':'match')+' code.';
+  const line=wantsParty?'Enter the six-character party code.':'Enter the 12-character match code.';
   if(wantsParty)partyStatus(line);else lobby(line);
   return;
  }
@@ -353,15 +365,23 @@ async function joinMatch(value,wantsParty=false){
  try{
   const address=await roomAddress(code,partyActive,opening);
   if(opening!==roomOpening)return;
-  hostPid=address;peer=net=createMatchPeer();
- }catch(error){if(opening===roomOpening)lobby(error.message);return}
+  hostPid=address;peer=net=window.SD_SPLIT?new SplitPeer():createDataPeer();
+ }catch(error){if(opening===roomOpening){netClose();if(wantsParty)partyStatus(error.message);else lobby(error.message)}return}
+ const signalingTimer=setTimeout(()=>{
+  if(net===peer&&!peer.open)failInitialJoin(peer,'Could not connect to the matchmaking service. Try joining again.');
+ },15000);
  peer.on('disconnected',()=>{if(net===peer)try{peer.reconnect()}catch{}});
- peer.on('open',id=>{if(net===peer){myId=id;names[id]=myName;reg(connectDataPeer(peer,hostPid))}});
+ peer.on('open',id=>{clearTimeout(signalingTimer);if(net===peer){myId=id;names[id]=myName;reg(connectDataPeer(peer,hostPid))}});
  peer.on('error',error=>{
   if(net!==peer)return;
   const line=error.type==='peer-unavailable'?'No '+(partyActive?'party':'match')+' found with that code.':'Network error: '+error.type;
-  if(partyActive&&!conns.some(link=>link.open)){netClose();partyStatus(line)}else lobby(line);
+  if(!netOn&&!conns.some(link=>link.open)&&!window.SD_SPLIT){clearTimeout(signalingTimer);failInitialJoin(peer,line)}else lobby(line);
  });
+}
+function failInitialJoin(owner,reason){
+ if(net!==owner)return;
+ const wasParty=partyActive;
+ netClose();lobby(reason);if(wasParty)partyStatus(reason);
 }
 /* Verify the invitation, transport and compatible game build before admitting a link. */
 var BHK={ver:typeof __BUILD!='undefined'?__BUILD:'raw',mode:typeof __MODE!='undefined'?__MODE:'raw'};
@@ -380,7 +400,7 @@ function bhStart(cn){
  sendPeerPacket(cn,{t:'bh1',v:BHK.ver,m:BHK.mode,n:cn.mn});
 }
 function bhMsg(d,cn){
- if(d.t==='bhx'){if(!isHost)lobby('The room could not verify this connection. Check your code and reload the game.');return}
+ if(d.t==='bhx'){if(!isHost){cn.joinFailure='The room could not verify this connection. Check your code and reload the game.';lobby(cn.joinFailure)}return}
  const role=isHost?'host':'guest',otherRole=isHost?'guest':'host',auth=cn.auth;
  if(d.t==='bh1'){
   if(cn.challenge)return;cn.challenge=true;
@@ -526,6 +546,10 @@ function regOpen(cn){
   cn.blocked=true;setTimeout(()=>cn.close(),350);return false;
  }
  const ticket=isHost?roomTickets.get(cn.peer):null;
+ if(isHost&&!ticket&&(netOn&&run||partyOperationOpen)){
+  sendPeerPacket(cn,{t:'room-denied',w:'A match is in progress. Join after the host returns to the lobby.'});
+  cn.blocked=true;setTimeout(()=>cn.close(),350);return false;
+ }
  if(isHost&&(ticket&&cn.reclaimed!==ticket||!ticket&&roomLocked)){
   sendPeerPacket(cn,{t:'room-denied',w:ticket?'This connection could not reclaim its seat.':'The host has locked this room.'});
   cn.blocked=true;setTimeout(()=>cn.close(),350);return false;
@@ -562,10 +586,14 @@ function reg(cn){
  cn.verifyTimer=setTimeout(()=>{
   pendingRoomLinks.delete(cn);
   if(net===owner&&!cn.vf){
-   if(!isHost)lobby('Could not connect through the privacy relay or verify the room.');
+   if(!isHost){
+    cn.joinFailure=cn.open?'Could not verify the room. Make sure both players are running the same build.':'Could not connect directly. One of the networks may block peer-to-peer connections.';
+    if(!netOn&&!window.SD_SPLIT&&!conns.length){failInitialJoin(owner,cn.joinFailure);cn.close();return}
+    lobby(cn.joinFailure);
+   }
    cn.close();
   }
- },12000);
+ },window.SD_SPLIT?12000:25000);
  cn.on('open',()=>{if(net===owner)bhStart(cn);else cn.close()});
  peerPackets(cn,'t',d=>{
   if(net!==owner||cn.blocked)return;
@@ -586,7 +614,12 @@ function reg(cn){
   if(isHost&&cn.vf)bhKick(cn,'too many invalid network messages');
   else cn.close();
  });
- cn.on('error',()=>{});cn.on('close',()=>{clearTimeout(cn.verifyTimer);pendingRoomLinks.delete(cn);if(net===owner)netLost(cn)});
+ cn.on('error',()=>{
+  if(net===owner&&!isHost&&!cn.vf){
+   cn.joinFailure='The direct connection failed. Check the code and try again.';lobby(cn.joinFailure);
+  }
+ });
+ cn.on('close',()=>{clearTimeout(cn.verifyTimer);pendingRoomLinks.delete(cn);if(net===owner)netLost(cn)});
 }
 /* a connection ended. Players who say goodbye leave at once; anyone else gets 15 s to come back (flaky wifi, tab switches, ICE hiccups) before their body is removed */
 function netLost(cn){conns=conns.filter(x=>x!==cn);
@@ -596,6 +629,10 @@ function netLost(cn){conns=conns.filter(x=>x!==cn);
    if(partyActive){netClose();partyStatus('The leader closed the party.')}
    else lobby('The host closed the lobby');
   }
+  return;
+ }
+ if(!cn.vf&&!netOn&&!conns.length&&Object.keys(names).length<=1&&!window.SD_SPLIT){
+  failInitialJoin(net,cn.joinFailure||'Could not connect to that room. Check the code and try again.');
   return;
  }
  if(partyActive&&partyOperationOpen)partyDispatch({type:'lost'},cn.peer);
@@ -740,7 +777,7 @@ function addNetBot(id,team){const b=addBot(1e9,1,peerLooks.get(id)?.operator||'r
  if(teamMode())markOperatorTeam(b.rig,b.team)}
 function hostStart(){let m=$('#pmode').value,map=$('#pm').value;PBOTS=Math.max(0,Math.min(12,+($('#pbots')&&$('#pbots').value)));if(isNaN(PBOTS))PBOTS=null;const pick=a=>a[Math.random()*a.length|0];
  if(m=='Zombies'){if(Object.keys(names).length>4)return lobby('Zombies supports up to 4 players');map=(()=>{const v=$('#pm')&&$('#pm').value;return MAPS[v]&&MAPS[v].zm?v:(MAPS[sel.zmap]&&MAPS[sel.zmap].zm?sel.zmap:Object.keys(MAPS).find(k=>MAPS[k].zm))})()}
- else{if(m=='?')m=pick(['Private',...Object.keys(MODES).filter(k=>k!='Zombies')]);if(map=='?'||MAPS[map].zm)map=pick(Object.keys(MAPS).filter(k=>!MAPS[k].zm))}
+ else{if(m=='?'||m!=='Private'&&!hasOwn(MODES,m))m=pick(['Private',...Object.keys(MODES).filter(k=>k!='Zombies')]);if(!hasOwn(MAPS,map)||MAPS[map].zm)map=pick(Object.keys(MAPS).filter(k=>!MAPS[k].zm))}
  startNetworkMatch(map,m,partyActive);
 }
 function startNetworkMatch(map,m,asParty=false){
@@ -881,7 +918,7 @@ function showMatchSearchPhase(phase){
  const panel=$('#p-queue');
  panel.dataset.phase=phase;
  $('#queue-map').dataset.mapArt=ready?map:sel.rp?'?':sel.map;
- $('#queue-title').textContent=[partyActive?'Preparing a party match':'Preparing a bot match','Setting up the arena','Ready to deploy'][phase];
+ $('#queue-title').textContent=[partyActive?'Preparing a party match':'Preparing your match','Setting up the arena','Ready to deploy'][phase];
  $('#queue-detail').textContent=[
   sel.rm?'Choosing a playlist.':mode+' playlist',
   'Preparing the arena and match rules.',
@@ -966,7 +1003,21 @@ function menuCam(dt){gfxTick(dt);if(fin){finTick(dt);return}hideFP();ma+=dt*.12;
 /* lobby */
 $('#leave').onclick=()=>{netClose();lobby('You left the lobby')};$('#host').onclick=hostMatch;$('#join').onclick=joinMatch;$('#startnet').onclick=()=>{if(conns.length<1)return lobby('Waiting for at least one friend to join');hostStart()};
 /* pause */
-function showPause(){for(const k in key)key[k]=false;trig=0;arenaSoundCaptions.clear();$('#pt').textContent=typeof netOn!='undefined'&&netOn?'Menu (the match keeps running)':'Paused';$('#aa2').value=String(AA);$('#sn2').value=sens;$('#fv2').value=fovBase;updateMatchModeration();syncRoomLockControls();renderNextLifeLoadouts();$('#pause').style.display='block'}
+function matchIntel(){
+ if(mode==='Zombies'){
+  if(!zq)return '';
+  const price=zPapCost();
+  const upgrade=zq.papT>0?'Upgrade in progress':price?'Next Pack-a-Punch · '+Math.max(0,price-zq.pts)+' points needed':'Pack-a-Punch complete';
+  return upgrade;
+ }
+ const rows=board(),mine=rows.find(row=>row.me);
+ const place=1+rows.filter(row=>row.k>mine.k).length;
+ const next=skSel().map(id=>({id,streak:STK[id]})).filter(({id,streak})=>streak&&!SK.got[id]&&!q.includes(id))
+  .sort((a,b)=>a.streak.k-b.streak.k)[0];
+ const streak=next?next.streak.n+' · '+Math.max(0,Math.max(1,next.streak.k-hl())-ks)+' kills needed':'All equipped streaks earned';
+ return 'Kill rank '+place+' / '+rows.length+' · '+(shots?Math.round(100*hits/shots)+'% accuracy':'No shots fired')+' · '+streak;
+}
+function showPause(){$('#match-intel').textContent=matchIntel();for(const k in key)key[k]=false;trig=0;arenaSoundCaptions.clear();$('#pt').textContent=typeof netOn!='undefined'&&netOn?'Menu (the match keeps running)':'Paused';$('#aa2').value=String(AA);$('#sn2').value=sens;$('#fv2').value=fovBase;updateMatchModeration();syncRoomLockControls();renderNextLifeLoadouts();$('#pause').style.display='block'}
 function hidePause(){$('#pause').style.display='none';$('#pt').textContent='Paused'}
 $('#resume').onclick=()=>lockPtr();
 $('#aa2').onchange=e=>{AA=+e.target.value;$('#aa').value=e.target.value;saveSet()};$('#sn2').oninput=e=>{sens=+e.target.value;$('#sn').value=e.target.value;saveSet()};$('#sk').oninput=e=>shk=+e.target.value;
@@ -986,6 +1037,7 @@ function exitNetworkMatch(keepParty=false){
  if(keepParty)openMenuPanel(playPanel(),false);
 }
 $('#exit').onclick=()=>{
+ if(window.SD_SPLIT){parent.postMessage('stormwatch-exit-split',location.origin);return}
  if(partyActive&&netOn)netSend({t:isHost?'party-return':'party-bench'});
  exitNetworkMatch(partyActive);
 };
@@ -1075,7 +1127,7 @@ function podClear(){if(podG){S.remove(podG);podG=null}zcr=[];figs=[];conf=[];fLa
 /* a new match or leaving early: drop everything the finale created */
 function finStop(){podClear();fin=0;fs='';netBd=netSc=null;const F=$('#fin');F.style.display='none';F.className=''}
 /* podium done: back to the main menu (fades from black) */
-function toMenu(){podClear();fin=0;fs='';netBd=netSc=null;if(net&&(isHost||conns.length))netEnd();else netClose();for(const b of bots)S.remove(b.m);bots=[];for(const g of grs)S.remove(g.m);grs=[];clearFlags();endDeath();buildMap();hideFP();showRank();
+function toMenu(){if(window.SD_SPLIT){parent.postMessage('spartan-restart-split',location.origin);fs='';return}podClear();fin=0;fs='';netBd=netSc=null;if(net&&(isHost||conns.length))netEnd();else netClose();for(const b of bots)S.remove(b.m);bots=[];for(const g of grs)S.remove(g.m);grs=[];clearFlags();endDeath();buildMap();hideFP();showRank();
  $('#hud').style.display=$('#end').style.display='none';$('#menu').style.display='block';if(partyActive)openMenuPanel(playPanel(),false);else if(net)$('#nav button.'+app+'[data-p="priv"]').click();const F=$('#fin');F.className='blk';void F.offsetWidth;F.className='';setTimeout(()=>{if(!fin)F.style.display='none'},600)}
 
 /* ===================== touch.js ===================== */

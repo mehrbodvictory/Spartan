@@ -42,6 +42,7 @@ for(const button of $$('.party-open')){
  button.disabled=!!window.SD_SPLIT;button.onclick=openGameParty;
 }
 $('#party-close').onclick=()=>partyDialog.close();
+partyDialog.addEventListener('close',()=>{if(oskT&&partyDialog.contains(oskT))closeOSK()});
 $('#party-create').onclick=()=>{if(!window.Peer){partyStatus('Matchmaking could not load. Reload the game to retry.');return}hostMatch(null,true)};
 $('#party-join-form').onsubmit=event=>{
  event.preventDefault();

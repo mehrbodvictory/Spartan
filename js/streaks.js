@@ -549,7 +549,7 @@ function kcamTick(dt){const e=$('#kcam');if(!e)return;if(!KC.on)return;if(!P.dea
 
 /* ===================== notes.js ===================== */
 /* ---------- match notifications, redesigned. msg() (objective and match messages) and popup() (unlocks, streaks earned, level ups) now show as compact stacked toasts that sit BELOW the match bar
-   (their position is measured from it, so they can never slide behind the scoreboard), at most 3 at a time, repeated messages refresh instead of stacking. Kill messages (+1 Kill, Headshot!, Double Kill!...)
+   (their position is measured from it, so they can never slide behind the scoreboard), one at a time, repeated messages refresh instead of stacking. Kill messages (+1 Kill, Headshot!, Double Kill!...)
    become small points under the crosshair that rise and fade. The old centre banner is hidden. ---------- */
 var NT={list:[],last:'',lastT:0};
 (function(){const hud=$('#hud');if(!hud)return;const c=document.createElement('div');c.id='notes';hud.appendChild(c);const p=document.createElement('div');p.id='pts';hud.appendChild(p)})();
@@ -557,7 +557,7 @@ var ntKind=t=>/\bflag\b|captur|zone|hill|hardpoint|domination|objective|secured|
 function ntShow(html,kind,secs,key,card){const box=$('#notes');if(!box)return;const now=performance.now();
  const same=NT.list.find(n=>n.key==key&&!n.gone);if(same){same.t=now;same.life=secs;same.el.classList.remove('old','out');return}
  const el=document.createElement('div');el.className='nt '+kind+(card?' card':'');el.innerHTML=(card?'':'<i></i>')+html;box.appendChild(el);const n={el,t:now,life:secs,key,gone:0};NT.list.push(n);
- while(NT.list.filter(x=>!x.gone).length>3){const o=NT.list.find(x=>!x.gone);o.gone=1;o.el.classList.add('out');setTimeout(()=>o.el.remove(),350)}}
+ while(NT.list.filter(x=>!x.gone).length>1){const o=NT.list.find(x=>!x.gone);o.gone=1;o.el.classList.add('out');setTimeout(()=>o.el.remove(),350)}}
 setInterval(()=>{const now=performance.now(),live=NT.list.filter(n=>!n.gone);for(const n of NT.list){if(!n.gone&&now-n.t>n.life*1000){n.gone=1;n.el.classList.add('out');setTimeout(()=>n.el.remove(),350)}}
  live.forEach((n,i)=>n.el.classList.toggle('old',i<live.length-1&&live.length>1));NT.list=NT.list.filter(n=>!n.gone||now-n.t<n.life*1000+600);
  const tb=$('#tbar'),r=tb&&tb.firstChild?tb.getBoundingClientRect():null;document.documentElement.style.setProperty('--ntop',((r&&r.height?r.bottom:34)+12)+'px')},180);
@@ -601,7 +601,7 @@ function chRoll(){const dk=dayKey(),wk=weekKey();let ch=0;if(CHST.day!=dk){CHST.
 var chActive=()=>({d:pickS(CHD,CHST.day,3),w:pickS(CHW,CHST.week,3)});
 function chEv(stat,n=1){if(!CHST)chLoad();chRoll();const A=chActive();let any=0;
  for(const [grp,list] of [['d',A.d],['w',A.w]])for(const c of list){if(c[3]!=stat)continue;const key=grp+':'+c[0];if(CHST.done[key])continue;CHST[grp][c[0]]=Math.min(c[4],(CHST[grp][c[0]]||0)+n);any=1;
-  if(CHST[grp][c[0]]>=c[4]){CHST.done[key]=1;MST.cc.push([c[1],c[5]]);try{giveXP(c[5])}catch(e){}popup('CHALLENGE COMPLETE',c[1]+' · +'+c[5]+' XP')}}
+  if(CHST[grp][c[0]]>=c[4]){CHST.done[key]=1;MST.cc.push([c[1],c[5]]);try{giveXP(c[5])}catch(e){}}}
  for(const [id,name,metric,goals,xp,cards] of CHC){
   if(metric!==stat)continue;
   CHST.c[stat]=(CHST.c[stat]||0)+n;any=1;
@@ -610,12 +610,11 @@ function chEv(stat,n=1){if(!CHST)chLoad();chRoll();const A=chActive();let any=0;
    const title=name+' '+CH_TIERS[tier],card=IDR_CARDS[cards[tier]]?.name;
    MST.cc.push([title,xp[tier],card]);
    try{giveXP(xp[tier])}catch(e){}
-   popup('CAREER · '+title.toUpperCase(),'+'+xp[tier]+' XP'+(card?' · Calling card unlocked: '+card:''));
   }
  }
  if(any)chSave()}
 chLoad();
-function msMedal(name){const m=MEDALS[name];if(!m)return;MST.medals[name]=(MST.medals[name]||0)+1;CHST.medals[name]=(CHST.medals[name]||0)+1;try{giveXP(m[0])}catch(e){}ntShow('<span>★ '+name.toUpperCase()+' · +'+m[0]+' XP</span>','streak',2.6,'m:'+name+performance.now(),0);chEv('medals')}
+function msMedal(name){const m=MEDALS[name];if(!m)return;MST.medals[name]=(MST.medals[name]||0)+1;CHST.medals[name]=(CHST.medals[name]||0)+1;try{giveXP(m[0])}catch(e){}chEv('medals')}
 function msKill(b,head){const s=String(src||''),stk=!!SK.nok,d=Math.hypot(b.x-P.x,b.z-P.z),cat=!stk&&srcK&&typeof catOf=='function'?catOf(srcK):'';
  MST.k++;MST.noHit++;MST.best=Math.max(MST.best,ks);chEv('kills');
  if(head){MST.hs++;chEv('headshots');msMedal('Headshot')}
@@ -979,12 +978,12 @@ function kcNetDeath(d){if(mode!='Kill Confirmed'||over||!isHost||!netOn)return;c
 function kcNetRecv(d){if(isHost||mode!='Kill Confirmed'||!run)return;
  if(d.t=='kd')kcAdd({id:d.i,x:d.x,z:d.z,vt:d.vt,kid:d.k,vid:d.v,life:d.l});
  else if(d.t=='kg'){if(d.s)kc=d.s;const tg=kcTags.find(g=>g.id==d.i);if(!tg)return;kcTags.splice(kcTags.indexOf(tg),1);kcResolve(tg,kcByNid(d.w),d.wt,d.w)}}
-function kcGive(pts,ksAdd,title,sub){if(typeof giveXP=='function')giveXP(pts);if(ksAdd)ks+=ksAdd;popup(title,sub)}
+function kcGive(pts,ksAdd){if(typeof giveXP=='function')giveXP(pts);if(ksAdd)ks+=ksAdd}
 /* every client plays the pickup: the collector gets rewards, everybody else gets a feed line */
 function kcResolve(tg,who,wt,wid){tg.got={who,t:0};kcFly.push(tg);const confirm=wt!=tg.vt,mine=wt==pTeam(),me=who===P||wid==kcMe(),nm=who&&who!==P?(who.nm||'Someone'):'Someone';
- if(confirm){if(me){kcSt.conf++;kcGive(100,1,'KILL CONFIRMED','+100');beep(880,.08,'triangle',.08);setTimeout(()=>beep(1320,.12,'triangle',.07),80)}
-  else if(mine){feed(`${nm} confirmed a kill`);if(tg.kid&&tg.kid==kcMe())kcGive(25,0,'TEAMMATE CONFIRMED','+25')}else feed(`${tn(wt)} confirmed a kill`)}
- else{if(me){kcSt.deny++;if(tg.vid==kcMe())kcGive(25,0,'RETRIEVED','+25');else kcGive(25,0,'KILL DENIED','+25');beep(520,.08,'sawtooth',.06);setTimeout(()=>beep(300,.14,'sawtooth',.06),80)}
+ if(confirm){if(me){kcSt.conf++;kcGive(100,1);beep(880,.08,'triangle',.08);setTimeout(()=>beep(1320,.12,'triangle',.07),80)}
+  else if(mine){feed(`${nm} confirmed a kill`);if(tg.kid&&tg.kid==kcMe())kcGive(25,0)}else feed(`${tn(wt)} confirmed a kill`)}
+ else{if(me){kcSt.deny++;kcGive(25,0);beep(520,.08,'sawtooth',.06);setTimeout(()=>beep(300,.14,'sawtooth',.06),80)}
   else if(mine)feed(`${nm} denied a kill`);else feed(`${tn(wt)} denied a kill`)}}
 /* host / solo: somebody walked over a tag */
 function kcCollect(tg,who){const i=kcTags.indexOf(tg);if(i<0)return;kcTags.splice(i,1);const wt=who===P?pTeam():who.team,wid=kcNid(who);if(wt!=tg.vt)kc[wt]++;

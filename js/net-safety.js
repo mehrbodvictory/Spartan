@@ -1,15 +1,14 @@
 const inviteAlphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const inviteLength=12;
+const partyInviteLength=6;
 const dataChannelLabel='spartan-data-1';
 const peerWireLimit=128*1024;
 const wireEncoder=new TextEncoder();
-const fallbackTurn=[{
- urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turn:openrelay.metered.ca:443?transport=tcp'],
- username:'openrelayproject',credential:'openrelayproject'
-}];
-function privatePeerConfig(){
- const iceServers=Array.isArray(window.SD_ICE_SERVERS)?window.SD_ICE_SERVERS:fallbackTurn;
- return {debug:0,secure:true,referrerPolicy:'no-referrer',config:{iceServers,iceTransportPolicy:'relay',sdpSemantics:'unified-plan'}};
+function directPeerConfig(){
+ return {debug:0,secure:true,referrerPolicy:'no-referrer',config:{
+  iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}],
+  iceTransportPolicy:'all',sdpSemantics:'unified-plan'
+ }};
 }
 function allowedPeerOffer(message){
  if(!message||typeof message.type!=='string')return false;
@@ -17,7 +16,7 @@ function allowedPeerOffer(message){
  const offer=message.payload;
  return offer?.type==='data'&&offer.serialization==='raw'&&offer.label===dataChannelLabel;
 }
-function createDataPeer(id,config=privatePeerConfig()){
+function createDataPeer(id){
  const Client=window.Peer;
  // PeerJS 1.5.4 chooses a decoder before it emits 'connection'. Reject
  // other offers before that dispatch. The dependency is pinned by SRI.
@@ -25,7 +24,10 @@ function createDataPeer(id,config=privatePeerConfig()){
  class DataPeer extends Client{
   _handleMessage(message){if(allowedPeerOffer(message))super._handleMessage(message)}
  }
- return new DataPeer(id,config);
+ // Use an unpredictable client ID so joining does not depend on the
+ // separate PeerServer HTTP ID allocation endpoint.
+ const address=id||'sd-client-'+Array.from(crypto.getRandomValues(new Uint8Array(16)),n=>n.toString(16).padStart(2,'0')).join('');
+ return new DataPeer(address,directPeerConfig());
 }
 function connectDataPeer(peer,id){
  return peer.connect(id,{reliable:true,serialization:'raw',label:dataChannelLabel});
@@ -42,12 +44,12 @@ function sendPeerPacket(link,data){
  const frame=encodePeerPacket(data);
  if(frame!==null)link.send(frame);
 }
-function makeInviteCode(){
- return Array.from(crypto.getRandomValues(new Uint8Array(inviteLength)),byte=>inviteAlphabet[byte&31]).join('');
+function makeInviteCode(length=inviteLength){
+ return Array.from(crypto.getRandomValues(new Uint8Array(length)),byte=>inviteAlphabet[byte&31]).join('');
 }
-function readInviteCode(value){
+function readInviteCode(value,length=inviteLength){
  const code=typeof value==='string'?value.toUpperCase().replace(/[\s-]/g,''):'';
- return code.length===inviteLength&&[...code].every(letter=>inviteAlphabet.includes(letter))?code:'';
+ return code.length===length&&[...code].every(letter=>inviteAlphabet.includes(letter))?code:'';
 }
 function onlineName(value,fallback='Player'){
  return typeof value==='string'&&value.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,'').trim().slice(0,20)||fallback;

@@ -19,13 +19,7 @@ kbd{font:750 .76rem system-ui;padding:.13em .4em;background:#40332c;border-radiu
 #hud{position:absolute;inset:0;pointer-events:none;user-select:none}
 #field-sound-captions{position:absolute;left:50%;bottom:clamp(116px,21vh,172px);transform:translateX(-50%);display:grid;justify-items:center;gap:4px;width:max-content;max-width:64vw;text-align:center}
 #field-sound-captions>div{padding:4px 10px;border:1px solid #ead8c676;background:#171416e8;color:#fff;font:650 13px/1.35 system-ui;border-radius:3px}
-@media(max-height:450px){
- :host([data-local]) #vitals,:host([data-local]) #objective,:host([data-local]) #mission{top:7px}
- :host([data-local]) #vitals{left:8px;width:min(124px,24vw)}
- :host([data-local]) #mission{right:8px;width:min(132px,26vw)}
- :host([data-local]) #radar{width:78px;height:78px;margin-left:auto}
- :host([data-local]) #sheet{padding:13px}
-}
+[data-pad-focus]{outline:2px solid var(--accent);outline-offset:2px}
 #field-audio-settings{display:grid;gap:8px;margin-top:14px;max-width:360px}
 #field-audio-settings label{display:grid;grid-template-columns:minmax(0,1fr) 5ch;gap:4px 8px;align-items:center;font:650 13px/1.35 system-ui}
 #field-audio-settings label span{grid-column:1/-1}#field-audio-settings input{width:100%;accent-color:var(--accent)}
@@ -78,7 +72,10 @@ meter::-moz-meter-bar{background:var(--meter,#edb877)}
 #prompt,#toast,#threat{position:absolute;left:50%;transform:translateX(-50%);width:max-content;max-width:84%;text-align:center}
 #prompt{bottom:104px;padding:4px 9px;background:#211b1bcd;border-bottom:1px solid var(--accent);font-size:.77rem}
 #toast{bottom:144px;font:750 17px/1.2 var(--display);letter-spacing:.04em;text-shadow:0 2px 4px #241416;color:#ffdbab}
-#squad-status{position:absolute;top:139px;left:22px;max-width:38vw;color:#c8ffef;font-size:.73rem;text-shadow:0 2px 3px #081d24}
+#squad-status{color:#c8ffef;font-size:.73rem;text-shadow:0 2px 3px #081d24;overflow-wrap:anywhere}
+#squad-status:empty{display:none}
+#seat-label{justify-self:start;padding:1px 6px;border-left:2px solid #81e8ec;background:#172b35eb;color:#e2faff;font:750 11px/1.4 system-ui}
+:host([data-local="2"]) #seat-label{border-color:#ffc385;background:#382a24eb;color:#ffe6cc}
 #threat{left:22px;bottom:20px;transform:none;color:#ffdcad;text-shadow:0 2px 3px #251719;font-size:.72rem}
 #cross{position:absolute;top:50%;left:50%;width:24px;height:17px;transform:translate(-50%,-50%);color:#fff8db;filter:drop-shadow(0 1px 2px #1d1826);border:1px solid currentColor;border-block-color:transparent;border-radius:44%}
 #cross{width:calc(24px + var(--bloom,0px));transition:width .07s ease-out}
@@ -155,7 +152,7 @@ meter::-moz-meter-bar{background:var(--meter,#edb877)}
 .idr-plate-text{display:grid;color:#fff2e7;text-shadow:0 1px 3px #000}
 .idr-plate-text small{font-size:.64rem}
 @media(max-width:680px){
- #vitals,#mission{top:9px}#vitals,#threat{left:8px}#squad-status{top:113px;left:8px}#mission,#kit{right:8px}
+ #vitals,#mission{top:9px}#vitals,#threat{left:8px}#mission,#kit{right:8px}
  #objective{top:9px;width:29vw}#kit{bottom:11px}
  #mission{width:92px}#radar{width:70px}#status{font-size:14px}
  #vitals{width:115px}.vital{height:18px}.vital label{font-size:12px}
@@ -229,10 +226,34 @@ meter::-webkit-meter-optimum-value{background:linear-gradient(180deg,color-mix(i
  #sector-map{height:118px}
  .vital{height:20px}.vital label{font-size:12px}
 }
+@media(max-height:540px){
+ #screen,#screen[data-mode="brief"]{align-content:start;align-items:start;padding:10px}
+ #screen:not([data-mode="brief"]) #sheet,#screen[data-mode="brief"] #sheet{padding:10px 13px}
+ #screen:not([data-mode="brief"]) h1,#screen[data-mode="brief"] h1{font-size:2rem;margin:4px 0 8px}
+ #screen #buttons{margin-top:8px;gap:5px}#screen button{padding:5px 9px;min-height:30px}
+ #screen[data-mode="citadel"] #sheet{max-height:none;overflow:visible}
+ #vitals,#objective,#mission{top:7px}
+ #vitals{left:8px;width:min(145px,24vw);gap:3px}
+ .vital{height:17px}.vital label{font-size:11px;white-space:nowrap;overflow:hidden}
+ #stash{padding-top:3px;margin-top:1px;gap:2px}#stash span{display:flex;align-items:center;justify-content:center;padding:2px;font-size:12px}
+ #stash svg{width:14px;height:13px}
+ #objective{width:min(240px,38vw)}.objective-line{padding:3px 5px;gap:2px 5px}
+ #mission{right:8px;width:min(155px,25vw);gap:2px}
+ #radar{width:clamp(42px,16vh,72px);height:auto}
+ #status{font-size:13px;margin:0;padding:2px 5px}#remaining,#task,#passStatus{font-size:10px;line-height:1.2}
+ #squad-status{font-size:10px}
+ #kit{right:8px;bottom:8px;gap:3px}#held{font-size:12px}
+ #hotbar{padding-top:3px}#hotbar .slot,#build-strip .slot{width:clamp(26px,7vw,38px);height:31px}
+ #prompt{bottom:51px;max-width:65%;font-size:11px}#toast{bottom:76px;max-width:66%;font-size:13px}
+ #threat{left:8px;bottom:8px;max-width:27%;font-size:10px}
+ #field-sound-captions{bottom:98px}
+ #edit{top:42%;right:8px;max-width:26vw}
+}
 </style>
 <div id="hud" hidden>
  <div id="field-sound-captions" aria-live="polite" aria-label="Sound captions" hidden></div>
  <section id="vitals" aria-label="Vitals and materials">
+  <div id="seat-label" hidden></div>
   <div class="vital" id="shield"><meter id="shield-meter" aria-label="Shield" min="0" max="60" value="60"></meter><label for="shield-meter"><i>◇</i><span id="shield-text"></span></label></div>
   <div class="vital" id="health"><meter id="health-meter" aria-label="Health" min="0" max="100" value="100"></meter><label for="health-meter"><i>✚</i><span id="health-text"></span></label></div>
   <div class="vital" id="pulse-vital"><meter id="pulse-meter" aria-label="Shock pulse charge" min="0" max="24" value="24"></meter><label for="pulse-meter"><i>ϟ</i><span id="pulse-text"></span></label></div>
@@ -241,6 +262,7 @@ meter::-webkit-meter-optimum-value{background:linear-gradient(180deg,color-mix(i
    <span aria-label="Stone"><svg viewBox="0 0 32 25" aria-hidden="true"><path fill="#9a98b0" d="m2 19 4-11 12-5 10 6 2 11-12 4Z"/><path fill="#d5cde0" d="m6 8 12-5 10 6-10 7Z"/><path fill="#6c6781" d="m18 16 10-7 2 11-12 4Z"/></svg><b id="stone"></b></span>
    <span aria-label="Metal"><svg viewBox="0 0 32 25" aria-hidden="true"><path fill="#81bed1" d="M4 4h24l-4 5h-5v8h8v5H4v-5h8V9H4Z"/><path fill="#518196" d="m19 9 5-1v7h6l-3 7v-5h-8Z"/><path fill="#c7e4e3" d="M4 4h24l-4 4H4Z"/></svg><b id="metal"></b></span>
   </div>
+  <div id="squad-status"></div>
  </section>
  <section id="objective" aria-label="Objective">
   <div class="objective-line"><b id="atlas-name">Signal Relay</b><small id="atlas-text"></small><meter id="atlas-meter" aria-label="Signal Relay integrity" min="0" max="900" value="900"></meter></div>
@@ -260,7 +282,7 @@ meter::-webkit-meter-optimum-value{background:linear-gradient(180deg,color-mix(i
   <div id="held"><span id="held-name"></span><span id="ammo"></span></div>
   <div id="hotbar"></div>
  </section>
- <div id="prompt" hidden></div><div id="threat"></div><div id="squad-status"></div>
+ <div id="prompt" hidden></div><div id="threat"></div>
  <section id="edit" aria-label="Edit structure" hidden>
   <h2 id="edit-name"></h2>
   <div id="edit-grid"></div><div id="edit-status" role="status"></div>
@@ -297,7 +319,9 @@ meter::-webkit-meter-optimum-value{background:linear-gradient(180deg,color-mix(i
    <button id="citadel-back" data-action="citadelBack" hidden>Back</button>
    <button id="help" data-action="help" aria-expanded="false">Controls</button>
    <button id="field-audio" data-action="audio" aria-controls="field-audio-settings" aria-expanded="false" hidden>Audio</button>
-   <button id="craft" data-action="craft" hidden>Craft ammo</button>
+   <button id="craft" data-action="craft" hidden>Craft ammo · 6 Stone + 4 Metal</button>
+   <button id="drop-stock" data-action="drop-stock" hidden>Drop building supplies</button>
+   <button id="field-crate" data-action="field-crate" hidden>Craft and drop weapon</button>
    <button id="fabricate" data-action="fabricate" hidden>Fabricate weapon</button>
    <button id="traps" data-action="traps" hidden>Select trap</button>
    <button id="exit" data-action="exit">Mode select</button>
@@ -327,11 +351,12 @@ meter::-webkit-meter-optimum-value{background:linear-gradient(180deg,color-mix(i
 return {mount(options={}){
 const host = document.createElement('article');
 host.id = 'stormwatch-mode';
-if(options.local)host.dataset.local='';
+if(options.local)host.dataset.local=String(window.SD_SPLIT.seat);
 const surface = host.attachShadow({mode:'open'});
 surface.innerHTML = stormwatchMarkup;
 document.body.append(host);
 const ui = Object.fromEntries([...surface.querySelectorAll('[id]')].map(el => [el.id, el]));
+if(options.local){ui['seat-label'].textContent='Player '+window.SD_SPLIT.seat;ui['seat-label'].hidden=false}
 const fieldCaptions=PlayerAudio.captions(ui['field-sound-captions']);
 const unbindFieldAudio=PlayerAudio.bind(ui['field-audio-settings']);
 const embedded = !!options.renderer;
@@ -342,7 +367,10 @@ let padFocus=null;
 function listen(target,name,handler,settings={}){
  target.addEventListener(name,handler,{...settings,signal:controller.signal});
 }
-listen(surface,'focusin',event=>{padFocus=event.target});
+listen(surface,'focusin',event=>{
+ padFocus?.removeAttribute('data-pad-focus');padFocus=event.target;
+ if(options.local&&event.target!==canvas)padFocus.setAttribute('data-pad-focus','');
+});
 function fieldFocus(){
  return surface.activeElement||(options.local&&padFocus?.getClientRects().length&&!padFocus.disabled?padFocus:null);
 }
@@ -379,7 +407,19 @@ const vec = (x=0,y=0,z=0) => new T.Vector3(x,y,z);
 const clamp = (x,a,b) => Math.max(a,Math.min(b,x));
 const lerp = (a,b,t) => a+(b-a)*t;
 const TAU = Math.PI*2;
-const mapSeed=options.seed??window.crypto.getRandomValues(new Uint32Array(1))[0];
+const outpostSeed=(0x7325481+Object.keys(regions).indexOf(regionId)*2654435761)>>>0;
+const mapSeed=(!initialMission||initialMission==='defense')?outpostSeed:(options.seed??window.crypto.getRandomValues(new Uint32Array(1))[0]);
+const objectiveSeed=options.seed??window.crypto.getRandomValues(new Uint32Array(1))[0];
+const objectiveSites=[[0,19],[0,-24],[22,-1],[-25,-1],[0,31],[-32,-1]];
+const [ox,oz]=objectiveSites[(!initialMission||initialMission==='defense')&&Number.isInteger(options.relaySite)&&objectiveSites[options.relaySite]?options.relaySite:objectiveSeed%objectiveSites.length];
+const objectiveDistance=(x,z)=>Math.hypot(x-ox,z-oz);
+const districts={
+ timbervale:['Pine suburbs','Orchard farms','Ancient forest','River grasslands','Timber market'],
+ ironridge:['Foundry terraces','Rail city','Mill allotments','Coalwood forest','Slag meadows'],
+ canyonlands:['Adobe suburbs','Mesa trading city','Irrigated farms','Juniper forest','Dry steppe'],
+ obsidian:['Alpine village','Summit observatory','Frost farms','Black pine forest','Tundra grasslands']
+};
+const zoneKind=mapSeed%5,zoneName=districts[regionId][zoneKind];
 let seed=mapSeed;
 const slopeX=(mapSeed%1024)/287;
 const slopeZ=((mapSeed>>>13)%1024)/211;
@@ -390,7 +430,7 @@ function rand(){
 const pick = items => items[Math.floor(rand()*items.length)];
 const engineering = StormwatchEngineering;
 const operations = StormwatchOperations;
-const GRID = engineering.CELL, LEVEL = GRID, BOUND = 52, ATLAS_HP = 900, MAX_WAVES = 5;
+const GRID = engineering.CELL, LEVEL = GRID, BOUND = 80, ATLAS_HP = 900, MAX_WAVES = 5;
 const ASSAULT_WARNING=4, SEAL_DURATION=240, SEAL_SLICE=SEAL_DURATION/5;
 const NEST_DURATION=420, PAYLOAD_PREP=40, PAYLOAD_DURATION=145, PAYLOAD_HP=760;
 const nestCrews=[
@@ -587,6 +627,9 @@ function bankSalvage(victory,wave){
  fieldBag=StormwatchCitadel.emptyBag();if(victory)discoveries.clear();
  const action={type:wave?'debrief':'salvage',bag,discoveries:found,victory,mission:state.mission,
   region:regionId,completionId:fieldReportId,operative:squad.lead.id};
+ if(!guest&&state.mission==='defense'&&wave&&mapSeed===outpostSeed){
+  action.outpost={layoutVersion:2,seed:mapSeed,started:state.started,rows:packStructures(),cleared:props.flatMap((p,i)=>p.alive?[]:[i])};
+ }
  return citadel.dispatch(action).then(saved=>saved||!victory?saved:citadel.dispatch(action)).then(saved=>{
   if(!saved&&!controller.signal.aborted){
    for(const [key,n] of Object.entries(bag))collectPart(key,n);
@@ -597,8 +640,8 @@ function bankSalvage(victory,wave){
  });
 }
 const fallbackGun={name:'Assault rifle',stats:{d:30,m:30,au:1,rl:1.5,r:.12,sp:.009,pel:1}};
-function armWeapon(weapon,power,element){
- const base=weapon.baseStats||weapon.stats,blueprint=StormwatchCitadel.tune(profile.blueprints[weapon.k]);
+function armWeapon(weapon,power,element,design=profile.blueprints[weapon.k]){
+ const base=weapon.baseStats||weapon.stats,blueprint=StormwatchCitadel.tune(design);
  const research=StormwatchCitadel.fieldResearch(profile);
  const stats={...base,d:base.d*blueprint.boost*(1+(squad.vital.Impact-10)*.005)*(1+.03*research.ordnance),
   m:Math.round(base.m*blueprint.mag),rl:base.rl*blueprint.reload};
@@ -655,6 +698,7 @@ function unlockAudio(){
  audio?.resume().catch(()=>{});
 }
 
+function stormDistance(x,z){return state.mission==='nests'?Math.hypot(x,z):objectiveDistance(x,z)}
 function terrainHeight(x,z){
  const roadClearance=Math.min(Math.abs(x)-4.3,Math.abs(z+1)-3.1);
  if(roadClearance<=0)return 0;
@@ -703,7 +747,7 @@ function createLandscape(){
    }`
  }));
  scene.add(sky);
- const plane=new T.PlaneGeometry(182,182,132,132);
+ const plane=new T.PlaneGeometry(210,210,132,132);
  plane.rotateX(-Math.PI/2);
  const pos=plane.attributes.position, colors=[];
  const tint=new T.Color();
@@ -752,7 +796,7 @@ function createLandscape(){
  const dummy=new T.Object3D(),color=new T.Color();
  for(let i=0;i<blades.count;i++){
   let x,z;
-  do{x=(rand()-.5)*105;z=(rand()-.5)*105}while(Math.abs(x)<4||Math.abs(z+1)<3.7);
+  do{x=(rand()-.5)*BOUND*2;z=(rand()-.5)*BOUND*2}while(Math.abs(x)<4||Math.abs(z+1)<3.7);
   const height=.14+rand()*.37;
   dummy.position.set(x,terrainHeight(x,z)+height*.37,z);dummy.scale.set(.08+rand()*.11,height,.07+rand()*.09);
   dummy.rotation.set(rand()*.26,rand()*TAU,rand()*.3-.15);dummy.updateMatrix();
@@ -843,16 +887,18 @@ function tree(group,size=1,wide=false){
 function shelter(x,z,yaw,variation){
  const y=terrainHeight(x,z),group=groupAt(stage,x,y,z);group.rotation.y=yaw;
  group.updateWorldMatrix(true,false);
- const wall=mat([0x6b6153,0x5e625f,0x775a49][variation%3]),beam=mat(0x453835),roof=mat(0x3c5258);
+ const wall=mat(({timbervale:[0x81684e,0x57765c,0x955b45],ironridge:[0x795948,0x616875,0x956a54],canyonlands:[0xb27a54,0xc88b61,0xa66c52],obsidian:[0x5a656f,0x536475,0x66616c]})[regionId][variation%3]),beam=mat(0x453835),roof=mat(0x3c5258);
  const flooring=mat(0x69574a),windowGlass=mat(0x2a3d3e),width=GRID*2,depth=GRID*2;
  const alongZ=Math.abs(Math.sin(yaw))>.5;
  block(group,flooring,0,-.034,0,width,.10,depth);
  const toWorld=(lx,lz)=>group.localToWorld(vec(lx,0,lz));
+ const building={type:'prop',kind:1,group,x,y,z,top:y+4,height:4,r:width/2,max:26,hp:26,alive:true,yaw,weakIndex:0,chippable:[],walls:[]};
+ props.push(building);
  function panel(lx,lz,w,d){
   const top=2.65,world=toWorld(lx,lz),hx=(alongZ?d:w)*.5,hz=(alongZ?w:d)*.5;
   const cover={type:'cover',alive:true,r:Math.hypot(hx,hz),top:y+top,x:world.x,z:world.z,rect:{x:world.x,z:world.z,hx,hz}};
   const segment=block(group,wall,lx,top/2,lz,w,top,d);
-  registerHit(segment,cover);solidProps.push(cover);
+  registerHit(segment,building);building.walls.push([segment,cover]);solidProps.push(cover);
   return cover;
  }
  const floorMark=toWorld(0,0);
@@ -883,6 +929,21 @@ function shelter(x,z,yaw,variation){
  }
  block(group,beam,0,1.46,-depth*.5+.38,3.36,.15,.58);
  block(group,beam,0,1.53,-depth*.5+.77,3.36,.085,.036);
+ if(zoneKind===1){
+  const floors=1+variation;
+  for(let level=0;level<floors;level++){
+   const h=4.9+level*2.5;
+   const shell=block(group,wall,0,h,0,width*.90,2.5,depth*.9);
+   registerHit(shell,building);building.extraHits||=[];building.extraHits.push(shell);
+   for(const side of [-1,1])for(let bay=-1;bay<=1;bay++)block(group,glass,bay*width*.27,h,side*(depth*.451),width*.17,.95,.04);
+  }
+ }else if(zoneKind===2){
+  for(let row=0;row<4;row++){
+   const crop=groupAt(group,width*.7+row*.84,0,0);
+   block(crop,mat(0x765538),0,.07,0,.58,.15,6);
+   for(let stem=0;stem<6;stem++)mesh(crop,cone,mat(regionId==='obsidian'?0x8aa5ae:0xa7ac58),0,.39,stem-2.5,.29,.75,.29);
+  }
+ }
  const entrance=toWorld(0,depth/2+.9),inside=toWorld(0,depth/2-1.5),chest=toWorld((variation%2?1:-1)*1.8,-1.65);
  shelters.push({x:floorMark.x,z:floorMark.z,y,yaw,entrance,inside,chest});
 }
@@ -950,6 +1011,13 @@ function makeRidge(){
   [16+rand()*6,-16-rand()*7,pick([0,-Math.PI/2])],
   [14+rand()*9,19+rand()*7,pick([Math.PI,-Math.PI/2])]
  ].map(([x,z,yaw])=>[snapTile(x)+GRID/2,snapTile(z)+GRID/2,yaw]);
+ const lots=[8,14,5,2,3][zoneKind];
+ const rotation=rand()*TAU;
+ for(let i=0;i<lots;i++){
+  const a=rotation+i*TAU/lots,r=42+rand()*23;
+  const x=snapTile(Math.cos(a)*r),z=snapTile(Math.sin(a)*r);
+  plans.push([x,z,pick([0,Math.PI/2,Math.PI,-Math.PI/2])]);
+ }
  for(const [x,z] of plans)terrainPads.push({x,z,y:Math.min(.35,terrainHeight(x,z))});
  createLandscape();
  for(const [x,z,yaw] of plans)shelter(x,z,yaw,Math.floor(rand()*3));
@@ -960,21 +1028,21 @@ function makeRidge(){
  ];
   for(const [kind,x,z] of nearby){
   const px=x+(rand()-.5)*1.35,pz=z+(rand()-.5)*1.15;
-  if(!shelters.some(obj=>Math.hypot(px-obj.x,pz-obj.z)<7)&&!solidProps.some(obj=>coverAt(obj,px,pz,2)))makeProp(kind,px,pz);
+  if(objectiveDistance(px,pz)>4&&!shelters.some(obj=>Math.hypot(px-obj.x,pz-obj.z)<7)&&!solidProps.some(obj=>coverAt(obj,px,pz,2)))makeProp(kind,px,pz);
  }
- for(let i=0;i<region.trees;i++){
+ for(let i=0;i<region.trees+[15,8,24,60,12][zoneKind];i++){
   let x,z,attempt=0;
-  do{x=Math.round((rand()-.5)*94);z=Math.round((rand()-.5)*94);attempt++}
+  do{x=Math.round((rand()-.5)*(BOUND*2-6));z=Math.round((rand()-.5)*(BOUND*2-6));attempt++}
   while(attempt<125&&(Math.abs(x)<5||Math.abs(z+1)<4||Math.hypot(x,z)<20||
    portals.some(([px,pz])=>Math.hypot(x-px,z-pz)<6)||shelters.some(p=>Math.hypot(x-p.x,z-p.z)<7)||solidProps.some(p=>coverAt(p,x,z,2.5))));
   if(attempt<125){
-   const kind=rand()<region.woodland?0:regionId==='ironridge'&&i%3===0?2:1;
+   const kind=zoneKind===1&&i%3===0?2:rand()<region.woodland*(zoneKind===4?.45:1)?0:regionId==='ironridge'&&i%3===0?2:1;
    makeProp(kind,x,z);
   }
  }
  const horizonTrees=Math.round(8+region.woodland*17);
  for(let i=0;i<horizonTrees;i++){
-  const angle=i/horizonTrees*TAU+rand()*.13,radius=56+rand()*9;
+  const angle=i/horizonTrees*TAU+rand()*.13,radius=BOUND+5+rand()*9;
   const x=Math.cos(angle)*radius,z=Math.sin(angle)*radius;
   tree(groupAt(stage,x,terrainHeight(x,z)+.4,z),1.05+rand()*.55,i%4===0);
  }
@@ -982,14 +1050,14 @@ function makeRidge(){
 
 let atlasCore,atlasRing,atlasBeacon,atlasModel,atlasBody,atlasHit;
 function makeAtlas(){
- const model=atlasModel=groupAt(stage);
+ const model=atlasModel=groupAt(stage,ox,0,oz);
  const pad=mat(0x374b61,0,.32);
  contactShadow(model,5.8,5.6);
  mesh(model,hex,dark,0,.1,0,2.15,.2,2.15);
  mesh(model,hex,pad,0,.26,0,1.94,.28,1.94);
  mesh(model,hex,steel,0,.65,0,1.18,.7,1.18);
  mesh(model,hex,trim,0,.98,0,.94,.16,.94);
- atlasBody={type:'atlas',x:0,z:0,r:1.91,top:3.65,alive:true};
+ atlasBody={type:'atlas',x:ox,z:oz,r:1.91,top:3.65,alive:true};
  solidProps.push(atlasBody);
  atlasHit=registerHit(mesh(model,cyl,invisible,0,1.65,0,1.53,3.3,1.53,false),atlasBody);
  ring(model,accent,1.79,.029,.397,42);
@@ -1104,11 +1172,11 @@ function addChest(shed,index){
 function availableChest(){
  let closest=null,distance=2.35;
  for(const item of loot){
-  if(item.kind!=='chest'||!item.active||Math.abs(hero.pos.y-item.y)>1.9)continue;
+  if((item.kind!=='chest'&&item.kind!=='weapon')||!item.active||Math.abs(hero.pos.y-item.y)>1.9)continue;
   const range=Math.hypot(hero.pos.x-item.x,hero.pos.z-item.z);
   if(range>=distance)continue;
   if(wallBetween(hero.pos.x,hero.pos.z,item.x,item.z,.025,hero.pos.y+.43))continue;
-  if(solidProps.some(p=>p.type==='cover'&&coverAlong(p,hero.pos.x,hero.pos.z,item.x,item.z,.015)))continue;
+  if(solidProps.some(p=>p.alive&&p.type==='cover'&&coverAlong(p,hero.pos.x,hero.pos.z,item.x,item.z,.015)))continue;
   closest=item;distance=range;
  }
  return closest;
@@ -1120,7 +1188,7 @@ function useChest(){
   chest.opened=true;chest.lid.rotation.x=-1.19;fieldMetrics.caches++;
   hero.stacks=hero.stacks.map((n,i)=>Math.min(999,n+chest.stocks[i]));
   chest.marker.material=accent;chest.flare.material.color.setHex(0x7ddcde);
-  restock(30);collectPart('parts',4);collectPart('cells',1);collectPart('charge',2);
+  restock(30);collectPart('parts',2+Math.floor(rand()*5));collectPart(pick(['quartz','powder','gears','cells']),1+Math.floor(rand()*4));collectPart('charge',2);
   if(chest.reward.k){
    const found={id:chest.reward.k,name:chest.reward.name};
    if(remoteSeat)sendGame('feedback',{discovery:found},remoteSeat.id);else discoveries.set(found.id,found);
@@ -1129,18 +1197,18 @@ function useChest(){
  }else{
   const drop={...chest.reward,power:chest.power,element:chest.element};
   if(remoteSeat)sendGame('feedback',{weapon:drop},remoteSeat.id);else equipLoot(drop);
-  chest.active=false;chest.marker.visible=false;chest.flare.visible=false;
+  chest.active=false;if(chest.kind==='weapon')chest.group.visible=false;chest.marker.visible=false;chest.flare.visible=false;
  }
  sound('pickup');rumble(.18,68);
  return true;
 }
 
-function equipLoot(drop){
+function equipLoot(drop,design){
  const index=currentGun()?hero.weapon:0;
  const old=guns[index],weapon=drop.k&&gear?.canForge(drop.k)?gear.weapon(drop.k):{...fallbackGun,name:drop.name};
  if(old?.model){old.model.visible=false;gear.model.remove(old.model)}
- guns[index]=armWeapon(weapon,drop.power,drop.element);
- repaintWeaponSlot(index);switchWeapon(index);notice('Equipped '+weapon.name+' · P'+drop.power+' '+drop.element);
+ guns[index]=armWeapon(weapon,drop.power,drop.element,design);
+ repaintWeaponSlot(index);switchWeapon(index);
 }
 
 function createHero(){
@@ -1531,7 +1599,7 @@ function planStructure(){
  const mask=engineering.fullMask(type),contacts=engineering.contacts({piece:type,x,z,layer,angle,mask});
  let reason='';
  if(Math.abs(x)>BOUND-half||Math.abs(z)>BOUND-half)reason='Out of bounds';
- else if(state.mission==='payload'&&rectDistance(0,0,rect)<1.65)reason='Keep the landing zone clear';
+ else if(state.mission==='payload'&&rectDistance(ox,oz,rect)<1.65)reason='Keep the landing zone clear';
  else if(terrainHeight(x,z)>y+.48)reason='Uneven ground';
  else if(builds.has(key))reason='Already built';
  else if(type!==0&&[1,2,4].some(piece=>piece!==type&&builds.has(coordinateKey(['wall','floor','ramp','trap','cap'][piece],x,z,layer))))reason='Cell is occupied';
@@ -1775,13 +1843,13 @@ function refreshRoutes(){
  for(let i=0;i<NAV_COUNT;i++){
   const x=navX(i),z=navZ(i);
   navClosed[i]=solidProps.some(p=>p.alive&&coverAt(p,x,z,.39))?1:0;
-  if(!navClosed[i]&&Math.hypot(x,z)<3.7&&!wallBetween(x,z,0,0,.08)){
+  if(!navClosed[i]&&objectiveDistance(x,z)<3.7&&!wallBetween(x,z,ox,oz,.08)){
    distances[i]=0;buckets[0].push(i);
   }
  }
  if(!buckets[0].length){
   for(let i=0;i<NAV_COUNT;i++){
-   if(Math.hypot(navX(i),navZ(i))<3.7&&!navClosed[i]){distances[i]=0;buckets[0].push(i)}
+   if(objectiveDistance(navX(i),navZ(i))<3.7&&!navClosed[i]){distances[i]=0;buckets[0].push(i)}
   }
  }
  const propsForNav=solidProps.filter(p=>p.alive&&p!==atlasBody);
@@ -1824,7 +1892,7 @@ function enemyRoute(enemy){
    if(value<score){score=value;best=[nx,nz]}
   }
  }
- return best||[0,0];
+ return best||[ox,oz];
 }
 function groundPos(){
  const f=-Math.sin(hero.yaw),g=-Math.cos(hero.yaw);
@@ -1893,7 +1961,7 @@ function fieldFeedback(dt){
  strideSound-=dt;
  if(moving&&strideSound<=0){strideSound=hero.sprint?.26:.39;sound('step')}
  if(ambient&&audio?.state==='running'){
-  const near=clamp((Math.hypot(hero.pos.x,hero.pos.z)-state.stormRadius+13)/13,0,1);
+  const near=clamp((stormDistance(hero.pos.x,hero.pos.z)-state.stormRadius+13)/13,0,1);
   ambient.gain.gain.setTargetAtTime(.006+.02*near+.009*Number(state.phase==='active'),audio.currentTime,.37);
   ambient.filter.frequency.setTargetAtTime(158+near*280,audio.currentTime,.32);
  }
@@ -2139,7 +2207,7 @@ function animateDebris(dt){
 function breakProp(prop,hit,replay=false){
  if(!replay)fieldMetrics.breaks++;
  prop.alive=false;
- removeTarget(shotProps,prop.hitbox);
+ if(prop.walls){for(const target of prop.extraHits||[])removeTarget(shotProps,target);for(const [wall,cover] of prop.walls){removeTarget(shotProps,wall);cover.alive=false}}else removeTarget(shotProps,prop.hitbox);
  obstaclesDirty=true;
  if(prop.kind===0){
   const heading=vec(prop.x-hero.pos.x,0,prop.z-hero.pos.z).normalize();
@@ -2174,8 +2242,7 @@ function damageProp(prop,amount,hit){
  sound('chip');
  if(prop.hp<=0){
   breakProp(prop,hit);
-  notice('+'+(bonus+reward)+' '+materials[prop.kind].name);
- }else{
+  }else{
   const part=prop.chippable.shift();
   if(part){
    breakPart(part,hit,amount>1?2.8:1.8);prop.group.remove(part);
@@ -2207,12 +2274,19 @@ function reload(){
  if(state.building||!gun||gun===hero.tempGun||hero.reload>0||gun.mag===gun.stats.m||gun.reserve===0)return;
  hero.reload=gun.stats.rl;sound('build');
 }
+function dropSupplies(){
+ if(guest){coopAction('drop-stock');return}
+ if(hero.stacks.some(n=>n<10)){notice('Bundle needs 10 of each building material');return}
+ const spot=safeFieldPoint(hero.pos.x+2.8*Math.sin(hero.yaw),hero.pos.z+2.8*Math.cos(hero.yaw),.5);
+ if(!spot||loot.some(item=>item.active&&item.kind==='bundle'&&Math.hypot(item.x-spot.x,item.z-spot.z)<2))return;
+ hero.stacks=hero.stacks.map(n=>n-10);addCache(spot.x,spot.z,'bundle');
+}
 function craftAmmo(){
  if(guest){coopAction('craft');return}
  if(hero.stacks[1]<6||hero.stacks[2]<4){notice('Ammo: 6 Stone + 4 Metal');return}
  if(guns.every(gun=>gun.reserve>=360)){notice('Reserve is full');return}
  hero.stacks[1]-=6;hero.stacks[2]-=4;restock(60);
- notice('Ammo crafted');sound('pickup');
+ sound('pickup');
 }
 function switchWeapon(index=(hero.weapon+1)%(guns.length+1)){
  if(hero.tempGun){
@@ -2239,6 +2313,10 @@ function advancePickaxe(dt){
 function axeImpact(){
  const origin=vec(hero.pos.x,hero.pos.y+1.16,hero.pos.z);
  const aimedNest=aimed?.object.userData.entity;
+ if(aimedNest?.walls&&aimedNest.alive&&origin.distanceTo(aimed.point)<3.25){
+  if(guest)coopAction('fire',{axe:true,aim:packVector(aimed.point)});else damageProp(aimedNest,2,aimed.point);
+  return;
+ }
  if(aimedNest?.type==='nest'&&origin.distanceTo(aimed.point)<3.25){
   if(guest)coopAction('fire',{axe:true,aim:packVector(aimed.point)});
   else hurtNest(aimedNest,67,aimed.point);return;
@@ -2263,7 +2341,7 @@ function axeImpact(){
  if(target.type==='prop'){
   const weak=isWeakHit(target),impact=weak?weakMark.position.clone():aimed?.object.userData.entity===target?aimed.point:point;
   damageProp(target,weak?4:2,impact);
-  if(weak){state.hit=.23;notice('Weak point');sound('hit')}
+  if(weak){state.hit=.23;sound('hit')}
  }
  else {hurtEnemy(target,67,point);sound('hit')}
  rumble(.19,62);
@@ -2435,14 +2513,19 @@ function editPad(edge){
 function fortify(){
  if(guest){coopAction('repair',{aim:packVector(aimPoint)});return}
  const item=aimed?.object.userData.entity;
- if(item?.type==='atlas'&&hero.pos.length()<8.5&&['prep','fuel','payload'].includes(state.phase)){
+ if(item?.type==='atlas'&&objectiveDistance(hero.pos.x,hero.pos.z)<8.5&&['prep','fuel','payload'].includes(state.phase)){
   const max=state.mission==='payload'?PAYLOAD_HP:ATLAS_HP;
   if(state.atlas===max){notice('Integrity is full');return}
   if(!hero.repairs||hero.stacks[2]<12){notice(hero.repairs?'Repair needs 12 Alloy':'Repair kits used');return}
   hero.repairs--;hero.stacks[2]-=12;state.atlas=Math.min(max,state.atlas+215);
-  notice('Objective repaired · '+hero.repairs+' kits left');sound('build');return;
+  sound('build');return;
  }
  if(item?.type!=='structure'||aimed.distance>12||item.construction>0){notice('Aim at a completed structure');return}
+ if(item.piece===3&&item.life<Math.round(item.recipe.charges*item.calibration.mag)){
+  if(hero.stacks[2]<4){notice('Trap refill needs 4 Alloy');return}
+  hero.stacks[2]-=4;item.life=Math.min(Math.round(item.recipe.charges*item.calibration.mag),item.life+4);
+  sound('build');return;
+ }
  const index=materials.indexOf(item.material);
  const upgrade=item.hp>=item.max&&item.piece!==3&&item.rank<3;
  if(item.hp>=item.max&&!upgrade){notice('Already at full strength');return}
@@ -2455,7 +2538,7 @@ function fortify(){
   rebuildStructure(item);
  }
  item.hp=item.max;
- notice(upgrade?'Rank '+item.rank+' · '+item.max+' HP':'Structure repaired');sound('build');
+ sound('build');
 }
 const abilityTables={
  Vanguard:[['Cluster Grenade',17],['Rotary Minigun',32],['Battle Shout',26],['Concussion Blast',24]],
@@ -2667,7 +2750,7 @@ function updateGadgets(dt){
    if(gadget.next<=0)gadget.next=1;
   }else if(gadget.next<=0&&gadget.kind==='turret'){
    const target=unitCandidates(at,12).find(e=>!wallBetween(at.x,at.z,e.x,e.z,.035,at.y)&&
-    !solidProps.some(p=>p.type==='cover'&&coverAlong(p,at.x,at.z,e.x,e.z,.04)));
+    !solidProps.some(p=>p.alive&&p.type==='cover'&&coverAlong(p,at.x,at.z,e.x,e.z,.04)));
    if(!target)continue;
    gadget.next=.28;
    gadget.group.rotation.y=Math.atan2(target.x-at.x,target.z-at.z);
@@ -2752,7 +2835,7 @@ function blast(origin,force,radius,element,source=null){
   const d=origin.distanceTo(enemyPoint(enemy,.55));
   if(d<radius)hurtEnemy(enemy,force*.92*(1-d/radius)*engineering.damageFactor(element,enemy.element),enemyPoint(enemy,.63));
  }
- const atlas=origin.distanceTo(vec(0,1.25,0));
+ const atlas=origin.distanceTo(vec(ox,1.25,oz));
  if(atlas<radius+1.1)hurtAtlas(force*(1-atlas/(radius+1.1)));
  const player=origin.distanceTo(hero.pos.clone().add(vec(0,1.1,0)));
  if(player<radius)hurtHero(force*.95*(1-player/radius));
@@ -2769,10 +2852,10 @@ function detonateHollow(enemy){
 }
 function castArtillery(enemy){
  const origin=enemyPoint(enemy,1.35);
- const roofs=[...builds.values()].filter(item=>item.piece!==3&&item.layer>=1&&Math.hypot(item.x,item.z)<7.8);
+ const roofs=[...builds.values()].filter(item=>item.piece!==3&&item.layer>=1&&objectiveDistance(item.x,item.z)<7.8);
  roofs.sort((a,b)=>b.y-a.y);
  const roof=roofs[0];
- const end=roof?vec(roof.x,roof.y+.2,roof.z):vec(0,1.65,0);
+ const end=roof?vec(roof.x,roof.y+.2,roof.z):vec(ox,1.65,oz);
  const air=Math.max(1.5,Math.min(2.8,origin.distanceTo(end)/10));
  const velocity=end.clone().sub(origin).multiplyScalar(1/air);
  velocity.y+=8.75*air;
@@ -2780,9 +2863,9 @@ function castArtillery(enemy){
  shell.source=enemy;shell.target=end;shell.arc=air;
 }
 function tossShambler(catapult,shambler){
- const distance=Math.hypot(shambler.x,shambler.z),length=Math.max(distance,.01),flight=1.18+distance*.027;
+ const distance=objectiveDistance(shambler.x,shambler.z),length=Math.max(distance,.01),flight=1.18+distance*.027;
  const from=vec(shambler.x,terrainHeight(shambler.x,shambler.z),shambler.z);
- const end=vec(shambler.x/length*2.42,0,shambler.z/length*2.42);
+ const end=vec(ox+(shambler.x-ox)/length*2.42,0,oz+(shambler.z-oz)/length*2.42);
  shambler.hurl={from,end,flight,t:0};
  shambler.hitIn=Math.max(shambler.hitIn,flight+.40);
  catapult.hitIn=8.3;
@@ -2794,7 +2877,7 @@ function castBolt(enemy,target,focus=hero.pos){
  const group=groupAt(scene,start.x,start.y,start.z);
  mesh(group,gem,mat(0xb3ff9d,0x80ea7c),0,0,0,.145,.17,.145,false);
  const flare=glow(group,0xb2ffb3,0,0,0,1.24,1.24,.55);
- const direction=target==='hero'?vec(focus.x,focus.y+1.04,focus.z):vec(0,1.48,0);
+ const direction=target==='hero'?vec(focus.x,focus.y+1.04,focus.z):vec(ox,1.48,oz);
  direction.sub(start).normalize().multiplyScalar(9.8);
  bolts.push({group,flare,v:direction,life:2.65,damage:enemyDamage(enemy),element:enemy.element});
 }
@@ -2806,11 +2889,11 @@ function moveBolts(dt){
   let hit=false;
   const mate=coop&&[...mates.values()].find(m=>m.ready&&m.vitals.hp>0&&pos.y>m.target.y&&pos.y<m.target.y+1.82&&Math.hypot(tx-m.target.x,tz-m.target.z)<.5);
   if(wall){hurtStructure(wall,bolt.damage*engineering.structureFactor(bolt.element,wall.material.id));hit=true}
-  else if(solidProps.some(p=>p.type==='cover'&&pos.y<p.top&&coverAt(p,tx,tz,.06)))hit=true;
+  else if(solidProps.some(p=>p.alive&&p.type==='cover'&&pos.y<p.top&&coverAt(p,tx,tz,.06)))hit=true;
   else if(mate){damageMate(mate,bolt.damage);hit=true}
   else if(hero.hp>0&&pos.y>hero.pos.y&&pos.y<hero.pos.y+1.82&&Math.hypot(tx-hero.pos.x,tz-hero.pos.z)<.48){
    hurtHero(bolt.damage);hit=true;
-  }else if(atlasBody.alive&&pos.y>0&&pos.y<atlasBody.top&&Math.hypot(tx,tz)<1.7){
+  }else if(atlasBody.alive&&pos.y>0&&pos.y<atlasBody.top&&objectiveDistance(tx,tz)<1.7){
    hurtAtlas(bolt.damage);hit=true;
   }
   if(hit||bolt.life<=0||pos.y<0){
@@ -2845,27 +2928,26 @@ function activePickups(dt){
   if(!item.active)continue;
   item.marker.rotation.y+=dt*1.6;
   item.marker.position.y=1.36+Math.sin(state.elapsed*3+item.x)*.21;
-  if(guest||hero.hp<=0||item.kind==='chest')continue;
+  if(guest||hero.hp<=0||(item.kind==='chest'||item.kind==='weapon'))continue;
   if(Math.abs(hero.pos.y-item.y)>1.9||Math.hypot(hero.pos.x-item.x,hero.pos.z-item.z)>1.74||
     wallBetween(hero.pos.x,hero.pos.z,item.x,item.z,.02,hero.pos.y+.42))continue;
   item.active=false;stage.remove(item.group);item.flare.material.dispose();
-  if(item.kind==='flux'){
+  if(item.kind==='bundle'){hero.stacks=hero.stacks.map(n=>Math.min(999,n+10))}
+  else if(item.kind==='flux'){
    state.flux++;
    if(state.mission==='defense'){
     if(state.flux===2)state.phase='prep';
-    notice(state.flux===2?'Relay powered · Fortify the marked front':'Power cell recovered · 1 / 2');
-   }else notice(state.flux===3?'Return to the Rift Anchor':state.flux+' / 3 Flux Crystals');
+    if(state.flux===2)notice('Relay powered · Fortify the marked front');
+   }else if(state.mission==='seal'&&state.flux===3)notice('Return to the Rift Anchor');
   }else if(item.kind==='cache'){
    hero.cache++;fieldMetrics.caches++;
    hero.stacks=hero.stacks.map((n,i)=>Math.min(999,n+[20,15,10][i]));
    restock(36);
-   notice(hero.cache===3?'Salvage sweep complete · Bonus XP on next clear':'Supply cache recovered · '+hero.cache+'/3');
   }else{
    fieldMetrics.caches++;
    hero.stacks=hero.stacks.map((n,i)=>Math.min(999,n+[30,20,15][i]));
    restock(90);
    hero.hp=Math.min(hero.maxhp,hero.hp+38);hero.shield=Math.min(hero.maxShield,hero.shield+28);
-   notice('Airdrop collected · Ammo, materials and healing');
   }
   sound('pickup');
  }
@@ -2873,8 +2955,18 @@ function activePickups(dt){
 const trapFields=[];
 function trapVisual(item){
  const {group,recipe}=item,mount=recipe.mount;
- const color={Kinetic:0xb8afb0,Aether:0xbd87df,Scorch:0xef9054,Volt:0x74d9ee}[recipe.element];
+ const color={Kinetic:0xb8afb0,Aether:0xbd87df,Scorch:0xef9054,Volt:0x74d9ee,Frost:0x9ceaff}[recipe.element];
  const shell=mat(0x334b55,0,.3),hot=mat(color,color,.18),side=GRID*.69;
+ if(recipe.id==='rime'){
+  const base=block(group,shell,0,0,0,1.5,.18,1.5);
+  for(let i=0;i<6;i++)mesh(group,gem,hot,.55*Math.cos(i*TAU/6),-.38,.55*Math.sin(i*TAU/6),.15,.57,.15);
+  return [base];
+ }
+ if(recipe.id==='winch'){
+  const base=block(group,shell,0,0,0,1.7,1,.22);
+  const spool=mesh(group,cyl,hot,0,0,.38,.37,1.2,.37);spool.rotation.z=Math.PI/2;
+  return [base];
+ }
  if(mount==='wall'){
   const base=block(group,shell,0,0,.035,side,GRID*.52,.16);
   for(const s of [-1,1])block(group,hot,s*side*.31,0,.14,.09,GRID*.36,.08);
@@ -2981,9 +3073,16 @@ function trapTargets(item){
 }
 function fireTrap(item,targets){
  const {recipe}=item,head=vec(item.x,item.y,item.z),f=vec(Math.sin(item.angle),0,Math.cos(item.angle));
- const effectColor={Kinetic:0xffd4a0,Aether:0xbf89eb,Scorch:0xff8a50,Volt:0x78d9ff}[recipe.element];
+ const effectColor={Kinetic:0xffd4a0,Aether:0xbf89eb,Scorch:0xff8a50,Volt:0x78d9ff,Frost:0x9ceaff}[recipe.element];
  const primary=targets[0];
  switch(recipe.id){
+  case 'rime':
+   for(const e of targets){trapLine(head,enemyPoint(e),effectColor);e.snare=Math.max(e.snare,3.5);trapDamage(e,42,recipe.element,item)}
+   break;
+  case 'winch':
+   trapLine(head,enemyPoint(primary),effectColor);
+   knockHollow(primary,-f.x,-f.z,70,.48);trapDamage(primary,58,recipe.element,item);
+   break;
   case 'spikes':
    for(const e of targets){e.snare=Math.max(e.snare,2.8);trapDamage(e,49,recipe.element,item)}
    break;
@@ -3182,7 +3281,7 @@ function strike(enemy,target,wall,mate){
 function chaseDecoy(enemy,dt){
  const decoy=gadgets.find(g=>g.kind==='decoy'&&g.hp>0&&Math.hypot(g.x-enemy.x,g.z-enemy.z)<11&&
   !wallBetween(enemy.x,enemy.z,g.x,g.z,.05,.68)&&
-  !solidProps.some(p=>p.type==='cover'&&coverAlong(p,enemy.x,enemy.z,g.x,g.z,.05)));
+  !solidProps.some(p=>p.alive&&p.type==='cover'&&coverAlong(p,enemy.x,enemy.z,g.x,g.z,.05)));
  if(!decoy)return null;
  const dx=decoy.x-enemy.x,dz=decoy.z-enemy.z,distance=Math.hypot(dx,dz);
  enemy.yaw=Math.atan2(-dx,-dz);
@@ -3199,16 +3298,16 @@ function seek(enemy,dt){
  const nearest=coop?closestPlayer(x,z):{pos:hero.pos,mate:null};
  const focus=nearest?.pos||hero.pos,mate=nearest?.mate;
  const concealed=gadgets.some(g=>g.kind==='smoke'&&Math.hypot(g.x-focus.x,g.z-focus.z)<3.55);
- const toHero=Math.hypot(x-focus.x,z-focus.z),toAtlas=Math.hypot(x,z);
+ const toHero=Math.hypot(x-focus.x,z-focus.z),toAtlas=objectiveDistance(x,z);
  const phasing=enemy.kind==='phantasm';
  const sight=phasing||(!wallBetween(x,z,focus.x,focus.z,.12,.76)&&
-  !solidProps.some(p=>p.type==='cover'&&coverAlong(p,x,z,focus.x,focus.z,.06)));
+  !solidProps.some(p=>p.alive&&p.type==='cover'&&coverAlong(p,x,z,focus.x,focus.z,.06)));
  const alert=({runner:7.5,spitter:12.2,beam:17,phantasm:10,juggernaut:9})[enemy.kind]||4.7;
  const hunt=enemy.hunt===true;
  const focusHero=!!nearest&&(hunt||(!concealed&&sight&&toHero<alert&&(phasing||focus.y-terrainHeight(focus.x,focus.z)<1.3)));
- const lineToAtlas=!phasing&&wallBetween(x,z,0,0,.1,.84);
+ const lineToAtlas=!phasing&&wallBetween(x,z,ox,oz,.1,.84);
  const target=focusHero?'hero':'atlas';
- let tx=focusHero?focus.x:0,tz=focusHero?focus.z:0;
+ let tx=focusHero?focus.x:ox,tz=focusHero?focus.z:oz;
  if(!hunt&&enemy.kind==='mortar'&&toAtlas<24&&toAtlas>4.5){
   enemy.yaw=Math.atan2(x,z);
   if(enemy.hitIn<=0){enemy.hitIn=5.3;enemy.recoil=.29;castArtillery(enemy)}
@@ -3347,6 +3446,9 @@ function startWave(){
  state.wave++;state.waveTime=0;state.phase='arming';state.prep=ASSAULT_WARNING;
  const wave=waves[state.wave-1];
  assaultQueue=operations.assaultGroups(wave,plannedFronts(),seats);
+ for(let i=0;i<(state.outpostTier||0);i++){
+  assaultQueue.push({lane:plannedFronts()[i%plannedFronts().length],units:[i%2?'brute':'runner','husk']});
+ }
  assaultGroup=assaultUnit=0;
  state.pending=assaultQueue.reduce((sum,group)=>sum+group.units.length,0);state.spawnIn=.12;
  notice(wave.name+' · '+plannedFronts().map(lane=>frontNames[lane]).join(' / '));
@@ -3368,7 +3470,6 @@ function clearWave(){
  if(bonus)state.allClear=true;
  awardWave(bonus);
  bankSalvage(false,true);
- if(!embedded)notice('Wave '+state.wave+' cleared');
  portalFx.forEach(portal=>{portal.active=false});
  for(const bolt of bolts){
   scene.remove(bolt.group);bolt.flare.material.dispose();
@@ -3399,7 +3500,7 @@ function safeFieldPoint(x,z,clearance){
  for(let i=0;i<33;i++){
   const theta=i*2.39996,offset=i?Math.sqrt(i)*.98:0;
   const a=x+Math.cos(theta)*offset,b=z+Math.sin(theta)*offset;
-  if(Math.hypot(a,b)<47&&!solidProps.some(prop=>prop.alive&&coverAt(prop,a,b,clearance)))return vec(a,terrainHeight(a,b),b);
+  if(Math.abs(a)<BOUND-4&&Math.abs(b)<BOUND-4&&!solidProps.some(prop=>prop.alive&&coverAt(prop,a,b,clearance)))return vec(a,terrainHeight(a,b),b);
  }
  return null;
 }
@@ -3409,7 +3510,7 @@ function nestSites(){
  const fallback=[[-33,-1],[0,-31],[32,-1],[0,35],[-29,25],[26,-27]];
  plannedNests=[];
  for(let i=0;i<nestCrews.length;i++){
-  const angle=twist+i*TAU/nestCrews.length,radius=23+((mapSeed>>>(i*5))&15)*.66;
+  const angle=twist+i*TAU/nestCrews.length,radius=24+((mapSeed>>>(i*5))&31)*1.25;
   const candidate=safeFieldPoint(Math.cos(angle)*radius,Math.sin(angle)*radius,2.6);
   const far=site=>site&&plannedNests.every(other=>other.distanceTo(site)>12);
   const site=far(candidate)?candidate:fallback.map(([x,z])=>safeFieldPoint(x,z,2.6)).find(far);
@@ -3443,7 +3544,7 @@ function availableNest(){
  return nests.find(nest=>nest.active&&Math.abs(hero.pos.y-nest.y)<2.25&&
   Math.hypot(nest.x-hero.pos.x,nest.z-hero.pos.z)<3.35&&
   !wallBetween(hero.pos.x,hero.pos.z,nest.x,nest.z,.05,nest.y+1)&&
-  !solidProps.some(prop=>prop.type==='cover'&&coverAlong(prop,hero.pos.x,hero.pos.z,nest.x,nest.z,.05)));
+  !solidProps.some(prop=>prop.alive&&p.type==='cover'&&coverAlong(prop,hero.pos.x,hero.pos.z,nest.x,nest.z,.05)));
 }
 function scanNest(nest){
  state.nest=nest;state.wave=state.nestsCleared+1;
@@ -3451,23 +3552,40 @@ function scanNest(nest){
  notice('Guardians incoming');sound('wave','Guardians incoming');
 }
 function missionInteraction(){
- if(hero.hp<=0||Math.hypot(hero.pos.x,hero.pos.z)>4.8||Math.abs(hero.pos.y)>2.25)return '';
+ if(hero.hp<=0||objectiveDistance(hero.pos.x,hero.pos.z)>4.8||Math.abs(hero.pos.y)>2.25)return '';
+ if(state.phase==='drop'&&!state.overclock&&state.flux>0)return 'Overclock landing beacon · 1 Flux · stronger assault · +6 Cells on victory';
+ if(state.phase==='payload'&&state.flux>0&&state.podFuel<=80)return 'Feed pod · 1 Flux';
  if(state.mission==='defense'&&state.phase==='prep')return 'Launch assault '+(state.wave+1);
  if(state.mission==='seal'&&state.phase==='fuel'&&state.flux===3)return 'Activate Rift Anchor';
  return '';
+}
+function searchableWreck(){
+ return props.find(p=>p.kind===2&&p.alive&&!p.searched&&Math.abs(hero.pos.y-p.y)<2&&Math.hypot(p.x-hero.pos.x,p.z-hero.pos.z)<2.9);
 }
 function interactField(){
  if(hero.hp<=0)return false;
  if(guest){
   const teammate=[...mates.values()].some(m=>m.ready&&m.down&&m.target.distanceTo(hero.pos)<2.65);
-  if(teammate||availableNest()||availableChest()){coopAction('interact');return true}
+  if(teammate||availableNest()||availableChest()||searchableWreck()||(state.phase==='payload'&&missionInteraction())){coopAction('interact');return true}
   return false;
  }
  if(coop&&reviveMate())return true;
  const nest=availableNest();
  if(nest){scanNest(nest);return true}
  if(useChest())return true;
- if(!missionInteraction()||remoteSeat||coop&&!coopStarted)return false;
+ const wreck=searchableWreck();
+ if(wreck){
+  wreck.searched=true;fieldMetrics.caches++;
+  collectPart(pick(['parts','gears','powder','charge']),2+Math.floor(rand()*5));sound('pickup');return true;
+ }
+
+ if(!missionInteraction()||coop&&!coopStarted)return false;
+ if(state.phase==='drop'&&!remoteSeat){state.flux--;state.overclock=true;sound('build');return true}
+ if(state.phase==='payload'){
+  state.flux--;state.podFuel=Math.min(100,state.podFuel+44);
+  addSparks(vec(0,1,0),0x98e9d3,22,5);sound('build');return true;
+ }
+ if(remoteSeat)return false;
  if(state.mission==='defense')startWave();
  else{
   state.phase='seal';state.wave=1;state.spawnIn=.35;
@@ -3527,16 +3645,18 @@ function nestTick(dt,realTime){
 }
 function preparePayload(){
  turnOffAtlas();
- state.phase='drop';state.atlas=PAYLOAD_HP;state.prep=PAYLOAD_PREP;
+ state.phase='drop';state.podFuel=70;state.flux=0;state.overclock=false;
+ if(!guest)addFluxCrystals();
+ state.atlas=PAYLOAD_HP;state.prep=PAYLOAD_PREP;
  text(ui['atlas-name'],'Recovery pod');
  ui['atlas-meter'].setAttribute('aria-label','Recovery pod integrity');
- const pad=groupAt(stage);
+ const pad=groupAt(stage,ox,0,oz);
  ring(pad,mat(0xe7b98b,0x866341),2.33,.039,.06);
  for(let i=0;i<4;i++){
   const flag=groupAt(pad);flag.rotation.y=i*TAU/4;
   block(flag,orange,0,.02,2.31,.44,.035,.65);
  }
- pod=groupAt(stage,0,22,0);
+ pod=groupAt(stage,ox,22,oz);
  pod.visible=false;
  mesh(pod,hex,steel,0,.32,0,1.08,.56,1.08);
  mesh(pod,hex,mat(0x826246,0,.44),0,.96,0,.97,1.08,.97);
@@ -3566,8 +3686,13 @@ function payloadTick(dt,realTime){
   if(!state.prep)landPayload();
   return;
  }
- state.siege=Math.min(PAYLOAD_DURATION,state.siege+realTime);
- state.stormRadius=lerp(49.7,14.5,state.siege/PAYLOAD_DURATION);
+ state.podFuel=Math.max(0,state.podFuel-realTime*.85);
+ if(state.podFuel>0)state.siege=Math.min(PAYLOAD_DURATION,state.siege+realTime);
+ else{
+  state.atlas=Math.max(0,state.atlas-realTime*7);
+  if(state.atlas<=0){finish(false,'The recovery pod lost power');return}
+ }
+ state.stormRadius=lerp(10,49.7,state.podFuel/100);
  state.spawnIn-=dt;
  if(state.spawnIn<=0&&enemies.reduce((n,e)=>n+Number(e.active),0)<23){
   const wave=waves[state.wave-1],angle=rand()*TAU,radius=Math.max(18,state.stormRadius*.80);
@@ -3576,7 +3701,7 @@ function payloadTick(dt,realTime){
    makeHusk(pick(wave.units),site.x,site.z);
    addSparks(site.clone().add(vec(0,1.2,0)),0xc188ee,10,4.2);
   }
-  state.spawnIn=Math.max(.86,2.12-state.wave*.20);
+  state.spawnIn=Math.max(.86,2.12-state.wave*.20)*(state.overclock?.72:1);
  }
  trapTick(dt);updateHusks(dt);
  if(state.finished)return;
@@ -3641,6 +3766,7 @@ function waveTick(dt,realTime=dt){
 }
 function animateWorld(dt){
  riftDome.material.uniforms.uTime.value=state.elapsed;
+ riftDome.position.set(state.mission==='nests'?0:ox,0,state.mission==='nests'?0:oz);
  const rim=state.stormRadius/49.7;
  riftDome.scale.set(rim,Math.max(.48,rim),rim);
  riftDome.material.uniforms.uPressure.value=['active','seal','payload','hunt'].includes(state.phase)?.26+state.wave*.086:.08;
@@ -3741,8 +3867,9 @@ function pollController(dt){
     control.dispatchEvent(new Event('change',{bubbles:true,composed:true}));
     return padResult();
    }
-   const index=available.indexOf(control);
-   if(available.length)available[(index+move+available.length)%available.length].focus({preventScroll:true});
+   const x=edge(14)?-1:edge(15)?1:!edge(12)&&!edge(13)&&Math.abs(side)>.48?Math.sign(side):0;
+   const next=StormwatchHub.directionalControl(available,control,x,x?0:move);
+   if(next){next.focus({preventScroll:true});next.scrollIntoView({block:'nearest',inline:'nearest'})}
   }
   if(edge(confirm)){
    const current=fieldFocus(),action=current?.dataset.action;
@@ -3818,6 +3945,12 @@ function deploy(lock){
  }
  if(!state.deployed){
   state.deployed=true;state.started=Date.now();
+  if(coop){
+   const seat=Math.max(1,[...coop.names.keys()].indexOf(coop.id));
+   const x=coop.host?-4.5:2.9,z=coop.host?11:10+2*seat;
+   const spawn=safeFieldPoint(x,z,.7);
+   if(spawn)hero.pos.copy(spawn);
+  }
   const alert=operations.dailyAlert(operations.windows(state.started).day);
   if(state.alertRequested&&alert.mission===state.mission)state.modifier=alert;
   if(state.mission==='nests')prepareNests();
@@ -3829,6 +3962,14 @@ function deploy(lock){
   }
   if(state.mission==='defense'&&!guest)addFluxCrystals();
   profile=savedProfile;squad=StormwatchCitadel.rating(profile);
+  if(state.mission==='defense'&&!guest){
+   const fort=profile.outposts?.[regionId];
+   state.outpostTier=Math.min(5,profile.outpostWins?.[regionId]||0);
+   if(fort?.seed===mapSeed){
+    for(const index of (fort.layoutVersion===2?fort.cleared:[])){const prop=props[index];if(prop?.alive){prop.hp=0;breakProp(prop,vec(prop.x,prop.y,prop.z),true)}}
+    syncBuilds(fort.rows);
+   }
+  }
   const resilience=StormwatchCitadel.fieldResearch(profile).resilience;
   hero.maxhp=100+(squad.vital.Vitality-10)*2+6*resilience;
   hero.maxShield=60+Math.round((squad.vital.Toughness-10)*1.3)+3*resilience;
@@ -3860,8 +4001,9 @@ function menuAction(action,lock){
   unmountCitadel?.();unmountCitadel=null;
   showScreen('brief');
  }
+ if(action==='drop-stock'){dropSupplies();fillPack()}
  if(action==='craft'){craftAmmo();fillPack()}
- if(action==='fabricate')fabricateWeapon(lock);
+ if(action==='fabricate'||action==='field-crate')fabricateWeapon(lock,action==='field-crate');
  if(action==='traps'){selectPiece(3);deploy(lock)}
  if(action==='retry'){if(options.leave)options.leave('retry',{region:regionId,mission:state.mission,alert:state.alertRequested});else location.reload()}
  if(action==='help'){
@@ -3875,7 +4017,7 @@ function menuAction(action,lock){
   if(!panel.hidden)panel.querySelector('input').focus();
  }
 }
-for(const button of [ui.deploy,ui.retry,ui.pass,ui.help,ui.craft,ui.fabricate,ui.traps,ui.citadel,ui['citadel-back'],ui['field-audio']]){
+for(const button of [ui.deploy,ui.retry,ui.pass,ui.help,ui.craft,ui['drop-stock'],ui['field-crate'],ui.fabricate,ui.traps,ui.citadel,ui['citadel-back'],ui['field-audio']]){
  button.onclick=event=>menuAction(button.dataset.action,event.detail>0||state.look!=='pad');
 }
 function focusedButton(){
@@ -3924,29 +4066,57 @@ function updateFabricator(){
  ui.fabricate.disabled=!available.length||Object.entries(fabricationBag).some(([key,n])=>fieldBag[key]<n)||
   fabricationStocks.some((n,i)=>hero.stacks[i]<n);
 }
-function fabricateWeapon(lock){
+function weaponCrate(key,x,z,power,element){
+ if(!guest)while(loot.some(l=>l.kind==='weapon'&&l.active&&Math.hypot(l.x-x,l.z-z)<.07))x+=.16;
+ addCache(x,z,'weapon');
+ const item=loot.at(-1);
+ Object.assign(item,{opened:true,reward:{k:key,name:profile.blueprints[key]?.name||key},power,element});
+}
+function fabricateWeapon(lock,drop=false){
  const key=fabricationPicker.value;
  if(state.screen!=='pack'||ui.fabricate.disabled||!fabricateChoices().some(([id])=>id===key))return;
  if(Object.entries(fabricationBag).some(([id,n])=>fieldBag[id]<n)||fabricationStocks.some((n,i)=>hero.stacks[i]<n))return;
- if(guest){coopAction('fabricate',{key});deploy(lock);return}
- const weapon=gear.weapon(key);
+ if(guest){coopAction('fabricate',{key,drop});deploy(lock);return}
  for(const [id,n] of Object.entries(fabricationBag))fieldBag[id]-=n;
  hero.stacks=hero.stacks.map((n,i)=>n-fabricationStocks[i]);
+ if(drop){
+  const design=StormwatchCitadel.tune(profile.blueprints[key]);
+  weaponCrate(key,hero.pos.x,hero.pos.z,Math.max(region.floor,Math.round(design.power)),design.element||'Kinetic');
+  deploy(lock);return;
+ }
+ const weapon=gear.weapon(key);
  const index=guns[hero.weapon]?hero.weapon:0;
  guns[index].model?.parent?.remove(guns[index].model);
  guns[index]=armWeapon(weapon,Math.max(12,region.floor));
  repaintWeaponSlot(index);switchWeapon(index);
- deploy(lock);notice('Fabricated '+weapon.name);sound('pickup');
+ deploy(lock);sound('pickup');
 }
 function fillPack(){
  updateTrapPicker();
  updateFabricator();
- text(ui['pack-stock'],materials.map((m,i)=>m.name+' '+hero.stacks[i]).join('   /   '));
+ const salvage=Object.entries(fieldBag).filter(([,n])=>n>0).map(([id,n])=>n+' '+StormwatchCitadel.components[id]);
+ text(ui['pack-stock'],[materials.map((m,i)=>m.name+' '+hero.stacks[i]).join(' / '),...salvage].join(' · '));
  ui['pack-weapons'].replaceChildren(...guns.map(gun=>{
   const item=document.createElement('div'),name=document.createElement('b'),ammo=document.createElement('small');
   item.className='pack-item';name.textContent=gun.name+' · P'+gun.power+' '+gun.element;ammo.textContent=gun.mag+' / '+gun.reserve;
   item.append(name,ammo);return item;
  }));
+ ui['field-crate'].disabled=ui.fabricate.disabled;
+ ui['field-crate'].hidden=ui.fabricate.hidden;
+ ui['drop-stock'].disabled=hero.stacks.some(n=>n<10);
+ for(const item of citadel?.snapshot()?.backpack||[]){
+  if(!gear?.canForge(item.key))continue;
+  const button=document.createElement('button');
+  button.textContent='Equip '+item.design.name+' · Lv '+item.design.level+' · Tier '+item.design.tier;
+  button.onclick=async()=>{
+   button.disabled=true;
+   if(await citadel.dispatch({type:'unpack-weapon',serial:item.serial})){
+    equipLoot({k:item.key,name:item.design.name,power:StormwatchCitadel.tune(item.design).power},item.design);
+   }
+   if(!controller.signal.aborted)fillPack();
+  };
+  ui['pack-weapons'].append(button);
+ }
  ui.craft.disabled=hero.stacks[1]<6||hero.stacks[2]<4||guns.every(gun=>gun.reserve>=360);
 }
 const regionPicker=ui['region-picker'];
@@ -3973,7 +4143,7 @@ const boardCopy={
  defense:['5 waves','M5 16h10v11H5zm10-6h10v17H15zm10 6h10v11H25zM5 8h5m22 0h3'],
  seal:['4-minute siege','M20 4 30 16 20 30 10 16zM4 19q6 5 11 0m10 0q5 5 11 0'],
  nests:['5 roaming encounters','M20 5v6m0 12v7M7 17h6m14 0h6M20 11l6 6-6 6-6-6z'],
- payload:['Contracting storm','M12 14h16v14H12zM5 9l6 5m24-5-6 5M20 2v11m-3-4 3 4 3-4']
+ payload:['Fuel-powered shelter','M12 14h16v14H12zM5 9l6 5m24-5-6 5M20 2v11m-3-4 3 4 3-4']
 };
 const missionControls=new Map();
 for(const [id,entry] of Object.entries(operations.missions)){
@@ -4013,7 +4183,7 @@ function updateMissionBrief(){
  for(const [id,button] of missionControls)button.setAttribute('aria-pressed',String(id===state.mission));
  text(ui['operation-title'],active.name);text(ui.summary,active.brief);
  text(ui['board-power'],'Power '+StormwatchCitadel.rating(snapshot).power);
- text(ui['map-sector'],region.site);
+ text(ui['map-sector'],zoneName);
  const {alert,orders}=operations.board(snapshot,Date.now());
  const engaged=state.alertRequested&&state.mission===alert.mission;
  text(ui['alert-name'],alert.name);
@@ -4086,23 +4256,28 @@ function showScreen(mode){
  ui['citadel-back'].hidden=ui['citadel-root'].hidden=!citadelPanel;
  ui.exit.hidden=citadelPanel;
  ui.pack.hidden=ui.craft.hidden=ui.traps.hidden=!pack;
- ui.fabricate.hidden=!pack;
+ ui.fabricate.hidden=ui['field-crate'].hidden=ui['drop-stock'].hidden=!pack;
  ui.guide.hidden=true;ui.help.hidden=mode==='result'||pack||citadelPanel;ui.help.setAttribute('aria-expanded','false');
  ui['field-audio'].hidden=mode!=='pause';ui['field-audio'].setAttribute('aria-expanded','false');ui['field-audio-settings'].hidden=true;
  ui.deploy.hidden=mode==='result'||citadelPanel;
  ui.retry.hidden=mode!=='result';
  ui.pass.hidden=mode!=='result'||!embedded||options.local;
  if(mode==='brief'){
-  text(ui.kicker,region.site+' · Solo PvE');text(ui.title,'Stormwatch');
+  text(ui.kicker,region.site+' · '+zoneName);text(ui.title,'Stormwatch');
   updateMissionBrief();text(ui.deploy,'Deploy');
  }
  if(citadelPanel){
   text(ui.kicker,'Stormwatch');text(ui.title,'The Citadel');text(ui.summary,'');
  }
  if(mode==='pause'||pack){
-  ui.kicker.textContent=region.site+' · Wave '+Math.max(1,state.wave);
+  ui.kicker.textContent=zoneName+' · Wave '+Math.max(1,state.wave);
   ui.title.textContent=pack?'Field kit':'Paused';
-  ui.summary.textContent='';
+  const margin=Math.round(state.stormRadius-stormDistance(hero.pos.x,hero.pos.z));
+  const boundary=margin<0?'Return '+(-margin)+' m toward the center':'Storm boundary '+margin+' m away';
+  const recharge=Math.max(0,Math.ceil(5.5-hero.hitAgo));
+  const shield=hero.hp<=0?'Awaiting revive':hero.shield>=hero.maxShield?'Shield full':recharge?'Shield recharge in '+recharge+'s':'Shield recharging';
+  const repairs=Math.min(hero.repairs,Math.floor(hero.stacks[2]/12));
+  ui.summary.textContent=[boundary,shield,state.mission==='nests'?'':repairs+' objective repairs available'].filter(Boolean).join(' · ');
   ui.deploy.textContent='Resume';
   if(pack)fillPack();
  }
@@ -4133,16 +4308,17 @@ function awardWave(bonus){
  state.tier=result.tier;
  state.xp+=result.xp;
  if(!result.saved)notice('Battle Pass XP could not be saved');
- else if(state.wave<MAX_WAVES)notice(result.xp?'+'+result.xp+' Battle Pass XP':'Wave cleared');
 }
 function finish(win,message,remote=false){
  if(coop&&!guest&&!remote&&!state.finished)sendGame('end',{win,message});
  if(state.finished)return;
  state.finished=true;outcome=message;
+ const overclockBonus=win&&state.mission==='payload'&&state.overclock;
+ if(overclockBonus)collectPart('cells',6);
  savingResult=win;ui.retry.disabled=win;ui.pass.disabled=win;
  const rewards=ui['operation-rewards'];rewards.hidden=!win;
  const patterns=[...discoveries.values()].filter(item=>!Object.hasOwn(profile.blueprints,item.id)).length;
- const payout=StormwatchCitadel.payoutText(state.mission,regionId)+(patterns?' · '+patterns+' recovered pattern'+(patterns===1?'':'s'):'');
+ const payout=StormwatchCitadel.payoutText(state.mission,regionId)+(overclockBonus?' · 6 overclock Cells':'')+(patterns?' · '+patterns+' recovered pattern'+(patterns===1?'':'s'):'');
  if(win)text(rewards,'Victory payout · '+payout+' · Saving…');
  bankSalvage(win,false).then(saved=>{
   if(!win||controller.signal.aborted)return;
@@ -4267,7 +4443,7 @@ const radar=ui.radar.getContext('2d');
 const RADAR_W=156;
 function drawRadar(){
  radar.clearRect(0,0,RADAR_W,RADAR_W);
- const middle=RADAR_W*.5,scale=1.31;
+ const middle=RADAR_W*.5,scale=(middle-5)/BOUND;
  radar.strokeStyle='#9fcaf842';radar.lineWidth=1;
  radar.beginPath();radar.arc(middle,middle,44,0,TAU);
  radar.moveTo(middle-75,middle);radar.lineTo(middle+75,middle);
@@ -4277,10 +4453,10 @@ function drawRadar(){
   radar.fillStyle=color;radar.beginPath();
   radar.arc(middle+x*scale,middle+z*scale,r,0,TAU);radar.fill();
  };
- if(state.mission!=='nests')dot(0,0,'#8bf0d0',4.3);
+ if(state.mission!=='nests')dot(ox,oz,'#8bf0d0',4.3);
  for(const nest of nests)if(nest.active)dot(nest.x,nest.z,nest===state.nest?'#ffc992':'#d58be9',4);
  if(state.mission==='payload'){
-  radar.strokeStyle='#d9a8f18a';radar.beginPath();radar.arc(middle,middle,state.stormRadius*scale,0,TAU);radar.stroke();
+  radar.strokeStyle='#d9a8f18a';radar.beginPath();radar.arc(middle+ox*scale,middle+oz*scale,state.stormRadius*scale,0,TAU);radar.stroke();
  }
  const fronts=plannedFronts();
  for(let i=0;i<portals.length&&state.mission!=='nests';i++){
@@ -4344,6 +4520,8 @@ function updateHUD(){
  text(ui['pulse-text'],ability+(remaining>0?' '+Math.ceil(remaining)+'s':''));
  ui['pulse-meter'].setAttribute('aria-label',ability+' recharge');
  const boss=enemies.find(e=>e.active&&e.kind==='boss');
+ ui.objective.hidden=state.mission==='nests'&&!boss;
+ ui['atlas-name'].closest('.objective-line').hidden=state.mission==='nests';
  ui.boss.hidden=!boss;
  if(boss){meter('boss',boss.hp,boss.max);text(ui['boss-name'],'Stormbreaker · P'+boss.power)}
  const time=seconds=>Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');
@@ -4353,15 +4531,15 @@ function updateHUD(){
   text(ui.remaining,time(Math.ceil(state.huntTime))+' · '+(nest?(nest.hit?'Shatter the core':nest.remaining+' guarding'):'Find a nest'));
  }else if(state.mission==='payload'){
   const prep=state.phase==='drop';
-  text(ui.status,prep?'Pod landing':'Recovery '+Math.floor(state.siege/PAYLOAD_DURATION*100)+'%');
-  text(ui.remaining,prep?'Fortify · '+time(Math.ceil(state.prep)):time(Math.ceil(PAYLOAD_DURATION-state.siege))+' · Hold the pod');
+  text(ui.status,(state.overclock?'Overclocked · ':'')+(prep?'Pod landing':'Recovery '+Math.floor(state.siege/PAYLOAD_DURATION*100)+'%'));
+  text(ui.remaining,prep?'Collect marked Flux · '+time(Math.ceil(state.prep)):'Fuel '+Math.ceil(state.podFuel)+'% · '+state.flux+' Flux carried'+(state.podFuel<=25?' · Feed the pod':''));
  }else if(state.mission==='seal'){
   text(ui.status,state.phase==='fuel'?'Fuel the Anchor':'Seal · '+time(Math.ceil(SEAL_DURATION-state.siege)));
   text(ui.remaining,state.phase==='fuel'?(state.flux===3?'Fortify, then activate the Anchor':'Flux Crystals '+state.flux+' / 3'):'Hold the Anchor');
  }else{
   const planning=state.phase==='prep'||state.phase==='scout';
   if(ui.mission.dataset.assault!==state.phase)ui.mission.dataset.assault=state.phase;
-  text(ui.status,state.phase==='scout'?'Restore the Signal Relay':'Assault '+Math.min(MAX_WAVES,state.wave+Number(planning))+' / '+MAX_WAVES);
+  text(ui.status,state.phase==='scout'?'Restore the Signal Relay':(state.outpostTier?'Siege '+(state.outpostTier+1)+' · ':'')+'Assault '+Math.min(MAX_WAVES,state.wave+Number(planning))+' / '+MAX_WAVES);
   text(ui.remaining,state.phase==='scout'?'Power cells '+state.flux+' / 2 · Mint markers on radar':
    state.phase==='arming'?'Rifts opening in '+Math.ceil(state.prep)+'s':
    state.phase==='active'?left+' Hollows left':guest?'Build defenses · Leader starts the assault':'Build defenses · Start at the relay');
@@ -4390,7 +4568,8 @@ function updateHUD(){
  if(coop&&[...mates.values()].some(m=>m.ready&&m.down&&m.target.distanceTo(hero.pos)<2.65))focus=(p?p.x:'F')+' · Revive squadmate';
  else if(nearbyNest)focus=(p?p.x:'F')+' · Scan nest';
  else if(chest)focus=(p?p.x:'F')+(chest.opened?' · Equip '+chest.reward.name+' · P'+chest.power+' '+chest.element:' · Open chest');
- else if(control)focus=guest?'Squad leader · '+control:coop&&!coopStarted?'Waiting for squad link':(p?p.x:'F')+' · '+control;
+ else if(searchableWreck())focus=(p?p.x:'F')+' · Search wreck';
+ else if(control)focus=guest&&state.phase!=='payload'?'Squad leader · '+control:coop&&!coopStarted?'Waiting for squad link':(p?p.x:'F')+' · '+control;
  else if(blueprint?.reason)focus=blueprint.reason;
  else if(existing?.type==='structure'&&aimed.distance<12){
   const stats=Math.ceil(existing.hp)+' / '+existing.max;
@@ -4398,7 +4577,7 @@ function updateHUD(){
    existing.construction>0?'Constructing '+pieces[existing.piece]:
    (p?p.rs:'B')+' edit · '+(p?p.b:'G')+' reinforce · R'+existing.rank+' '+stats;
  }
- else if(existing?.type==='atlas'&&state.phase==='prep'&&state.atlas<ATLAS_HP&&hero.pos.length()<8.5)focus=(p?p.b:'G')+' · Repair relay';
+ else if(existing?.type==='atlas'&&state.phase==='prep'&&state.atlas<ATLAS_HP&&objectiveDistance(hero.pos.x,hero.pos.z)<8.5)focus=(p?p.b:'G')+' · Repair relay';
  const harvest=focusedProp?.alive?focusedProp:null;
  const husk=existing?.type==='enemy'&&existing.active&&existing.kind!=='boss'?existing:null;
  const core=existing?.type==='nest'&&existing.hit?existing:null;
@@ -4464,7 +4643,7 @@ StormwatchPhysics.create(T,terrainHeight,BOUND).then(engine=>{
 /* Host owns the operation. Guests predict their own movement and weapon
    feedback, then interpolate the host's world and squad snapshots. */
 const mates=new Map(),replicas=new Map(),remoteProjectiles=[];
-const coopFields=['elapsed','phase','wave','prep','siege','flux','stormRadius','atlas','pending','nestsCleared','huntTime','takedowns'];
+const coopFields=['elapsed','phase','wave','prep','siege','flux','stormRadius','atlas','pending','nestsCleared','huntTime','takedowns','podFuel','overclock','outpostTier'];
 let netClock=0,enemySerial=0,coopStarted=false,signalTick=0;
 const guest=Boolean(coop&&!coop.host);
 const nround=options.round;
@@ -4501,7 +4680,7 @@ function hydrateMate(id,point,operator){
   sprite.material.map.needsUpdate=true;
  }
  const tag=new T.CanvasTexture(label),sprite=new T.Sprite(new T.SpriteMaterial({map:tag,depthWrite:false}));
- sprite.position.y=2.05;sprite.scale.set(2.7,.68,1);unit.add(sprite);updateLabel(false);
+ sprite.position.y=2.05;sprite.scale.set(options.local?1.45:2.15,options.local?.36:.54,1);unit.add(sprite);updateLabel(false);
  const mate={id,look,operator,unit,body,model,label:sprite,updateLabel,pos:position,target:position.clone(),angle:0,last:0,active:true,down:false,
   vitals:{hp:100,maxhp:100,shield:60,maxShield:60,hitAgo:20,stacks:[40,30,20],repairs:2,cache:0},cooldown:[0,0,0,0],bag:StormwatchCitadel.emptyBag(),ready:false};
  mates.set(id,mate);return mate;
@@ -4599,10 +4778,12 @@ function handleAction(m,d){
      fabricationStocks.some((n,i)=>hero.stacks[i]<n))return;
    for(const [id,n] of Object.entries(fabricationBag))m.bag[id]-=n;
    hero.stacks=hero.stacks.map((n,i)=>n-fabricationStocks[i]);
-   sendGame('feedback',{fabricated:key},m.id);return;
+   if(d.drop===true)weaponCrate(key,hero.pos.x,hero.pos.z,Math.max(12,region.floor),'Kinetic');
+   else sendGame('feedback',{fabricated:key},m.id);return;
   }
+  if(d.action==='drop-stock'){dropSupplies();return}
   if(d.action==='craft'){
-   if(hero.stacks[1]>=6&&hero.stacks[2]>=4){hero.stacks[1]-=6;hero.stacks[2]-=4;restock(60);notice('Ammo crafted')}
+   if(hero.stacks[1]>=6&&hero.stacks[2]>=4){hero.stacks[1]-=6;hero.stacks[2]-=4;restock(60)}
    return;
   }
   if(goodVector(d.aim)){
@@ -4641,11 +4822,12 @@ function handleAction(m,d){
 }
 function syncLoot(list){
  const seen=new Set();
- for(const [kind,x,z,opened,active] of list){
+ for(const [kind,x,z,opened,active,weapon,power,element] of list){
   const key=kind+'/'+x+'/'+z;seen.add(key);
-  let item=loot.find(l=>l.kind===kind&&Math.hypot(l.x-x,l.z-z)<.065);
-  if(!item&&kind==='airdrop'){addCache(x,z,kind);item=loot.at(-1)}
-  if(!item&&kind==='flux'){addFluxAt(x,z);item=loot.at(-1)}
+  let item=loot.find(l=>l.kind===kind&&(kind==='chest'||l.active)&&Math.hypot(l.x-x,l.z-z)<.065);
+  if(!item&&kind==='weapon'&&active&&gear?.canForge(weapon)){weaponCrate(weapon,x,z,power,element);item=loot.at(-1)}
+  if(!item&&active&&(kind==='airdrop'||kind==='bundle')){addCache(x,z,kind);item=loot.at(-1)}
+  if(!item&&active&&kind==='flux'){addFluxAt(x,z);item=loot.at(-1)}
   if(!item)continue;
   item.active=active;item.group.visible=active||kind==='chest';
   if(kind==='chest'){
@@ -4657,6 +4839,7 @@ function syncLoot(list){
  for(const item of loot)if(item.kind!=='chest'&&item.active&&
   !seen.has(item.kind+'/'+Number(item.x.toFixed(3))+'/'+Number(item.z.toFixed(3)))){item.active=false;item.group.visible=false}
 }
+function packStructures(){return [...builds.values()].map(i=>[i.key,i.piece,i.x,i.y,i.z,i.angle,i.layer,materials.indexOf(i.material),i.mask,i.rank,i.hp,i.max,i.construction,i.mount?.key,i.recipe?.id,i.life])}
 function syncBuilds(list){
  const keep=new Set(list.map(row=>row[0]));
  for(const item of builds.values())if(!keep.has(item.key))detachStructure(item,true);
@@ -4667,7 +4850,7 @@ function syncBuilds(list){
    const recipe=trapRecipes.find(r=>r.id===recipeId),mount=builds.get(mountKey);
    if(piece===3&&(!mount||!recipe)){scene.remove(group);continue}
    const rect={x,z,hx:piece===0&&Math.abs(Math.sin(angle))>.5?.155:GRID/2,hz:piece===0&&Math.abs(Math.sin(angle))<.5?.155:GRID/2};
-   item={key,piece,type:'structure',x,y,z,angle,layer,material:materials[material],group,rect,recipe,mount,
+   item={key,piece,type:'structure',x,y,z,angle,layer,material:materials[material],group,rect,recipe,mount,trapIn:0,
     calibration:recipe?StormwatchCitadel.tune(profile.blueprints['trap/'+recipe.id]):null,targets:[]};
    builds.set(key,item);rebuild=true;
    if(piece===0)activeWalls.push(item);else if(piece!==3)walkways.push(item);
@@ -4723,8 +4906,8 @@ function syncScene(d){
  }
  for(const id of mates.keys())if(!living.has(id))removeMate(id);
  syncBuilds(d.builds);syncEnemies(d.enemies);syncLoot(d.loot);
- for(const [index,hp] of d.props){
-  const prop=props[index];
+ for(const [index,hp,searched] of d.props){
+  const prop=props[index];if(prop&&searched)prop.searched=true;
   if(!prop?.alive||hp>=prop.hp)continue;
   prop.hp=hp;prop.weak=null;prop.weakIndex++;
   const hit=vec(prop.x,Math.min(prop.top,prop.y+.78),prop.z);
@@ -4824,16 +5007,15 @@ function networkTick(dt){
  if(!coopStarted){
   signalTick+=.083;
   coopStarted=coopReady&&([...mates.values()].filter(m=>m.ready).length>=coop.size-1||signalTick>=15);
-  if(coopStarted)notice('Squad linked · '+operations.missions[state.mission].name);
- }
+  }
  const enemyRows=enemies.filter(e=>e.active).map(e=>[e.netId,e.kind,...packVector(e.root.position),+e.yaw.toFixed(2),e.hp,e.max,e.power,e.element,e.recoil]);
  sendGame('scene',{
   started:coopStarted,state:coopFields.map(key=>state[key]),portals:portalFx.map(p=>p.active),
   players:[[coop.id,packVector(hero.pos),hero.yaw,hero.hp,gear?.operator],...[...mates.values()].filter(m=>m.ready).map(m=>[m.id,packVector(m.target),m.angle,m.vitals.hp,m.operator])],
   enemies:enemyRows,
-  builds:[...builds.values()].map(i=>[i.key,i.piece,i.x,i.y,i.z,i.angle,i.layer,materials.indexOf(i.material),i.mask,i.rank,i.hp,i.max,i.construction,i.mount?.key,i.recipe?.id,i.life]),
-  loot:loot.map(l=>[l.kind,+l.x.toFixed(3),+l.z.toFixed(3),!!l.opened,l.active]),
-  props:props.flatMap((p,i)=>p.hp<p.max?[[i,p.hp]]:[]),
+  builds:packStructures(),
+  loot:loot.filter(l=>l.active||!['bundle','weapon'].includes(l.kind)).map(l=>[l.kind,+l.x.toFixed(3),+l.z.toFixed(3),!!l.opened,l.active,...(l.kind==='weapon'?[l.reward.k,l.power,l.element]:[])]),
+  props:props.flatMap((p,i)=>p.hp<p.max||p.searched?[[i,p.hp,!!p.searched]]:[]),
   nests:nests.map(n=>[n.active,n.hp,n.remaining,n===state.nest,!!n.hit]),
   projectiles:[...bolts.map(b=>b.group),...trapShots.map(s=>s.model)].map(m=>packVector(m.position))
  });
@@ -4846,7 +5028,7 @@ function hostSquadTick(dt){
   const v=m.vitals;v.hitAgo+=dt;
   if(v.hitAgo>5.5)v.shield=Math.min(v.maxShield,v.shield+dt*11);
   m.storm=Math.max(0,(m.storm||0)-dt);
-  if(!m.storm&&['active','seal','payload','hunt'].includes(state.phase)&&m.target.x**2+m.target.z**2>state.stormRadius**2){
+  if(!m.storm&&['active','seal','payload','hunt'].includes(state.phase)&&stormDistance(m.target.x,m.target.z)>state.stormRadius){
    m.storm=.85;damageMate(m,4+state.wave*2);
   }
   withMate(m,()=>activePickups(0));
@@ -4880,7 +5062,7 @@ function tick(now){
  if(!state.paused){
   state.elapsed+=dt;
   state.stormTick=(state.stormTick||0)-dt;
-  if(['active','seal','payload','hunt'].includes(state.phase)&&hero.pos.x**2+hero.pos.z**2>state.stormRadius**2&&state.stormTick<=0){
+  if(['active','seal','payload','hunt'].includes(state.phase)&&stormDistance(hero.pos.x,hero.pos.z)>state.stormRadius&&state.stormTick<=0){
    state.stormTick=.85;hurtHero(4+state.wave*2);
   }
   hero.shout=Math.max(0,hero.shout-dt);

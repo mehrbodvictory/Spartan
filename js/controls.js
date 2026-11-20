@@ -195,7 +195,7 @@ function padPlay(g,dt){const lx=gpDz(g.axes[0],.2),ly=gpDz(g.axes[1],.2),rx=gpDz
  if(gpEdgeOf('st',gpBtn(g,9)))pausePad()}
 /* ---------- menus with the controller: spatial focus, A press, B back, left/right changes drop-downs and sliders ---------- */
 var vis=e=>e.getClientRects().length>0&&e.getBoundingClientRect().width>1;
-function menuBox(){return['#osk','#dev','#pause','#end','#home','#menu'].map(s=>document.querySelector(s)).find(c=>c&&vis(c)&&getComputedStyle(c).display!='none')}
+function menuBox(){return['#osk','#game-party[open]','#dev','#pause','#end','#home','#menu'].map(s=>document.querySelector(s)).find(c=>c&&vis(c)&&getComputedStyle(c).display!='none')}
 function clickables(box){
  const scope=box.id==='menu'?['.menu-header','#menu .pn.on'].map($).filter(Boolean):[box];
  return scope.flatMap(node=>[...node.querySelectorAll('button,select,input,textarea,a[href],summary,[role="button"]')]
@@ -203,17 +203,23 @@ function clickables(box){
 }
 function spatial(els,cur,dx,dy){const r=cur.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let best=null,bs=1e9;for(const e of els){if(e===cur)continue;const q=e.getBoundingClientRect(),vx=q.left+q.width/2-cx,vy=q.top+q.height/2-cy,along=vx*dx+vy*dy;if(along<=2)continue;const s=along+Math.abs(vx*dy-vy*dx)*2.2;if(s<bs){bs=s;best=e}}return best}
 function menuAct(el,back){const t=el.tagName;if(t=='SELECT'){el.selectedIndex=(el.selectedIndex+(back?el.options.length-1:1))%el.options.length;el.dispatchEvent(new Event('change',{bubbles:true}))}else if(t=='INPUT'&&el.type=='range'){}else if((t=='INPUT'&&el.type!='checkbox'&&el.type!='range')||t=='TEXTAREA')openOSK(el);else if(el.id=='resume')resumeAny();else el.click()}
+let splitMenuFocus=null;
+if(window.SD_SPLIT)addEventListener('focusin',event=>{
+ splitMenuFocus?.removeAttribute('data-split-focus');splitMenuFocus=event.target;
+ splitMenuFocus.setAttribute('data-split-focus','');
+});
 function menuNav(g,dt){
  /* podium after a match: the four face buttons are the four emotes */
  {const f=$('#fin');if(f&&typeof fin!='undefined'&&fin&&f.getClientRects().length){for(let i=0;i<4;i++)if(gpEdgeOf('fe'+i,gpBtn(g,i))){const e=f.querySelector('[data-e="'+i+'"]');e&&e.click()}return}}
  const box=menuBox();if(!box)return;
  const OK=PG.type=='ns'?1:0,BK=PG.type=='ns'?0:1;/* Nintendo layout: the right-hand button (A) confirms, the bottom one (B) goes back */
  const up=gpBtn(g,12)||g.axes[1]<-.6,dn=gpBtn(g,13)||g.axes[1]>.6,lf=gpBtn(g,14)||g.axes[0]<-.6,rt=gpBtn(g,15)||g.axes[0]>.6;
- const focused=document.activeElement;
- let cur=box.contains(focused)&&focused!==box&&!focused.disabled&&vis(focused)?focused:null;
+ const enabled=el=>el&&box.contains(el)&&el!==box&&!el.disabled&&!el.closest('[hidden]')&&vis(el);
+ const focused=enabled(document.activeElement)?document.activeElement:splitMenuFocus;
+ let cur=enabled(focused)?focused:null;
  const els=!cur||up||dn||lf||rt?clickables(box):[cur];
  if(!els.length)return;
- if(!cur){cur=els.find(e=>e.matches('[data-initial-focus],#zdeploy'))||els[0];cur.focus()}gpT-=dt;
+ if(!cur){cur=els.find(e=>e.matches('#resume,[data-initial-focus],#zdeploy'))||els[0];cur.focus()}gpT-=dt;
  if(!(up||dn||lf||rt)){gpT=0;PG.rep=0}
  if((up||dn||lf||rt)&&gpT<=0){PG.rep=(PG.rep||0)+1;gpT=PG.rep>5?.06:.2;const isSel=cur.tagName=='SELECT',isRng=cur.type=='range';
   if((lf||rt)&&(isSel||isRng)){if(isSel){cur.selectedIndex=cl(cur.selectedIndex+(rt?1:-1),0,cur.options.length-1);cur.dispatchEvent(new Event('change',{bubbles:true}))}else{const s=(+cur.step||1)*(PG.rep>5?3:1);cur.value=+cur.value+(rt?s:-s);cur.dispatchEvent(new Event('input',{bubbles:true}));cur.dispatchEvent(new Event('change',{bubbles:true}))}}
@@ -226,14 +232,15 @@ function menuNav(g,dt){
    if(list.length){let i=list.findIndex(b=>b.classList.contains('on')||b.classList.contains('act')||b.classList.contains('sel'));if(i<0)i=list.indexOf(document.activeElement);if(i<0)i=PG.tabI||0;i=(i+(rb?1:-1)+list.length)%list.length;PG.tabI=i;list[i].click();if(!tabs.length&&vis(list[i]))list[i].focus()}}}
  if(box.id=='osk'){const k=c=>{const b=box.querySelector('[data-k="'+c+'"]');b&&b.click()};if(gpEdgeOf('ox',gpBtn(g,2)))k('⌫');if(gpEdgeOf('oy',gpBtn(g,3)))k(' ');if(gpEdgeOf('os',gpBtn(g,9)))k('OK')}
  if(gpEdgeOf('a',gpBtn(g,OK)))menuAct(document.activeElement&&els.includes(document.activeElement)?document.activeElement:cur);
- if(gpEdgeOf('b',gpBtn(g,BK))){if(box.id=='osk')closeOSK();else if(box.id=='pause')resumeAny();else if(box.id==='menu')menuBack();else{const t=$('#tomenu');if(t&&vis(t))t.click()}}
+ if(gpEdgeOf('b',gpBtn(g,BK))){if(box.id=='osk')closeOSK();else if(box.id==='game-party')box.close();else if(box.id=='pause')resumeAny();else if(box.id==='menu')menuBack();else{const t=$('#tomenu');if(t&&vis(t))t.click()}}
  if(gpEdgeOf('st',gpBtn(g,9))&&box.id=='pause')resumeAny()}
 /* ---------- on-screen keyboard (used by controller and VR for the name and match code boxes) ---------- */
 var oskT=null;
 function openOSK(inp){const o=$('#osk');if(!o.dataset.b){o.dataset.b=1;const rows=['1234567890','QWERTYUIOP','ASDFGHJKL','ZXCVBNM'];o.innerHTML=rows.map(r=>'<div class="r">'+[...r].map(c=>`<button data-k="${c}">${c}</button>`).join('')+'</div>').join('')+'<div class="r"><button data-k="-">-</button><button data-k=" " style="min-width:200px">space</button><button data-k="⌫">⌫</button><button data-k="OK" style="min-width:90px">Done</button></div>';
-  o.onclick=e=>{const b=e.target.closest('button');if(!b||!oskT)return;const k=b.dataset.k;if(k=='OK')return closeOSK();let v=oskT.value;if(k=='⌫')v=v.slice(0,-1);else if(!oskT.maxLength||oskT.maxLength<0||v.length<oskT.maxLength)v+=(oskT.id=='jc'?k:(v.length?k.toLowerCase():k));oskT.value=v;oskT.dispatchEvent(new Event('input',{bubbles:true}));oskT.dispatchEvent(new Event('change',{bubbles:true}))}}
+  o.onclick=e=>{const b=e.target.closest('button');if(!b||!oskT)return;const k=b.dataset.k;if(k=='OK')return closeOSK();let v=oskT.value;if(k=='⌫')v=v.slice(0,-1);else if(!oskT.maxLength||oskT.maxLength<0||v.length<oskT.maxLength)v+=(oskT.matches('#jc,#party-join-code')?k:(v.length?k.toLowerCase():k));oskT.value=v;oskT.dispatchEvent(new Event('input',{bubbles:true}));oskT.dispatchEvent(new Event('change',{bubbles:true}))}}
+ const dialog=inp.closest('dialog[open]');if(dialog)dialog.append(o);
  oskT=inp;o.style.display='block';const f=o.querySelector('button');f&&f.focus()}
-function closeOSK(){const o=$('#osk');o.style.display='none';if(oskT&&vis(oskT))oskT.focus({preventScroll:true});oskT=null}
+function closeOSK(){const o=$('#osk');o.style.display='none';if(o.parentElement!==document.body)document.body.append(o);if(oskT&&vis(oskT))oskT.focus({preventScroll:true});oskT=null}
 function inputTick(dt){if(xrS){vrPre(dt);return}
  const g=gpGet();if(!g){
   if(window.SD_SPLIT){

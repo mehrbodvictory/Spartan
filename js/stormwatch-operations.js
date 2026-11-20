@@ -2,10 +2,10 @@
 var StormwatchOperations = (() => {
  const DAY=86400000, WEEK=7*DAY;
  const missions={
-  defense:{name:'Relay Defense',brief:'Recover two power cells, fortify the marked approaches, and launch five assaults from the relay.'},
+  defense:{name:'Relay Defense',brief:'Recover two power cells, fortify the marked approaches, and launch five assaults from the relay. Surviving defenses are saved after each assault. Returning to a cleared region brings reinforcements.'},
   seal:{name:'Seal the Breach',brief:'Recover three Flux Crystals, fortify the Rift Anchor, and activate it to begin a four-minute siege.'},
   nests:{name:'Clear the Nests',brief:'Track down five Hollow nests, defeat their guardians, and shatter their cores before the storm closes.'},
-  payload:{name:'Secure the Payload',brief:'Fortify the landing zone, then defend the recovery pod while the safe zone contracts.'}
+  payload:{name:'Secure the Payload',brief:'Gather marked Flux and feed the recovery pod to expand its shelter. An empty tank stalls transmission and drains pod integrity.'}
  };
  const rewards={
   defense:{planks:18,gears:8,cells:3},
@@ -96,7 +96,7 @@ var StormwatchOperations = (() => {
   if(!saved)return next;
   if(saved.day===next.day){
    next.stats={...next.stats,...saved.stats};
-   next.dailyClaimed=!!saved.dailyClaimed;next.alertClaimed=!!saved.alertClaimed;next.receipts=[...(saved.receipts||[])];
+   next.claimedQuests=[...(saved.claimedQuests||[])];next.dailyClaimed=!!saved.dailyClaimed;next.alertClaimed=!!saved.alertClaimed;next.receipts=[...(saved.receipts||[])];
   }
   if(saved.week===next.week){next.wins=[...(saved.wins||[])];next.weeklyClaimed=!!saved.weeklyClaimed}
   return next;
@@ -116,7 +116,10 @@ var StormwatchOperations = (() => {
   const count=Object.keys(profile.blueprints||{}).filter(key=>!key.startsWith('trap/')).length+
    Object.keys(profile.archive?.hollows||{}).length+Object.keys(profile.archive?.operations||{}).length+
    Object.keys(profile.archive?.traps||{}).length;
-  return {orders,alert,contract,weekly,count,archiveGoals};
+  const quests=[contract,choose(daily,orders.day+1),choose(daily,orders.day+3)];
+  const claimed=new Set(orders.claimedQuests||[]);
+  if(orders.dailyClaimed)claimed.add(contract.id);
+  return {orders,alert,contract,quests,claimed,weekly,count,archiveGoals};
  }
  return {missions,windows,statline,dailyAlert,roll,accrue,board,archiveGoals,hollowIds,payout,assaultFronts,assaultGroups,campaignProgress,fieldMarks};
 })();

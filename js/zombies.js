@@ -186,7 +186,7 @@ function zDashIn(on){if(!zq)return;if(!on){zq.dashH=0;return}if(zq.dashH)return;
  const d=zq.dash;if(d.cd>0){beep(220,.07,'square',.05);msg('Dash recharging '+d.cd.toFixed(1)+'s',.7);return}zDash()}
 function zDash(){const d=zq.dash,t=zq.mel.pap||0;d.t=ZD.dur;d.cd=[6,4.5,3.2][t];d.max=d.cd;d.hit=new Set();d.n=0;if(typeof nfStrike=='function')nfStrike();
  noise(.5,500,.5);beep(120,.35,'sawtooth',.12);beep(90,.5,'square',.08);fk=Math.max(fk,2.4);shake=Math.max(shake,.55);LX.fx.speed=1;LX.fx.ca=1;LX.fx.pulse=Math.max(LX.fx.pulse,.6);
- const f=V(-Math.sin(yaw),0,-Math.cos(yaw));for(let i=0;i<3;i++)burst(V(P.x-f.x*.4,.9,P.z-f.z*.4),14,i?0xffffff:0x55ccff,8,.5,.12);if(typeof haptic=='function')haptic(.9,200,.9,'both');popup('NITRO DASH','Smash through them')}
+ const f=V(-Math.sin(yaw),0,-Math.cos(yaw));for(let i=0;i<3;i++)burst(V(P.x-f.x*.4,.9,P.z-f.z*.4),14,i?0xffffff:0x55ccff,8,.5,.12);if(typeof haptic=='function')haptic(.9,200,.9,'both')}
 {const _mc=moveCalc;moveCalc=function(){const r=_mc.apply(this,arguments);if(zq&&mode=='Zombies'&&zq.dash&&zq.dash.t>0&&!P.dead){r.f=1;r.s=0;r.spt=false;r.spd=ZD.sp}return r}}
 function zDashTick(dt){const d=zq.dash;if(d.cd>0)d.cd=Math.max(0,d.cd-dt);if(d.t<=0)return;d.t-=dt;zQuestTool('dash',P.x,P.y,P.z);const f=V(-Math.sin(yaw),0,-Math.cos(yaw)),pap=zq.mel.pap||0;
  d.fi=(d.fi||0)-dt;if(d.fi<=0){d.fi=.1;FI.d=.14;FI.t=.14;FI.side^=1}
@@ -194,14 +194,14 @@ function zDashTick(dt){const d=zq.dash;if(d.cd>0)d.cd=Math.max(0,d.cd-dt);if(d.t
  for(const b of bots){if(!b.zom||!b.al||d.hit.has(b.i)||b.rise>0)continue;const dx=b.x-P.x,dz=b.z-P.z,D=Math.hypot(dx,dz);if(D>ZD.r+(b.big?.5:0)||Math.abs((b.y||0)-(P.y||0))>2.2)continue;
   d.hit.add(b.i);d.n++;src='Melee';srcK='';hitBot(b,Math.round(zMeleeDmg(b,1)*.85),0);if(b.al&&!b.zp){b.stun=1;mv(b,f.x*3.5+(dz>0?.9:-.9)*f.z,f.z*3.5-(dx>0?.9:-.9)*f.x,.45)}
   burst(V(b.x,1.2,b.z),18,0x55ccff,9,.5,.12);burst(V(b.x,1.2,b.z),8,0xffffff,12,.3,.07);beep(1500,.06,'square',.06);noise(.2,700,.35);shake=Math.max(shake,.4);if(typeof haptic=='function')haptic(.7,90,.7,'both');if(typeof nfHit=='function')try{nfHit(1)}catch(e){}}
- if(d.t<=0){d.t=0;LX.fx.pulse=Math.max(LX.fx.pulse,.4);burst(V(P.x,1,P.z),24,0x55ccff,8,.6,.12);if(d.n>1)popup('DASH x'+d.n,'Nitrogen Fists')}}
+ if(d.t<=0){d.t=0;LX.fx.pulse=Math.max(LX.fx.pulse,.4);burst(V(P.x,1,P.z),24,0x55ccff,8,.6,.12)}}
 
 /* ---------- ammo: wall buys and crates. Nothing restocks by itself. ---------- */
 function zBuyAmmo(wall,pos){const w=cw();if(!w||P.dead)return;const c=zAmmoPrice(w,wall);if(zAmmoFull(w))return zf('Ammo is full');if(zq.pts<c)return zf('Not enough points');zq.pts-=c;
- w.mag=w.m;w.res=w.m*(w.rs==null?4:w.rs);rel=0;gc=Math.max(gc,3);if(!wall)gc=3;zBuyFx(pos[0],1.3,pos[1],0x7bf08a,'-'+c);popup('AMMO',(w.pn||W[w.k].n)+' · refilled'+(wall?'':' · frags restocked'))}
+ w.mag=w.m;w.res=w.m*(w.rs==null?4:w.rs);rel=0;gc=Math.max(gc,3);if(!wall)gc=3;zBuyFx(pos[0],1.3,pos[1],0x7bf08a,'-'+c)}
 function zBuyWall(k,pos){const mel=ZMELEE[k],own=!mel&&wp.find(w=>w.k==k);
- if(own){const c=zAmmoPrice(own,1);if(zAmmoFull(own))return zf('Ammo is full');if(zq.pts<c)return zf('Not enough points');zq.pts-=c;own.mag=own.m;own.res=own.m*(own.rs==null?4:own.rs);rel=0;zBuyFx(pos[0],1.4,pos[1],0x7bf08a,'-'+c);popup('AMMO',(own.pn||W[k].n)+' · refilled');return}
- const c=mel?ZMELCOST[k]:zWallCost(k);if(mel&&zq.mel.k==ZMELEE[k])return zf('You already have it');if(zq.pts<c)return zf('Not enough points');zq.pts-=c;zGive(k);zBuyFx(pos[0],pos[2]??1.4,pos[1],0xffd24a,'-'+c);popup('WEAPON BOUGHT',zItemName(k))}
+ if(own){const c=zAmmoPrice(own,1);if(zAmmoFull(own))return zf('Ammo is full');if(zq.pts<c)return zf('Not enough points');zq.pts-=c;own.mag=own.m;own.res=own.m*(own.rs==null?4:own.rs);rel=0;zBuyFx(pos[0],1.4,pos[1],0x7bf08a,'-'+c);return}
+ const c=mel?ZMELCOST[k]:zWallCost(k);if(mel&&zq.mel.k==ZMELEE[k])return zf('You already have it');if(zq.pts<c)return zf('Not enough points');zq.pts-=c;zGive(k);zBuyFx(pos[0],pos[2]??1.4,pos[1],0xffd24a,'-'+c)}
 function zWallTxt(k){const mel=ZMELEE[k],own=!mel&&wp.find(w=>w.k==k);if(own)return zAmmoFull(own)?'':'Ammo for '+(own.pn||W[k].n);if(mel&&zq.mel.k==ZMELEE[k])return '';return 'Buy the '+zItemName(k)+(mel?' (melee)':'')}
 function zWallCostNow(k){const mel=ZMELEE[k],own=!mel&&wp.find(w=>w.k==k);return own?(zAmmoFull(own)?0:zAmmoPrice(own,1)):mel?ZMELCOST[k]:zWallCost(k)}
 
@@ -235,7 +235,7 @@ function zPerk(t){if(!zq.mp.some(machine=>machine.k===t))return;const p=PERKS[t]
  if(t=='vit'){P.mhp=100;P.hp=100}if(t=='mule')zq.cap=3;
  if(t==='crypt')zq.nextCryptHeal=0;
  if(t=='rev'){if(zCli())netSend({t:'zqr'});else{zq.revBuys++;zRevCount(zq.revBuys);if(netOn)netSend({t:'zrev',n:zq.revBuys})}}
- beep(520,.1,'triangle',.08);setTimeout(()=>beep(780,.15,'triangle',.08),90);popup(p.n.toUpperCase(),p.t);flashL=Math.max(flashL||0,1);LX.fx.heal=Math.max(LX.fx.heal,.5);if(typeof estPerk=='function')estPerk(t)}
+ beep(520,.1,'triangle',.08);setTimeout(()=>beep(780,.15,'triangle',.08),90);flashL=Math.max(flashL||0,1);LX.fx.heal=Math.max(LX.fx.heal,.5);if(typeof estPerk=='function')estPerk(t)}
 /* the Revive Soda machine runs dry after four purchases (counted across every player) */
 function zRevCount(n){zq.revBuys=n;const o=zq.revM;if(n>=4&&o&&!o.o.gone){o.g.visible=false;o.o.gone=1;zUnsolid(o.bxo);setTimeout(()=>msg('The Revive Soda machine is empty',2),1800)}}
 /* mystery box rules (the chest, its lid and the floating weapon are in estate.js) */
@@ -421,7 +421,13 @@ function zInteract(){const z=zq;let best=null,bd=1e9;if(!P.dead&&z.papT<=0){for(
   if(netOn)for(const b of bots)if(b.net&&!b.hb&&!b.al&&b.dn){const d=Math.hypot(P.x-b.x,P.z-b.z);if(d<2.6&&d<bd){bd=d;best={rv:b,txt:()=>PG.t('Hold F to revive '+b.nm),cost:()=>0,act:()=>{}}}}}
  z.cur=best;const e=$('#zp');if(P.dead&&z.down){e.textContent=`DOWN · bleeding out in ${Math.ceil(z.dnT)}s · a teammate can revive you`;e.className='bad';return}
  if(z.papT>0){e.textContent=`Pack-a-Punch · ${z.papT.toFixed(1)}s`;e.className='';return}
- if(best){const c=best.cost();e.textContent=best.rv?best.txt():`[${typeof ctlKey=='function'?ctlKey('use'):'F'}] ${best.txt()}${c?'  ['+c+']':''}`;e.className=c>z.pts?'bad':''}else{e.textContent='';e.className=''}}
+ if(best){const c=best.cost();e.textContent=best.rv?best.txt():`[${typeof ctlKey=='function'?ctlKey('use'):'F'}] ${best.txt()}${c?'  ['+c+']':''}`;if(c>z.pts)e.textContent+=' · Need '+(c-z.pts)+' more';e.className=c>z.pts?'bad':''}else{
+  const down=netOn&&!P.dead?bots.filter(b=>b.net&&!b.hb&&!b.al&&b.dn):[];
+  const distance=b=>Math.hypot(b.x-P.x,b.z-P.z);
+  const nearest=down.reduce((a,b)=>!a||distance(b)<distance(a)?b:a,null);
+  e.textContent=nearest?'Revive '+nearest.nm+' · '+Math.ceil(distance(nearest))+' m':'';
+  e.className=nearest?'bad':'';
+ }}
 function zUse(){if(!zq||P.dead||over)return;if(zq.cur)zq.cur.act()}
 function zHudInit(){if(!$('#zpus')){const e=document.createElement('div');e.id='zpus';$('#hud').appendChild(e)}if($('#zdash'))return;const d=document.createElement('div');d.id='zdash';d.innerHTML='<svg viewBox="0 0 44 44"><circle class="bg" cx="22" cy="22" r="18"/><circle class="fg" cx="22" cy="22" r="18"/></svg><b>DASH</b><em>AIM</em>';$('#hud').appendChild(d)}
 function zHudShow(on){const d=$('#zdash');if(d)d.style.display=on?'block':'none'}
