@@ -43,10 +43,9 @@ for(const button of $$('.party-open')){
 }
 $('#party-close').onclick=()=>partyDialog.close();
 partyDialog.addEventListener('close',()=>{if(oskT&&partyDialog.contains(oskT))closeOSK()});
-$('#party-create').onclick=()=>{if(!window.Peer){partyStatus('Matchmaking could not load. Reload the game to retry.');return}hostMatch(null,true)};
+$('#party-create').onclick=()=>hostMatch(null,true);
 $('#party-join-form').onsubmit=event=>{
  event.preventDefault();
- if(!window.Peer){partyStatus('Matchmaking could not load. Reload the game to retry.');return}
  joinMatch($('#party-join-code').value,true);
 };
 $('#party-leave').onclick=()=>{netClose();partyStatus('You left the party.')};

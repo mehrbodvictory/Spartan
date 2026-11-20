@@ -183,7 +183,9 @@ function juiceKill(b,head){burst(V(b.x,1,b.z),26,0xb5452e,7,.9,.18);burst(V(b.x,
 function juiceReset(){if(burstMesh){burstMesh.count=0;burstMesh.visible=false}else for(const p of pts)S.remove(p.mesh);burstPool.push(...pts);pts.length=0;streak=0;lastKillT=-9;shake=0;const h=$('#hint');h.style.opacity=1;setTimeout(()=>h.style.opacity=0,11000);msg(practiceSession?'Static and moving targets from 10 to 50 m':MODES[mode]||'First to 15 kills',3)}
 function juiceTick(dt){
  shake*=Math.exp(-7*dt);if(shake>.01){C.position.x+=(Math.random()-.5)*shake*shk*.25;C.position.y+=(Math.random()-.5)*shake*shk*.25;C.rotation.z=(Math.random()-.5)*shake*shk*.06}
- fk*=Math.exp(-10*dt);C.fov+=(fovBase*(1-ST.ads*ST.zoom)+fk*4+(P.spr||0)*5-C.fov)*Math.min(1,dt*10);C.updateProjectionMatrix();
+ fk*=Math.exp(-10*dt);
+ const targetFov=fovBase*(1-ST.ads*ST.zoom)+fk*4+(P.spr||0)*5;
+ C.fov+=(splitCameraFov(targetFov,C.aspect)-C.fov)*Math.min(1,dt*10);C.updateProjectionMatrix();
  flashL*=Math.exp(-28*dt);muz.intensity=flashL*3;sw.x*=Math.exp(-8*dt);sw.y*=Math.exp(-8*dt);gun.rotation.y=sw.x;gun.rotation.z=sw.x*.5+sw.y*.3+rlRoll();
  $('#cx').style.transform=`scale(${(tg?.85:1)+kick*30})`;if(P.hp<P.mhp*.35&&!P.dead)dmA=Math.max(dmA,.22+.12*Math.sin(t0*6));
  for(const b of bots)if(b.fl>0){b.fl-=dt;for(const c of b.m.children)if(c.material&&c.material.emissive)c.material.emissive.setHex(b.fl>0?0x999999:0)}

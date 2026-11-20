@@ -1301,7 +1301,6 @@ function stormwatchSplitAdapter(update){
  };
 }
 function bootSplitSeat(){
- document.body.classList.add('split-seat');
  if(sdSplit.app==='sw'){stormwatchOpen();return}
  $('#split-start').closest('.split-entry').hidden=true;
  $('#host').disabled=$('#join').disabled=true;

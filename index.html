@@ -18,7 +18,7 @@ PROJECT RULES (kept here so every future session starts from them)
 -->
 <html lang="en"><head><meta charset="utf-8"><title>Spartan Drill</title>
 <!-- Update the CSP hash if this page’s inline loader changes. -->
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' blob: 'wasm-unsafe-eval' 'sha256-C/PwCe3oBDlIVV1JI0NmrAUl2l3a7Xgt0MbGKpVf4HA=' https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js; connect-src 'self' blob: https://0.peerjs.com wss://0.peerjs.com https://cdn.jsdelivr.net; script-src-attr 'none'; worker-src blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' blob: 'wasm-unsafe-eval' 'sha256-OtxmUj0buzjaTowZlGoGv1xjdI7Rqutge9S7HSyqBWQ=' https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js; connect-src 'self' blob: https://0.peerjs.com wss://0.peerjs.com https://cdn.jsdelivr.net; script-src-attr 'none'; worker-src blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@500;600&family=Teko:wght@500;700&display=swap" rel="stylesheet">
@@ -270,6 +270,7 @@ PROJECT RULES (kept here so every future session starts from them)
  window.SD_SPLIT=(seat===1||seat===2)&&localRoom&&/^[a-z0-9]{6,20}$/.test(localRoom)?{
   seat,room:localRoom,pad:Number(params.get('g'+seat)),map:params.get('map'),mode:params.get('mode'),app:params.get('app'),bots:params.get('bots')
  }:null;
+ if(window.SD_SPLIT)document.body.classList.add('split-seat');
  let storage;
  try{storage=window.localStorage}catch(e){}
  if(window.SD_SPLIT?.seat===2){

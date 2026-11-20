@@ -831,8 +831,15 @@ body.zdying #hud>*:not(#zdeath){opacity:0!important;transition:opacity .35s}
 body.split-shell {display:grid;grid-template-rows:29px minmax(0,1fr);height:100%;background:#050a0d}
 #split-toolbar {display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 12px;color:#eaf4f6;letter-spacing:.075em;font-size:13px}
 #split-toolbar button {cursor:pointer;border:1px solid #46616a;background:#192931;color:#eaf4f6;font:700 14px Rajdhani,sans-serif}
-#split-layout {display:grid;grid-template-rows:repeat(2,minmax(0,1fr));gap:2px;min-height:0;background:#28434d}
-#split-layout iframe {display:block;width:100%;height:100%;border:0;background:#071119}
+#split-layout {display:grid;grid-template:repeat(2,minmax(0,1fr))/minmax(0,1fr);gap:2px;min-height:0;overflow:hidden;background:#28434d}
+#split-layout iframe {display:block;width:100%;height:100%;min-width:0;min-height:0;border:0;background:#071119}
+@media (min-aspect-ratio: 5/2){
+ #split-layout {grid-template:minmax(0,1fr)/repeat(2,minmax(0,1fr))}
+}
+body.split-seat #hud {z-index:1}
+body.split-seat #eqhud{position:absolute;left:20px;top:180px;font-size:12px}
+body.split-seat #eqhud .eq{display:flex;align-items:center;gap:5px}
+body.split-seat #eqhud kbd{min-width:22px;text-align:center}
 body.split-seat #hint {display:none}
 body.split-seat #sbd {top:5%;max-height:94vh}
 body.split-seat .kc-rec {width:min(245px,29vw);right:10px}
@@ -1801,6 +1808,7 @@ body.split-seat [data-split-focus] { outline:2px solid var(--accent,#62e0f0);out
  body.split-seat #pause h2,body.split-seat #end #et{font-size:27px;margin:1px 0}
  body.split-seat #pause .big,body.split-seat #end .big{padding:6px 10px;min-height:32px}
  body.split-seat #rd{width:clamp(43px,16vh,78px);height:auto;left:8px;top:8px}
+ body.split-seat #eqhud{left:8px;top:calc(14px + clamp(43px,16vh,78px))}
  body.split-seat #bars{left:8px;bottom:8px;width:min(160px,30vw)}
  body.split-seat #bars .bar{height:8px;margin-top:3px}
  body.split-seat #am{right:8px;bottom:8px;font-size:clamp(23px,7vh,31px)}
@@ -1808,7 +1816,9 @@ body.split-seat [data-split-focus] { outline:2px solid var(--accent,#62e0f0);out
  body.split-seat #kf{top:8px;right:8px;max-width:24vw}
  body.split-seat #kf div{font-size:11px;padding:2px 4px;overflow-wrap:anywhere}
  body.split-seat #notes{top:65px;max-width:54vw}
- body.split-seat #kst{width:clamp(74px,15vw,113px);right:8px}
+ body.split-seat #kst{width:clamp(105px,16vw,158px);right:8px}
+ body.split-seat #kst .kt{padding:3px 5px;font-size:12px}
+ body.split-seat #kst .kt i{white-space:nowrap}
  body.split-seat #zmain{top:35px;width:min(285px,54vw)}
  body.split-seat #zmain small{font-size:10px}
  body.split-seat.zom #zh{bottom:7px}

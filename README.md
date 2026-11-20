@@ -1,13 +1,17 @@
 # Spartan Drill
 
-3D arena shooter that runs in the browser. Static files only, no build step.
+3D arena shooter that runs in the browser with no build step.
 
 Deploy: push this folder to a GitHub repo, then Settings > Pages > deploy from the branch root.
 Local test: run `python3 -m http.server` in this folder and open http://localhost:8000.
 
 ## Online parties and co-op
 
-Serve the game over HTTPS. Closed-alpha parties, private matches, and Stormwatch squads use encrypted direct WebRTC connections. PeerJS handles signaling and STUN helps browsers discover a route. Players may see each other's public IP addresses. Networks that block direct connections can prevent online play.
+For play across devices, serve the game and its relay together. Run `python3 relay.py` for a local test at `http://localhost:8000`. Players use the same hosted game URL and share the usual party, match, or squad code. The same code works on both the direct PeerJS route and the HTTPS relay. The game tries WebRTC first when available, then switches to HTTPS if the direct connection stalls. Player accounts and external relay credentials are unnecessary.
+
+For a public HTTPS deployment, run the relay on the host and reverse-proxy the game and `/sd-relay` routes to it. Preserve the original Host header, allow requests to wait at least 15 seconds, and use one relay process so both players reach the same rooms. On a LAN with a browser-trusted TLS certificate, run `python3 relay.py --bind 0.0.0.0 --cert fullchain.pem --key privkey.pem` and open the certificate's HTTPS hostname on both devices.
+
+Static hosting uses PeerJS and WebRTC without the HTTPS fallback. Direct WebRTC peers may see each other's public IP addresses. The same-origin relay runs only when the game is served through `relay.py`.
 
 ## Files
 - `favicon.svg` game icon (crosshair)
@@ -68,7 +72,7 @@ Blockfort, Pillars, Canyon, Boomtown and Suburbia: two crossing streets with sid
 The Play screen has a Random mode card and a Random map card. Pick them and a new combination is rolled every time you select Find Match. Matchmaking normally takes 12–18 seconds before Deploy is available. The private match host also has Random mode and Random map in the dropdowns. Multiplayer matchmaking fills unused seats with game bots.
 Private lobbies stay connected after a match. The host picks a mode and map again and presses Start match. Use Leave lobby to disconnect.
 
-**Party** on the home screen or menu creates a reusable five-character code for up to four players. The leader can switch between modes and deploy everyone together into the same Multiplayer, Zombies, or Stormwatch session. Teammates stay together in team-based Multiplayer modes. Returning from a match keeps the party connected.
+**Party** on the home screen or menu creates a reusable six-character code for up to four players. The leader can switch between modes and deploy everyone together into the same Multiplayer, Zombies, or Stormwatch session. Teammates stay together in team-based Multiplayer modes. Returning from a match keeps the party connected.
 
 ## Zombies
 

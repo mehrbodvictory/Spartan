@@ -2002,7 +2002,8 @@ function cameraTick(dt,brief=false){
  camera.position.y+=bob;
  const roll=reduceMotion?0:(hero.strafe||0)*-.019;
  camera.rotation.set(hero.pitch+kickEnergy*.11,y+Math.sin(state.elapsed*31)*kickEnergy*.025,roll);
- const targetFov=hero.aim?55:hero.dash>0?76:hero.sprint?70:64;
+ const baseFov=hero.aim?55:hero.dash>0?76:hero.sprint?70:64;
+ const targetFov=window.SD_SPLIT?splitCameraFov(baseFov,camera.aspect):baseFov;
  camera.fov=lerp(camera.fov,targetFov,dt===0?1:Math.min(1,dt*11));
  camera.updateProjectionMatrix();camera.updateMatrixWorld();
 }

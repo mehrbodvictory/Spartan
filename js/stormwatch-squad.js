@@ -74,17 +74,23 @@ var StormwatchSquad=(()=>{
   }
   function leave(){attempt++;reset();status('Deploy solo or open a squad.')}
   function fail(line){reset();status(line)}
-  function peersAvailable(){
-   if(window.Peer)return true;
+  async function peersAvailable(){
+   await gameRelayReady;
+   if(window.Peer||gameRelayAvailable)return true;
    status('The matchmaking service library could not load. Solo deployment is available.');return false;
   }
   function arm(p,fn,timeout=12500){clearTimeout(timer);timer=setTimeout(()=>{if(peer===p)fn()},timeout)}
   function accept(link,p){
+   const previous=members.get(link.peer);
+   if(previous&&!previous.link.open){
+    members.delete(link.peer);
+    previous.link.close();
+   }
    if(removed.has(link.peer)||peer!==p||!isHost||locked||starting||members.size>=3||members.has(link.peer)){
     link.on('open',()=>{sendPeerPacket(link,{type:removed.has(link.peer)?'removed':locked?'locked':'busy'});setTimeout(()=>link.close(),300)});return;
    }
    const item={link,name:null};members.set(link.peer,item);
-   const hello=setTimeout(()=>{if(!item.name)link.close()},8500);
+   const hello=setTimeout(()=>{if(!item.name)link.close()},25000);
    const allowed=inviteGate(link,identity,true,()=>{});
    peerPackets(link,'type',d=>{
     if(peer!==p||members.get(link.peer)!==item||!allowed(d))return;
@@ -145,8 +151,12 @@ var StormwatchSquad=(()=>{
    arm(p,()=>fail('The squad did not respond. Check the code and connection.'));
    p.on('open',()=>{
     if(peer!==p)return;
-    arm(p,()=>fail('Could not connect directly to the squad.'),25000);
-    const link=host=connectDataPeer(p,address(code));
+    arm(p,()=>fail('The squad could not verify the connection.'),40000);
+    connectRoomPeer(p,address(code),attach,()=>status('Retrying the squad connection…'),
+     ()=>fail('Could not connect to the squad after two attempts.'));
+   });
+   function attach(link){
+    host=link;
     const allowed=inviteGate(link,identity,false,()=>{if(peer===p)sendPeerPacket(link,{type:'hello',name:clean(name)})});
     peerPackets(link,'type',d=>{
      if(peer!==p)return;
@@ -170,9 +180,9 @@ var StormwatchSquad=(()=>{
      }else if(!roster||!starting||!fresh(d,link.peer))return;
      emit(d,link.peer);
     },()=>link.close());
-    link.on('close',()=>{if(peer!==p)return;emit({type:'lost'},link.peer);fail('The host disconnected.')});
+    link.on('close',()=>{if(peer!==p||link.replacing)return;emit({type:'lost'},link.peer);fail('The host disconnected.')});
     link.on('error',()=>{if(peer===p)fail('The squad connection dropped.')});
-   });
+   }
    p.on('error',error=>{
     if(peer!==p)return;
     if(error.type==='peer-unavailable'&&onMissing){const next=onMissing;reset();next(false);return}
@@ -202,17 +212,17 @@ var StormwatchSquad=(()=>{
    get size(){return isHost?1+[...members.values()].filter(m=>m.name).length:roster?.length||1},
    get names(){return isHost?new Map([...members].filter(([,m])=>m.name).map(([id,m])=>[id,m.name])):new Map((roster||[]).map(m=>[m.id,m.name]))},
    subscribe(fn){listeners.add(fn);return ()=>listeners.delete(fn)},send,direct,launch,leave,status,remove,toggleLock,
-   create(){
-    if(!peersAvailable())return;
+   async create(){
+    if(!await peersAvailable()||closed)return;
     privateRoom(makeInviteCode(),true);
    },
-   join(value){
+   async join(value){
     const code=readInviteCode(value);
     if(!code){status('Enter the 12-character squad code.');return}
-    if(peersAvailable())privateRoom(code,false);
+    if(await peersAvailable()&&!closed)privateRoom(code,false);
    },
-   quick(spec){
-    if(!peersAvailable())return;
+   async quick(spec){
+    if(!await peersAvailable()||closed)return;
     leave();const token=attempt;
     function find(slot){
      if(closed||attempt!==token)return;

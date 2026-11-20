@@ -141,7 +141,16 @@ try{const sv=JSON.parse(localStorage.getItem('sd-load'));if(sv&&sv.sel&&(sv.sel.
 var R=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});R.setPixelRatio(Math.min(devicePixelRatio,1.5));R.setSize(innerWidth,innerHeight);document.body.prepend(R.domElement);
 var S=new THREE.Scene(),C=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.03,200);C.rotation.order='YXZ';S.add(C);
 var hemi=new THREE.HemisphereLight(0xffffff,0x445566,.85);S.add(hemi);var sun=new THREE.DirectionalLight(0xffffff,.7);sun.position.set(30,50,20);S.add(sun);
-addEventListener('resize',()=>{R.setSize(innerWidth,innerHeight);C.aspect=innerWidth/innerHeight;C.updateProjectionMatrix()});
+addEventListener('resize',()=>{
+ R.setSize(innerWidth,innerHeight);
+ C.aspect=innerWidth/Math.max(1,innerHeight);
+ C.updateProjectionMatrix();
+});
+function splitCameraFov(fov,aspect){
+ if(!window.SD_SPLIT||aspect<=2.35)return fov;
+ const radians=Math.PI/360;
+ return Math.atan(Math.tan(fov*radians)*2.35/aspect)/radians;
+}
 var sg=new THREE.SphereGeometry(1,12,8),bg=new THREE.BoxGeometry(1,1,1);
 var gun=new THREE.Group(),gf=new THREE.Mesh(bg,new THREE.MeshBasicMaterial({color:0xffdd66}));
 gf.scale.set(.06,.06,.12);gun.add(gf);C.add(gun);
