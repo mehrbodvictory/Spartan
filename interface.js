@@ -321,6 +321,7 @@ function netClose(){
 function netEnd(){netOn=0;setRoomRound(0);scores={};document.body.classList.remove('net');if(soloMode!=null){sel.mode=soloMode;soloMode=null;ui()}lobbyList();lobby(partyActive?(isHost?'Party ready for another match.':'Waiting for the leader to deploy.'):isHost?'Match over. Everyone is still here. Pick a mode and map, then press Start match.':'Match over. Waiting for the host to start the next one…')}
 async function roomAddress(code,party,opening){
  if(window.SD_SPLIT)return 'sdrill-'+code;
+ await gameRelayReady;
  const auth=await inviteIdentity(party?'party':'match',code);
  if(opening!==roomOpening)return '';
  roomAuth=auth;return auth.id;
@@ -337,8 +338,12 @@ async function hostMatch(localCode,wantsParty=false){
   peer=net=window.SD_SPLIT?new SplitPeer(address):createDataPeer(address);
  }catch(error){if(opening===roomOpening){netClose();if(wantsParty)partyStatus(error.message);else lobby(error.message)}return}
  if(partyActive)partyCode=code;
+ const signalingTimer=window.SD_SPLIT?0:setTimeout(()=>{
+  if(net===peer&&!peer.open)failInitialJoin(peer,'Could not register with matchmaking. Try creating the room again.');
+ },15000);
  peer.on('disconnected',()=>{if(net===peer)try{peer.reconnect()}catch{}});
  peer.on('open',id=>{
+  clearTimeout(signalingTimer);
   if(net!==peer)return;
   myId=id;isHost=1;names[id]=myName;$('#code').textContent=code;$('#hostbox').style.display='block';
   lobby(partyActive?'Share this code. The leader controls deployment.':'Share this code. Press Start when everyone has joined.');lobbyList();
@@ -347,7 +352,9 @@ async function hostMatch(localCode,wantsParty=false){
   if(net===peer&&isHost&&pendingRoomLinks.size<8)reg(link);else link.close();
  });
  peer.on('error',error=>{
-  if(net===peer)lobby(error.type==='unavailable-id'?'That room ID is in use. Create a new room.':'Network error: '+error.type);
+  if(net!==peer)return;
+  const line=error.type==='unavailable-id'?'That room ID is in use. Create a new room.':'Network error: '+error.type;
+  if(!isHost&&!window.SD_SPLIT){clearTimeout(signalingTimer);failInitialJoin(peer,line)}else lobby(line);
  });
 }
 async function joinMatch(value,wantsParty=false){
@@ -371,7 +378,17 @@ async function joinMatch(value,wantsParty=false){
   if(net===peer&&!peer.open)failInitialJoin(peer,'Could not connect to the matchmaking service. Try joining again.');
  },15000);
  peer.on('disconnected',()=>{if(net===peer)try{peer.reconnect()}catch{}});
- peer.on('open',id=>{clearTimeout(signalingTimer);if(net===peer){myId=id;names[id]=myName;reg(connectDataPeer(peer,hostPid))}});
+ peer.on('open',id=>{
+  clearTimeout(signalingTimer);
+  if(net!==peer||myId===id&&hasOwn(names,id))return;
+  myId=id;names[id]=myName;
+  if(window.SD_SPLIT){reg(connectDataPeer(peer,hostPid));return}
+  connectRoomPeer(peer,hostPid,reg,link=>{
+   clearTimeout(link.verifyTimer);pendingRoomLinks.delete(link);
+   lobby('Retrying the connection…');
+  },
+   ()=>failInitialJoin(peer,'The connection timed out before invite verification started.'));
+ });
  peer.on('error',error=>{
   if(net!==peer)return;
   const line=error.type==='peer-unavailable'?'No '+(partyActive?'party':'match')+' found with that code.':'Network error: '+error.type;
@@ -388,48 +405,77 @@ var BHK={ver:typeof __BUILD!='undefined'?__BUILD:'raw',mode:typeof __MODE!='unde
 var bhFns=()=>[hurt,takeDmg,shoot,eff,hitBot,boom,die,respawn,startGame,featKill,giveXP,wkill,addBot,onMsg,zDamage,zHit,mkHuman,useStreak,skAward];
 async function bhSha(s){try{if(window.crypto&&crypto.subtle){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}}catch(e){}
  let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return(h2>>>0).toString(16)+(h1>>>0).toString(16)}
-var bhProof=n=>bhSha([n,BHK.ver,BHK.mode,...bhFns().map(f=>Function.prototype.toString.call(f))].join('\u0001'));
+// The HTTPS loader hashes the exact scripts it executes. Use that digest
+// for compatibility across browsers and keep the raw development check.
+function bhProof(n){
+ const fields=[n,BHK.ver,BHK.mode];
+ if(BHK.mode==='raw')fields.push(...bhFns().map(f=>Function.prototype.toString.call(f)));
+ return bhSha(fields.join('\u0001'));
+}
 var bhNonce=()=>{try{const a=new Uint32Array(4);crypto.getRandomValues(a);return[...a].join('-')}catch(e){return Math.random()+'-'+Date.now()}};
 const resumeProof=(ticket,nonce)=>ticket?bhSha('rejoin\u0001'+nonce+'\u0001'+ticket):Promise.resolve('');
-function bhReject(cn,why){cn.blocked=true;try{sendPeerPacket(cn,{t:'bhx',w:why})}catch(e){}if(!isHost)lobby(why);setTimeout(()=>{try{cn.close()}catch(e){}},350)}
+const roomVerificationErrors=Object.freeze({
+ build:'Game versions differ. Reload the game on both devices.',
+ proof:'The connection opened, but the game build proof did not match.',
+ invite:'The connection opened, but the secure invite proof did not match.',
+ binding:'The connection opened, but the browser could not verify its secure channel.',
+ protocol:'The connection opened, but the room verification message was invalid.',
+ detail:'The connection opened, but room verification could not finish.'
+});
+function bhReject(cn,reason){
+ const message=roomVerificationErrors[reason];
+ cn.blocked=true;cn.joinFailure=message;
+ console.info('[net] Room verification failed: '+reason);
+ try{sendPeerPacket(cn,{t:'bhx',reason,w:message})}catch{}
+ if(!isHost)lobby(message);
+ setTimeout(()=>{try{cn.close()}catch{}},350);
+}
 function bhStart(cn){
+ cn.channelOpened=true;
+ console.info('[net] Data channel opened; verifying room');
  cn.vf=0;cn.sent=0;cn.theirs=0;cn.mn=bhNonce();
  const auth=cn.auth;
- cn.binding=auth?privateChannelBinding(cn):'';
- if(auth&&!cn.binding)return bhReject(cn,'Could not verify the secure connection.');
+ cn.authBinding=auth?privateChannelBinding(cn):'';
+ if(auth&&!cn.authBinding)return bhReject(cn,'binding');
  sendPeerPacket(cn,{t:'bh1',v:BHK.ver,m:BHK.mode,n:cn.mn});
 }
 function bhMsg(d,cn){
- if(d.t==='bhx'){if(!isHost){cn.joinFailure='The room could not verify this connection. Check your code and reload the game.';lobby(cn.joinFailure)}return}
+ if(d.t==='bhx'){
+  if(!isHost){
+   cn.joinFailure=hasOwn(roomVerificationErrors,d.reason)?roomVerificationErrors[d.reason]:roomVerificationErrors.detail;
+   lobby(cn.joinFailure);
+  }
+  return;
+ }
  const role=isHost?'host':'guest',otherRole=isHost?'guest':'host',auth=cn.auth;
  if(d.t==='bh1'){
   if(cn.challenge)return;cn.challenge=true;
-  if(d.v!==BHK.ver||d.m!==BHK.mode||typeof d.n!=='string'||!d.n||d.n.length>64){
-   bhReject(cn,'Incompatible game version. Reload before joining.');return;
-  }
-  const challenge=d.n+'\n'+cn.binding;
+  if(d.v!==BHK.ver||d.m!==BHK.mode){bhReject(cn,'build');return}
+  if(typeof d.n!=='string'||!d.n||d.n.length>64){bhReject(cn,'protocol');return}
+  const challenge=d.n+'\n'+cn.authBinding;
   Promise.all([bhProof(d.n),resumeProof(isHost?'':roomTicket,d.n),auth?auth.proof(role,challenge):'']).then(([p,resume,invitation])=>{
    if(cn.blocked||!cn.open)return;
    sendPeerPacket(cn,{t:'bh2',p,resume,invitation});cn.sent=1;bhDone(cn);
-  }).catch(()=>bhReject(cn,'Could not verify this room.'));
+  }).catch(()=>bhReject(cn,'detail'));
   return;
  }
  if(d.t==='bh2'&&!cn.answer){
   cn.answer=true;
   const ticket=isHost?roomTickets.get(cn.peer):null;
-  const challenge=cn.mn+'\n'+cn.binding;
+  const challenge=cn.mn+'\n'+cn.authBinding;
   Promise.all([bhProof(cn.mn),resumeProof(ticket,cn.mn),auth?auth.verify(otherRole,challenge,d.invitation):true]).then(([p,resume,verified])=>{
    if(cn.blocked||!cn.open)return;
    if(d.p===p&&verified){
     cn.reclaimed=ticket&&d.resume===resume?ticket:null;
     cn.theirs=1;bhDone(cn);
-   }else bhReject(cn,d.p!==p?'Check A failed: game files differ between the two devices.':'Check B failed: the secure invite check did not match (Safari/browser difference or wrong code).');
-  }).catch(()=>bhReject(cn,'Could not verify this room.'));
+   }else bhReject(cn,d.p!==p?'proof':'invite');
+  }).catch(()=>bhReject(cn,'detail'));
  }
 }
 function bhDone(cn){
  if(cn.blocked||!cn.open||cn.vf||!(cn.sent&&cn.theirs))return;
  const pending=cn.pq||[];cn.pq=null;cn.vf=1;
+ console.info('[net] Room verification passed');
  clearTimeout(cn.verifyTimer);pendingRoomLinks.delete(cn);
  if(!regOpen(cn))return;
  for(const message of pending)acceptGamePacket(message,cn);
@@ -579,6 +625,11 @@ function acceptGamePacket(data,link){
   if(acceptRoomPacket(data,link)&&(!isHost||hostVet(data,link)))onMsg(data,link);
  }catch{}
 }
+function roomJoinFailure(cn){
+ if(cn.joinFailure)return cn.joinFailure;
+ if(cn.channelOpened)return 'The connection opened, but room verification did not finish.';
+ return 'The connection could not open before invite verification. Network: '+(cn.iceState||'channel never opened')+'.';
+}
 function reg(cn){
  const owner=net;
  cn.last=performance.now();cn.vf=0;cn.auth=roomAuth;
@@ -587,7 +638,7 @@ function reg(cn){
   pendingRoomLinks.delete(cn);
   if(net===owner&&!cn.vf){
    if(!isHost){
-    cn.joinFailure=cn.open?'Could not verify the room. Make sure both players are running the same build.':'Could not connect directly. One of the networks may block peer-to-peer connections.';
+    cn.joinFailure=roomJoinFailure(cn);
     if(!netOn&&!window.SD_SPLIT&&!conns.length){failInitialJoin(owner,cn.joinFailure);cn.close();return}
     lobby(cn.joinFailure);
    }
@@ -597,14 +648,13 @@ function reg(cn){
  cn.on('open',()=>{if(net===owner)bhStart(cn);else cn.close()});
  /* Report why a link died instead of the generic "check the code" message. */
  const watchIce=()=>{
-  const pc=cn.peerConnection;if(!pc||cn.iceWatched)return;cn.iceWatched=true;
+  const pc=cn.peerConnection;if(!pc||cn.iceWatched===pc)return;cn.iceWatched=pc;
+  cn.iceState=pc.iceConnectionState;
   pc.addEventListener('iceconnectionstatechange',()=>{
    cn.iceState=pc.iceConnectionState;console.info('[net] ICE '+pc.iceConnectionState);
-   if(pc.iceConnectionState==='failed'&&!cn.vf&&!cn.joinFailure)
-    cn.joinFailure='Could not connect directly. The two networks are blocking peer-to-peer and no relay worked.';
   });
  };
- watchIce();cn.on('open',watchIce);
+ watchIce();cn.on('open',watchIce);cn.on('transport',watchIce);
  peerPackets(cn,'t',d=>{
   if(net!==owner||cn.blocked)return;
   cn.last=performance.now();
@@ -626,10 +676,10 @@ function reg(cn){
  });
  cn.on('error',()=>{
   if(net===owner&&!isHost&&!cn.vf){
-   cn.joinFailure='The direct connection failed. Check the code and try again.';lobby(cn.joinFailure);
+   lobby(roomJoinFailure(cn));
   }
  });
- cn.on('close',()=>{clearTimeout(cn.verifyTimer);pendingRoomLinks.delete(cn);if(net===owner)netLost(cn)});
+ cn.on('close',()=>{clearTimeout(cn.verifyTimer);pendingRoomLinks.delete(cn);if(net===owner&&!cn.replacing)netLost(cn)});
 }
 /* a connection ended. Players who say goodbye leave at once; anyone else gets 15 s to come back (flaky wifi, tab switches, ICE hiccups) before their body is removed */
 function netLost(cn){conns=conns.filter(x=>x!==cn);
@@ -642,15 +692,21 @@ function netLost(cn){conns=conns.filter(x=>x!==cn);
   return;
  }
  if(!cn.vf&&!netOn&&!conns.length&&Object.keys(names).length<=1&&!window.SD_SPLIT){
-  failInitialJoin(net,cn.joinFailure||'Could not connect to that room. Check the code and try again. [network: '+(cn.iceState||'never started')+']');
+  failInitialJoin(net,roomJoinFailure(cn));
   return;
  }
  if(partyActive&&partyOperationOpen)partyDispatch({type:'lost'},cn.peer);
  if(netOn||Object.keys(names).length>1)guestRetry()}
-function guestRetry(){if(!net||isHost||hostBye)return;if(conns.some(c=>c.open)){rcTry=0;return}if(rcTry++>=12){lobby('Lost connection to the host');if(netOn)setTimeout(()=>endGame('Disconnected'),300);return}
+function guestRetry(){
+ clearTimeout(rcTimer);
+ if(!net||isHost||hostBye)return;
+ if(conns.some(c=>c.open)){rcTry=0;return}
+ if(pendingRoomLinks.size){rcTimer=setTimeout(guestRetry,2500);return}
+ if(rcTry++>=12){lobby('Lost connection to the host');if(netOn)setTimeout(()=>endGame('Disconnected'),300);return}
  lobby('Connection lost. Reconnecting… ('+rcTry+'/12)');if(run)msg('Reconnecting…',1.2);try{if(net.disconnected)net.reconnect()}catch(e){}
- try{const c=connectDataPeer(net,hostPid);reg(c);c.on('open',()=>{lobby('Reconnected');if(run)msg('Reconnected',1.5)})}catch(e){}
- clearTimeout(rcTimer);rcTimer=setTimeout(guestRetry,2500)}
+ try{const c=connectDataPeer(net,hostPid);if(c)reg(c)}catch(e){}
+ rcTimer=setTimeout(guestRetry,2500)
+}
 /* heartbeat: keeps NAT mappings open, and any link silent for 25 s is closed so it can be retried */
 setInterval(()=>{const n=performance.now();for(const c of conns)if(c.open){try{sendPeerPacket(c,{t:'ping'})}catch(e){}if(c.last&&n-c.last>25000){try{c.close()}catch(e){}}}},1000);
 function dropPeer(id){roomTickets.delete(id);roomReceived.delete(id);recentDamage.delete(id);const i=bots.findIndex(b=>b.net&&b.id==id);if(i>=0){S.remove(bots[i].m);bots.splice(i,1)}if(!hasOwn(names,id))return;if(run)feed(names[id]+' left');delete names[id];peerLooks.delete(id);if(partyActive)partyMemberLeft(id);broadcastRoster();lobbyList()}
