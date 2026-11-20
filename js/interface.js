@@ -405,7 +405,13 @@ var BHK={ver:typeof __BUILD!='undefined'?__BUILD:'raw',mode:typeof __MODE!='unde
 var bhFns=()=>[hurt,takeDmg,shoot,eff,hitBot,boom,die,respawn,startGame,featKill,giveXP,wkill,addBot,onMsg,zDamage,zHit,mkHuman,useStreak,skAward];
 async function bhSha(s){try{if(window.crypto&&crypto.subtle){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}}catch(e){}
  let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return(h2>>>0).toString(16)+(h1>>>0).toString(16)}
-var bhProof=n=>bhSha([n,BHK.ver,BHK.mode,...bhFns().map(f=>Function.prototype.toString.call(f))].join('\u0001'));
+// The HTTPS loader hashes the exact scripts it executes. Use that digest
+// for compatibility across browsers and keep the raw development check.
+function bhProof(n){
+ const fields=[n,BHK.ver,BHK.mode];
+ if(BHK.mode==='raw')fields.push(...bhFns().map(f=>Function.prototype.toString.call(f)));
+ return bhSha(fields.join('\u0001'));
+}
 var bhNonce=()=>{try{const a=new Uint32Array(4);crypto.getRandomValues(a);return[...a].join('-')}catch(e){return Math.random()+'-'+Date.now()}};
 const resumeProof=(ticket,nonce)=>ticket?bhSha('rejoin\u0001'+nonce+'\u0001'+ticket):Promise.resolve('');
 const roomVerificationErrors=Object.freeze({
