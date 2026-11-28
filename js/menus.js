@@ -6,7 +6,7 @@ try{LSL.slots=JSON.parse(localStorage.getItem('sd-slots'))||[];LSL.cur=+localSto
 var CLS={AR:'ASSAULT RIFLE',MVR:'ASSAULT RIFLE',TRB:'ASSAULT RIFLE',TUR:'ASSAULT RIFLE',SMG:'SUBMACHINE GUN',VMP:'SUBMACHINE GUN',BR:'BATTLE RIFLE',SG:'SHOTGUN',MG:'PISTOL',MP:'MACHINE PISTOL',CT:'PISTOL',CY:'SHOTGUN',SN:'SNIPER RIFLE',RL:'LAUNCHER',RG:'SPECIAL'};
 var WDS={AR:'Full-auto rifle. Reliable all-rounder with a steady rate of fire.',TRB:'Three-round burst assault rifle. Tight, accurate bursts; two bursts kill. Unlocks at level 22.',TUR:'Fast firing automatic rifle with a turbine core. Light and mobile, best at medium range. Unlocks at level 26.',MVR:'Slow firing, hard hitting assault rifle. Three body shots kill. Excellent accuracy and range, heavy kick.',SMG:'Light submachine gun. Very fast firing, best up close.',BR:'Semi-auto battle rifle. Heavy hits at range.',SG:'Pump shotgun. Devastating at close range.',MG:'Six-shot magnum revolver. Slow, powerful, accurate.',MP:'Fully automatic machine pistol. Extreme close-range volume.'};
 CLS.CY='LIGHT MACHINE GUN';CLS.RG='SPECIAL';CLS.MG='REVOLVER';
-Object.assign(CLS,{VA:'ASSAULT RIFLE',BP:'PUMP SHOTGUN',KTS:'TACTICAL SHOTGUN',RD:'SUBMACHINE GUN',HC:'HEAVY PISTOL',OH:'MARKSMAN RIFLE',TEA:'POWER WEAPON',SW:'ASSAULT RIFLE',LT:'SUBMACHINE GUN',PD:'MARKSMAN RIFLE'});
+Object.assign(CLS,{VA:'ASSAULT RIFLE',BP:'PUMP SHOTGUN',KTS:'TACTICAL SHOTGUN',RD:'SUBMACHINE GUN',HC:'HEAVY PISTOL',AN:'SHOTGUN PISTOL',OH:'MARKSMAN RIFLE',TEA:'POWER WEAPON',SW:'ASSAULT RIFLE',LT:'SUBMACHINE GUN',PD:'MARKSMAN RIFLE'});
 Object.assign(WDS,{
  TEA:'Hold fire to pour a scalding stream. Vent after overheating. Effective within 38 metres in Multiplayer.',
  SW:'A compact bullpup with rear-fed magazines and low horizontal recoil. Unlocks at level 21.',
@@ -17,6 +17,7 @@ Object.assign(WDS,{
  KTS:'Fast semi-auto shotgun with eight shells and a wide pattern for close quarters.',
  RD:'A compact automatic with a 48-round drum. Strong in tight spaces and slow to reload.',
  HC:'Seven-shot, high-recoil sidearm that rewards precise shots.',
+ AN:'A compact shotgun pistol with twin barrels and a break-open reload.',
  OH:'Single-shot bolt action with open sights. Hand-load one round after each shot.'
 });
 Object.assign(WDS,{VMP:'Ultra-fast submachine gun with a huge magazine. Low damage per bullet, shreds at close range.',CY:'60 round light machine gun with a drum magazine. Heavy suppressive fire, slow reload. Unlocks at level 34.',CT:'Classic .45 pistol. Reliable, accurate, quick to draw. Unlocks at level 12.',RG:'Experimental energy pistol. Explosive bolts with a splash, two shots kill. Unlocks at level 30.'});
@@ -41,7 +42,7 @@ function previewBounds(model){
 function wImg(k){const ak=k+'|'+attsFor(k).join(',');if(WIMG[ak]!=null)return WIMG[ak];try{previewRenderer();
  const sc=new THREE.Scene();sc.add(new THREE.HemisphereLight(0xffffff,0x4a5566,1.0));const dl=new THREE.DirectionalLight(0xffffff,.9);dl.position.set(4,5,2);sc.add(dl);const dl2=new THREE.DirectionalLight(0x99aacc,.4);dl2.position.set(-4,2,-3);sc.add(dl2);
  const g=previewGun(k,attsFor(k));sc.add(g);const bb=previewBounds(g),ct=bb.getCenter(new THREE.Vector3()),sz=bb.getSize(new THREE.Vector3()),hw=Math.max(sz.z*.56,sz.y*1.15),hh=hw*300/640,cam=new THREE.OrthographicCamera(-hw,hw,hh,-hh,.01,30);
- cam.position.set(ct.x+6,ct.y,ct.z);cam.lookAt(ct.x,ct.y,ct.z);wRen.render(sc,cam);return WIMG[ak]=wRen.domElement.toDataURL('image/png')}catch(e){return WIMG[ak]=''}}
+ cam.position.set(ct.x+6,ct.y+(k==='AN'?1.75:0),ct.z+(k==='AN'?3.2:0));cam.lookAt(ct.x,ct.y,ct.z);wRen.render(sc,cam);return WIMG[ak]=wRen.domElement.toDataURL('image/png')}catch(e){return WIMG[ak]=''}}
 /* ---------- 3D previews of the non-gun items: the same models the game uses, rendered once and cached ---------- */
 var OIMG={};
 function objImg(id,fn){if(OIMG[id]!=null)return OIMG[id];try{previewRenderer();
@@ -393,7 +394,7 @@ function oiBullet(){const w=cw();if(!w)return;const n_=performance.now();if(n_-(
 /* bots that used their three lives stay dead */
 {const _sp=spawn;spawn=function(b){if(OI.on&&!b.net&&(b.dc||0)>=3){b.al=0;b.out=1;b.m.visible=false;b.rt=1e9;return}_sp.apply(this,arguments)}}
 function oiTick(dt){const aiLeft=bots.filter(b=>!b.net&&!b.out).length,humans=bots.filter(b=>b.net&&!b.hb&&!b.out).length,left=aiLeft+humans;
- $('#ob').textContent=`Lives ${Math.max(0,OI.lives)} · Kills ${kills} · Opponents left ${left}`;
+ setObjectiveText(`Lives ${Math.max(0,OI.lives)} · Kills ${kills} · Opponents left ${left}`);
  if(P.dead&&OI.lives<=0)return;
  if(!netOn||isHost){if(left==0&&OI.lives>0)endGame('Victory');else if(netOn&&OI.lives<=0&&left<=1&&!over)endGame(left==1?(bots.find(b=>b.net&&!b.hb&&!b.out)||{nm:'A player'}).nm+' wins':'Defeat')}}
 
@@ -538,11 +539,10 @@ function idrPreview(){
 }
 function idrRenderCards(){
  const equipped=idrLocal().card;
- const cards=Object.entries(IDR_CARDS).map(([id,card])=>{
-  const p=idrCardProgress(id),selected=id===equipped;
-  const label=selected?'Equipped':p.unlocked?'Equip calling card':p.title+' · '+p.progress.toLocaleString()+' / '+p.goal.toLocaleString();
-  return '<button class="idr-card-choice" data-idr-card="'+id+'" aria-pressed="'+selected+'"'+(p.unlocked?'':' disabled')+'>'+
-   '<span class="idr-art-frame" style="--idr-ink:'+card.ink+';--idr-shade:'+card.shade+'">'+idrCardArt(card)+(p.unlocked?'':'<span class="idr-lock">Locked</span>')+'</span>'+
+ const cards=Object.entries(IDR_CARDS).filter(([id])=>idrCardProgress(id).unlocked).map(([id,card])=>{
+  const selected=id===equipped,label=selected?'Equipped':'Equip calling card';
+  return '<button class="idr-card-choice" data-idr-card="'+id+'" aria-pressed="'+selected+'">'+
+   '<span class="idr-art-frame" style="--idr-ink:'+card.ink+';--idr-shade:'+card.shade+'">'+idrCardArt(card)+'</span>'+
    '<span class="idr-choice-caption"><strong>'+card.name+'</strong><small>'+label+'</small></span></button>';
  }).join('');
  return '<div class="idr-list-head"><h3>Calling cards</h3><button class="idr-button" data-idr-action="challenges">View challenges</button></div><div class="idr-card-grid">'+cards+'</div>';
@@ -550,13 +550,13 @@ function idrRenderCards(){
 function idrEmblemUnlocked(id){return !passRewardTier('emblem',id)||passOwns('emblem',id)}
 function idrRenderEmblems(){
  const equipped=idrLocal().emblem;
- const presets=Object.entries(IDR_PRESETS);
+ const presets=Object.entries(IDR_PRESETS).filter(([id])=>idrEmblemUnlocked(id));
  if(idrSaved.layers)presets.push(['custom',{name:'Custom emblem',layers:idrSaved.layers}]);
  return '<div class="idr-list-head"><h3>Emblems</h3><button class="idr-button" data-idr-action="creator">'+(idrSaved.layers?'Edit custom emblem':'Create custom emblem')+'</button></div>'+
   '<div class="idr-emblem-grid">'+presets.map(([id,emblem])=>{
-   const selected=id===equipped, unlocked=idrEmblemUnlocked(id);
-   return '<button class="idr-emblem-choice" data-idr-emblem="'+id+'" aria-pressed="'+selected+'"'+(unlocked?'':' disabled')+'><span class="idr-badge">'+
-    idrEmblemArt(emblem.layers)+'</span><strong>'+emblem.name+'</strong><small>'+(selected?'Equipped':unlocked?'Equip emblem':'Battle Pass reward')+'</small></button>';
+   const selected=id===equipped;
+   return '<button class="idr-emblem-choice" data-idr-emblem="'+id+'" aria-pressed="'+selected+'"><span class="idr-badge">'+
+    idrEmblemArt(emblem.layers)+'</span><strong>'+emblem.name+'</strong><small>'+(selected?'Equipped':'Equip emblem')+'</small></button>';
   }).join('')+'</div>';
 }
 function idrOptions(entries, selected){
@@ -826,7 +826,8 @@ function passLoad(){
    xp:passInteger(saved.xp,0,PASS_TRACK.length*PASS_XP),bux:passInteger(saved.bux,0,1000000),
    premium:saved.premium===true,grants:passInteger(saved.grants,0,5),operator:operatorId(saved.operator),
    emote:passInteger(saved.emote,7,10),charm:idrExtra('charm',saved.charm),title:idrExtra('title',saved.title),tracer:idrExtra('tracer',saved.tracer),finish:typeof saved.finish==='string'?saved.finish:'',
-   blueprints:saved.blueprints&&typeof saved.blueprints==='object'?saved.blueprints:{}
+   blueprints:saved.blueprints&&typeof saved.blueprints==='object'?saved.blueprints:{},
+   stormfrontRewards:Array.isArray(saved.stormfrontRewards)?saved.stormfrontRewards.slice(-30):[]
   };
  }catch(e){return passNew()}
 }
@@ -856,6 +857,12 @@ function passSave(draft){
  try{localStorage.setItem('sd-season-1',JSON.stringify(draft))}catch(e){return false}
  pass=draft;return true;
 }
+function passFinishSeason(){
+ if(!passSave(passGrant({...pass,xp:PASS_TRACK.length*PASS_XP,premium:true})))return false;
+ passRender();
+ idrRender();
+ return true;
+}
 function passFinishMatch(result){
  if(window.SD_MOD_SESSION)return;
  if(mode==='Zombies'||result==='Disconnected'||t0<15)return;
@@ -865,134 +872,7 @@ function passFinishMatch(result){
  if(!passSave(draft))return;
  MST.season={earned,reward,tiers:passTier()-oldTier};
 }
-/* Stormwatch uses the same renderer, locker, loadout and season ledger. */
-let stormwatch=null,stormwatchHub=null;
-function stormwatchGear(){
- const look=idrLocal(),{model,rig}=studioHuman(look.operator);
- function weapon(k,list=[]){
-  const attachments=passAttachments(k,list);
-  const blueprint=passWeaponData(k);
-  const finish=blueprint?pass.blueprints[k]:passOwns('camo',pass.finish)?pass.finish:'';
-  const normal=prof.camo[k],camo=finish?'pass/'+finish:allCamos(k).some(c=>c.ok&&c.n===normal)?normal:'';
-  const skin=camoRm(k,camo),gun=buildGun(k,skin);
-  gun.traverse(part=>{
-   if(!part.isMesh)return;
-   if(!part.geometry.boundingBox)part.geometry.computeBoundingBox();
-   const {min,max}=part.geometry.boundingBox;
-   if(min.toArray().some(n=>!Number.isFinite(n))||max.toArray().some(n=>!Number.isFinite(n))||
-    part.position.toArray().some(n=>!Number.isFinite(n))||part.scale.toArray().some(n=>!Number.isFinite(n)))part.visible=false;
-  });
-  attApply(gun,k,attachments,1);
-  addPassCharm(gun,look.charm);
-  const barrel=attMuzzle(gun,1),muzzle=new THREE.Group();
-  const exit=weaponMuzzleLocal(gun),tip=exit.z;
-  muzzle.position.set(exit.x,exit.y,exit.z+.012);
-  const fit=gun.userData.fit;
-  if(!Number.isFinite(fit.s+fit.gz+fit.mz)){
-   const anchor=gun.userData.a||{},rz=anchor.r?.[2]||0,lz=anchor.l?.[2]||rz+.4;
-   const min=Number.isFinite(barrel.bb.min.z)?barrel.bb.min.z:rz-.25;
-   const scale=Math.min(1,.62/Math.max(.3,lz-min),1/Math.max(.2,tip-min));
-   gun.userData.fit={s:scale,gz:min<-.18?.1-min*scale:.46-rz*scale,mz:tip};
-  }
-  gun.add(muzzle);model.add(gun);
-  return {k,model:gun,muzzle,stats:eff(k,attachments),icon:wImg(k),name:blueprint?.name||W[k].n,camo};
- }
- const weapons=[];
- if(hasOwn(W,L.p))weapons.push(weapon(L.p,L.pa));
- if(hasOwn(W,L.s))weapons.push(weapon(L.s,L.sa));
- const loot=['VA','KTS','LT','HC','PD','RD','BR','BP'].filter(k=>hasOwn(W,k)).map(k=>({k,name:W[k].n}));
- const avatar={m:model,rig,i:0,net:true,em:-1};
- const emote=passOwns('emote',pass.emote)?pass.emote:0;
- return {
-  model,weapons,loot,weapon,operator:look.operator,
-  teammate(id){
-   const {model,rig}=studioHuman(operatorId(id)),mate={m:model,rig,i:11,net:true,em:-1};
-   return {model,pose(pos,angle,moving,dt){
-    Object.assign(mate,{x:pos.x,y:pos.y,z:pos.z,tyaw:angle+Math.PI,ry:angle+Math.PI});
-    animBot(mate,Math.max(.001,dt));model.rotation.y-=angle;
-   }};
-  },
-  canForge:key=>hasOwn(W,key),tracer:PASS_TRACERS[look.tracer]?.color,emoteLength:EMLEN[emote],
-  profile:idrPlate(look,hname(),PASS_TITLES[look.title]?.name),
-  pose(input,weapon,dt,grip){
-   avatar.x=input.pos.x;avatar.y=input.pos.y;avatar.z=input.pos.z;
-   avatar.tyaw=avatar.ry=input.yaw+Math.PI;
-   avatar.pi=input.pitch;avatar.aj=!input.ground;
-   avatar.hg=weapon?.model;avatar.wk=weapon?.k;avatar.hold=avatar.hg?.userData.fit;
-   avatar.rlOn=input.reload>0;avatar.rlt=avatar.rlOn?Math.max(0,weapon.stats.rl-input.reload-dt):0;
-   model.position.set(0,0,0);
-   animBot(avatar,Math.max(.001,dt));
-   model.rotation.y-=input.yaw;
-   if(input.emote>0){
-    const pose=emoPose(rig,emote,EMLEN[emote]-input.emote,EMLEN[emote]);
-    model.position.y=pose.y;model.rotation.y+=pose.ry;
-   }else{
-    rig.legL.rotation.z=rig.legR.rotation.z=0;
-    if(grip){
-     const local=v=>V(-v.x,v.y,-v.z),axis=local(grip.axis);
-     rig.sh.rotation.z=grip.phase*.10;
-     gripArm(shPos(rig,1),local(grip.right),V(.62,-.68,-.19),rig.armR,axis,1);
-     gripArm(shPos(rig,-1),local(grip.left),V(-.58,-.76,-.14),rig.armL,axis,-1);
-    }else if(!weapon){
-     ik(shPos(rig,1),V(.29,1.16,.27),V(.6,-.7,-.3),rig.armR);
-     ik(shPos(rig,-1),V(-.27,1.16,.28),V(-.6,-.8,-.3),rig.armL);
-    }
-   }
-   camoFx();
-  }
- };
-}
-function stormwatchGoHome(focus=true){
- const home=$('#home'),menu=$('#menu');
- stormwatch?.close();stormwatch=null;stormwatchHub?.close();stormwatchHub=null;
- if(partyActive&&partyOperationOpen){partyOperationOpen=false;partyStatus()}
- document.body.classList.remove('stormwatch-open');home.inert=menu.inert=false;
- if(focus)$('#hsw').focus({preventScroll:true});
-}
-function stormwatchOpen(){
- if(window.SD_MOD_SESSION)return;
- if(stormwatchHub)return;
- const home=$('#home'),menu=$('#menu');
- home.inert=menu.inert=true;document.body.classList.add('stormwatch-open');
- LX.releasePostTargets();
- const local=window.SD_SPLIT?.app==='sw';
- stormwatchHub=StormwatchHub.mount({
-  name:$('#nm').value.trim()||'Operator',canEquip:key=>hasOwn(W,key),exit:stormwatchGoHome,
-  ...(local?{local:true,exit:()=>parent.postMessage('stormwatch-exit-split',location.origin),connectSquad:stormwatchSplitAdapter}:
-   {split:!partyActive&&location.protocol!=='file:'&&typeof BroadcastChannel==='function'?()=>launchSplit({app:'sw'}):null,
-    connectSquad:partyActive?partyStormwatchAdapter:null}),
-  clearMission(){stormwatch?.close();stormwatch=null},
-  deploy(settings,back){
-   let cleared=0,bonusAwarded=false;
-   try{
-    stormwatch=Stormwatch.mount({
-     ...settings,hub:true,local,renderer:R,gear:stormwatchGear(),tier:passTier(),
-     config:{sensitivity:+$('#sn').value,quality:local?'low':gfxQ,pad:PG.pref,vibration:!!HAP.on},
-     award(wave,bonus){
-      if(wave!==cleared+1||wave>5)return;
-      const bonusEarned=bonus&&!bonusAwarded;
-      const xp=100+wave*20+(bonusEarned?100:0)+(wave===5?200:0);
-      const old=pass.xp,next=Math.min(PASS_TRACK.length*PASS_XP,old+xp);
-      const saved=next===old||passSave(passGrant({...pass,xp:next}));
-      cleared=wave;
-      if(saved&&bonusEarned)bonusAwarded=true;
-      return {saved,xp:saved?next-old:0,tier:passTier()};
-     },
-     leave(action){
-      stormwatch?.close();stormwatch=null;
-      if(action==='pass'){stormwatchGoHome();setApp('mp');openMenuPanel('pass');return}
-      back();
-     }
-    });
-   }catch(error){
-    document.querySelector('#stormwatch-mode')?.remove();
-    back();console.error('Stormwatch deployment',error);
-   }
-  }
- });
-}
 $('#hsw').disabled=!!window.SD_SPLIT;
-$('#hsw').onclick=()=>stormwatchOpen();
 const passMaterials=new Map();
 function passCamoMaterial(k,name){
  if(typeof name!=='string'||!name.startsWith('pass/'))return;
@@ -1118,7 +998,7 @@ function passRender(focus){
      const index=start+i;
      return `<li class="${index<tier?'complete':''}"><b class="pass-tier">${index+1}</b>${reward(r.free,index,'free')}${reward(r.premium,index,'premium')}</li>`;
     }).join('')}</ol></div>
-  <div class="pass-foot"><span>Earn XP in Multiplayer matches and Stormwatch waves.</span><span>Earn up to 1,000 Bux back on Premium.</span></div><p id="pass-note" role="status"></p>`;
+  <div class="pass-foot"><span>Earn XP in Multiplayer matches and completed Stormfront missions.</span><span>Earn up to 1,000 Bux back on Premium.</span></div><p id="pass-note" role="status"></p>`;
  section.scrollTop=scroll;
  section.querySelector('.pass-track').scrollLeft=focus==='#pass-page'?0:trackScroll;
  if(focus){
@@ -1147,24 +1027,24 @@ function lockerEquipped(type,id){
  return passExtra(type)===id;
 }
 function passLocker(){
- const choices=lockerList(lockerGroup);
+ const choices=lockerList(lockerGroup).filter(([type,id])=>lockerOwns(type,id));
+ if(!choices.length)return '<p class="sub locker-empty">No unlocked items in this category.</p>';
  if(lockerGroup==='operators')choices.sort((a,b)=>(passRewardTier(...a)||(a[1]==='recruit'?0:101))-(passRewardTier(...b)||(b[1]==='recruit'?0:101)));
  if(!choices.some(([t,id])=>t===lockerSelection[0]&&id===lockerSelection[1]))lockerSelection=choices.find(([t,id])=>lockerEquipped(t,id))||choices[0];
- const [type,id]=lockerSelection,active=lockerEquipped(type,id),ready=lockerOwns(type,id);
- const name=passName(type,id),tier=passRewardTier(type,id),quest=type==='operator'?ZQUEST_OPERATORS[id]:null;
- const lock=quest?'Complete the '+quest+' main quest':!pass.premium&&tier<=passTier()?'Premium required':'Unlock at tier '+tier;
+ const [type,id]=lockerSelection,active=lockerEquipped(type,id);
+ const name=passName(type,id),quest=type==='operator'?ZQUEST_OPERATORS[id]:null;
  const detail=type==='blueprint'?W[PASS_FINISHES[id].weapon].n+' · '+PASS_FINISHES[id].parts.join(' + '):
   type==='emote'?'Emote wheel slot 8':type==='charm'?'Mounted on your weapon':type==='title'?'Displayed on your player card':
   type==='tracer'?'Bullet trail color':type==='camo'?'Multiplayer weapon finish':quest?quest+' quest reward':'Operator';
  const tiles=choices.map(([kind,key])=>{
-  const equipped=lockerEquipped(kind,key),open=lockerOwns(kind,key),selected=kind===type&&key===id;
+  const equipped=lockerEquipped(kind,key),selected=kind===type&&key===id;
   return '<button class="pass-gear locker-tile" data-locker-view="'+kind+'" data-gear-id="'+key+'" aria-pressed="'+selected+'">'+
-   (kind==='operator'?'<canvas data-operator-thumb="'+key+'" width="88" height="76" aria-hidden="true"></canvas>':passArt(kind,key))+'<b>'+passName(kind,key)+'</b><small>'+(equipped?'Equipped':open?'Owned':kind==='operator'&&hasOwn(ZQUEST_OPERATORS,key)?'Quest reward':'Tier '+passRewardTier(kind,key))+'</small></button>';
+   (kind==='operator'?'<canvas data-operator-thumb="'+key+'" width="88" height="76" aria-hidden="true"></canvas>':passArt(kind,key))+'<b>'+passName(kind,key)+'</b>'+(equipped?'<small>Equipped</small>':'')+'</button>';
  }).join('');
  return '<div class="locker-showcase"><aside class="locker-feature"><div class="locker-model">'+passArt(type,id,true)+'</div>'+
   '<div class="locker-details"><span class="eyebrow">'+PASS_TYPE[type]+'</span><strong>'+name+'</strong><p>'+detail+'</p>'+
-  '<button class="idr-button studio-primary" data-gear="'+type+'" data-gear-id="'+id+'"'+(!ready||active&&type==='operator'?' disabled':'')+'>'+
-  (!ready?lock:active?(type==='operator'?'Equipped':'Unequip'):'Equip')+'</button></div></aside>'+
+  '<button class="idr-button studio-primary" data-gear="'+type+'" data-gear-id="'+id+'"'+(active&&type==='operator'?' disabled':'')+'>'+
+  (active?(type==='operator'?'Equipped':'Unequip'):'Equip')+'</button></div></aside>'+
   '<div class="locker-catalog"><div class="pass-gear-grid">'+tiles+'</div></div></div>';
 }
 function passEquip(type,key){
@@ -1217,7 +1097,10 @@ function splitPads(){
 }
 function launchSplit(settings){
  if(window.SD_MOD_SESSION)return;
- StormwatchHub.launchLocal(settings,new URL(location.href));
+ const [first,second]=splitPads();if(!second)return;
+ const url=new URL(location.href),room=Math.random().toString(36).slice(2,12).padEnd(6,'0');
+ for(const [key,value] of Object.entries({...settings,split:room,g1:first.index,g2:second.index}))url.searchParams.set(key,value);
+ location.assign(url);
 }
 class SplitEvents{
  constructor(){this.events=new Map()}
@@ -1270,43 +1153,7 @@ class SplitPeer extends SplitEvents{
  reconnect(){}
  destroy(){this.open=false;for(const link of this.links.values())link.close();this.channel.close()}
 }
-function stormwatchSplitAdapter(update){
- const host=sdSplit.seat===1,hostId='local-stormwatch-host',guestId='local-seat-2';
- const peer=new SplitPeer(host?hostId:undefined),listeners=new Set();
- const names=new Map([[hostId,'Player 1'],[guestId,'Player 2']]);
- let link=null,round=0,starting=false;
- const notify=(data,id)=>{for(const fn of listeners)fn(data,id)};
- const status=()=>update({room:'local',isHost:host,connected:!!link?.open,starting,publicRoom:false,
-  message:!link?.open?'Connecting both local seats…':host?'Player 1 chooses the operation.':'Waiting for Player 1 to deploy.',
-  members:[...names].map(([id,name])=>({id,name,host:id===hostId}))});
- function attach(connection){
-  if(connection.peer!==(host?guestId:hostId)){connection.close(false);return}
-  link=connection;
-  connection.on('open',status);
-  connection.on('close',()=>{if(link===connection){link=null;starting=false;notify({type:host?'left':'lost'},connection.peer);status()}});
-  peerPackets(connection,'type',data=>{
-   if(data.type==='launch'&&!host&&Number.isSafeInteger(data.round)&&data.round>round&&data.spec){
-    round=data.round;starting=true;notify(data,connection.peer);status();
-   }else if(starting&&data.round===round&&data.type!=='launch'&&
-     (!host||['pose','action','withdraw'].includes(data.type)))notify(data,connection.peer);
-  },()=>connection.close());
- }
- peer.on('connection',attach);
- if(!host)peer.on('open',()=>attach(peer.connect(hostId)));
- return {id:peer.id,host,room:'local',size:2,names,status,
-  subscribe(fn){listeners.add(fn);return ()=>listeners.delete(fn)},
-  send(data){sendPeerPacket(link,data)},direct(id,data){if(id===link?.peer)sendPeerPacket(link,data)},
-  launch(spec){
-   if(!host||!link?.open||starting)return false;
-   starting=true;
-   const data={type:'launch',round:++round,spec:{...spec,seed:crypto.getRandomValues(new Uint32Array(1))[0]}};
-   sendPeerPacket(link,data);notify(data,peer.id);status();return true;
-  },
-  returns(){starting=false;status()},close(){listeners.clear();peer.destroy()}
- };
-}
 function bootSplitSeat(){
- if(sdSplit.app==='sw'){stormwatchOpen();return}
  $('#split-start').closest('.split-entry').hidden=true;
  $('#host').disabled=$('#join').disabled=true;
  $('#leave').hidden=true;
@@ -1333,10 +1180,6 @@ function bootSplitSeat(){
 addEventListener('sd-ready',()=>{
  if(window.SD_MOD_SESSION)return;
  if(sdSplit){bootSplitSeat();return}
- if(new URLSearchParams(location.search).get('openStormwatch')==='1'){
-  const url=new URL(location.href);url.searchParams.delete('openStormwatch');history.replaceState(null,'',url);
-  stormwatchOpen();
- }
  const button=$('#split-start'),help=$('#split-help');
  if(typeof BroadcastChannel!=='function'){help.textContent='Local split screen needs a browser with BroadcastChannel support.';return}
  const update=()=>{
@@ -1534,11 +1377,18 @@ function studioBuild(type,id){
  if(type==='party'){
   if(!lobbyBay)lobbyBay=buildLobbyBay();
   content.add(lobbyBay);
-  const players=lobbySeats(),count=players.length,layouts={1:[[0,0]],2:[[-.66,.14],[.72,-.22]],3:[[0,.28],[-1.23,-.2],[1.23,-.2]],4:[[-.49,.25],[.62,.02],[-1.48,-.47],[1.6,-.52]]};
+  if(id==='title')center.y=1.24;
+  const players=id==='title'?[{look:{operator:passOperator()}}]:lobbySeats(),count=players.length,layouts={1:[[0,0]],2:[[-.66,.14],[.72,-.22]],3:[[0,.28],[-1.23,-.2],[1.23,-.2]],4:[[-.49,.25],[.62,.02],[-1.48,-.47],[1.6,-.52]]};
   const positions=layouts[count];
   for(const [i,player] of players.entries()){
    const [x,z]=positions[i];
    operator(operatorId(player.look.operator),x,z,i*1.8);
+  }
+  if(id==='title'){
+   const actor=hosts[0],rifle=buildGun('MVR');
+   rifle.position.set(.105,1.29,.23);
+   rifle.scale.setScalar(rifle.userData.fit.s);
+   actor.model.add(rifle);actor.rifle=rifle;
   }
   size=count>2?1.87:count===2?1.43:1.18;
  }else if(type==='operator'||type==='emote'){
@@ -1553,19 +1403,29 @@ function studioBuild(type,id){
  return {content,hosts,center,size};
 }
 function studioIdle(time,actor,emote){
- const {rig,model,phase}=actor,t=time+phase,yaw=Math.sin(t*.85)*.10;
+ const {rig,model,phase,rifle}=actor,t=time+phase,yaw=Math.sin(t*.85)*.10;
  if(emote!==null){
   const duration=EMLEN[emote],p=emoPose(rig,emote,t%(duration+.5),duration);
   model.position.y=p.y;model.rotation.y=p.ry;rig.sh.rotation.x=0;return;
  }
- const wave=Math.sin(t*1.7),weight=Math.sin(t*.46)*.019;
- rig.sh.rotation.set(.025+wave*.013,.086+yaw*.66,-.045+weight);
- rig.head.rotation.set(-.031,yaw*.57-.085,.017);
- const shoulder=side=>V(side*.287,.496,0).applyEuler(rig.sh.rotation).add(rig.sh.position);
- ik(shoulder(1),V(.23,.799+wave*.011,.135),V(.68,-.15,-.54),rig.armR);
- ik(shoulder(-1),V(-.235,.79-wave*.009,.061),V(-.66,-.22,-.55),rig.armL);
- rig.legL.rotation.set(.074,0,-.101);rig.legR.rotation.set(-.102,0,.082);
- rig.shinL.rotation.x=.035;rig.shinR.rotation.x=-.022;
+ const wave=Math.sin(t*1.7),weight=Math.sin(t*.57);
+ rig.sh.position.y=1+.004*wave;
+ rig.sh.rotation.set(.030+wave*.012,.086+yaw*.66,-.035+weight*.021);
+ rig.head.rotation.set(-.031-wave*.005,yaw*.57-.085,.017-weight*.012);
+ const shoulder=side=>shPos(rig,side);
+ if(rifle){
+  rifle.position.set(.105+weight*.013,1.29+wave*.009,.23);
+  rifle.rotation.set(.26+wave*.015,-.83+weight*.021,-.08);
+  const grip=rifle.userData.a,target=point=>V(...point).multiplyScalar(rifle.scale.x).applyQuaternion(rifle.quaternion).add(rifle.position);
+  gripArm(shoulder(1),target(grip.r),V(.6,-1,-.3),rig.armR,V(0,1,.24).applyQuaternion(rifle.quaternion),1);
+  gripArm(shoulder(-1),target(grip.l),V(-.6,-1,-.3),rig.armL,V(0,0,1).applyQuaternion(rifle.quaternion),-1);
+ }else{
+  ik(shoulder(1),V(.23,.799+wave*.011,.135),V(.68,-.15,-.54),rig.armR);
+  ik(shoulder(-1),V(-.235,.79-wave*.009,.061),V(-.66,-.22,-.55),rig.armL);
+ }
+ rig.legL.position.y=.969-weight*.004;rig.legR.position.y=.969+weight*.004;
+ operatorFoot(rig.legL,rig.shinL,-.033,.062,.077);
+ operatorFoot(rig.legR,rig.shinR,.038,.062,-.064);
  model.rotation.y=-.25+phase*.043+yaw*.5;
 }
 const studioThumbnails=new Map();
@@ -1600,9 +1460,9 @@ function studioFrame(now,pane){
  const canvas=pane.id==='p-lobby'?$('#lobby-canvas'):pane.querySelector('[data-studio]');
  if(!canvas)return false;
  const {studio:type,studioId:id}=canvas.dataset;
- const party=type==='party';
+ const party=type==='party',title=party&&id==='title';
  if(party&&typeof mkBake!=='function')return false;
- const key=type+'|'+id+(party?'|'+lobbyStudioKey:type==='emote'?'|'+passOperator():'');
+ const key=type+'|'+id+(title?'|'+passOperator():party?'|'+lobbyStudioKey:type==='emote'?'|'+passOperator():'');
  const changed=key!==studio.key||studio.canvas!==canvas;
  if(!changed&&!studio.dirty&&now-studio.last<(gfxQ==='low'?67:40))return false;
  if(!studio.scene)studioInit();
@@ -1612,7 +1472,7 @@ function studioFrame(now,pane){
   studio.scene.add(studio.content);studio.entered=now;studio.key=key;
   studio.scene.background=party?new THREE.Color(0x131c25):null;
   studio.scene.fog=party?new THREE.FogExp2(0x14222c,.048):null;
-  studio.yaw=party?.135:type==='operator'||type==='emote'?.32:1.17;
+  studio.yaw=title?.32:party?.135:type==='operator'||type==='emote'?.32:1.17;
   studio.pitch=party?.083:.086;
  }
  studio.last=now;studio.canvas=canvas;
@@ -1628,12 +1488,13 @@ function studioFrame(now,pane){
  const time=studioMotion.matches?1.3:(now-studio.entered)/1000,emote=type==='emote'?Number(id):null;
  for(const actor of studio.hosts)studioIdle(time,actor,emote);
  const camera=studio.camera,aspect=w/h,narrow=width<=640;
- const partyFraming=narrow?1.075:height<=520?1.23:1.12;
+ const partyFraming=title?(narrow?.71:.69):narrow?1.075:height<=520?1.23:1.12;
  const dist=studio.size*(3.4+Math.max(0,1.08-aspect)*1.95)*(party?partyFraming:1);
  const sway=party&&!studioMotion.matches?Math.sin(time*.39)*.082:0;
  const yaw=studio.yaw+sway,pitch=studio.pitch;
  camera.aspect=aspect;camera.near=Math.min(.03,dist*.12);
- if(party)camera.setViewOffset(w,h,narrow?0:-w*(studio.hosts.length>2?.145:.191),narrow?h*.07:0,w,h);
+ if(title)camera.setViewOffset(w,h,-w*(narrow?.085:.12),0,w,h);
+ else if(party)camera.setViewOffset(w,h,narrow?0:-w*(studio.hosts.length>2?.145:.191),narrow?h*.07:0,w,h);
  else camera.clearViewOffset();
  camera.updateProjectionMatrix();
  camera.position.copy(studio.center).add(V(Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(yaw)*Math.cos(pitch)).multiplyScalar(dist));
@@ -1716,11 +1577,8 @@ $('#nm').addEventListener('input',lobbyStageRender);
 
 /* The party stays on the existing verified peer connection while each mode
    owns its match state. Only the leader can issue a deployment. */
-const partyDialog=$('#game-party'),partySubscribers=new Set(),partyUpdates=new Set();
-let partyOperation=0,partyOperationOpen=false,partyLine='',partySequence=0;
-const partyReceived=new Map();
-function resetPartyTraffic(){partySequence=0;partyReceived.clear()}
-const stampPartyPacket=payload=>({...payload,sequence:++partySequence});
+const partyDialog=$('#game-party');
+let partyLine='';
 function partyLeader(){return isHost?myId:hostPid}
 function partyStatus(line){
  if(typeof line==='string')partyLine=line;
@@ -1744,10 +1602,6 @@ function partyStatus(line){
  }
  $('#zdeploy').textContent=!partyActive?'Deploy solo':isHost?'Deploy party':'Waiting for leader';
  $('#zdeploy').disabled=!!(partyActive&&!isHost);
- for(const update of partyUpdates)update({
-  room:partyActive?partyCode:'',isHost:host,publicRoom:false,connected:linked,starting:partyOperationOpen,locked:roomLocked,message:status,
-  members:Object.entries(names).map(([id,name])=>({id,name,host:id===partyLeader()}))
- });
 }
 function openGameParty(){
  if(window.SD_MOD_SESSION)return;
@@ -1770,60 +1624,313 @@ $('#party-copy').onclick=async()=>{
  try{await navigator.clipboard.writeText(partyCode);partyStatus('Party code copied.')}
  catch{partyStatus('Share code '+partyCode+'.')}
 };
-function partyClosed(){
- if(partyOperationOpen)partyDispatch({type:'lost'},partyLeader());
- partyOperationOpen=false;partyOperation=0;partyLine='';resetPartyTraffic();
-}
-function partyMemberLeft(id){partyReceived.delete(id);partyDispatch({type:'left'},id)}
-function partyDispatch(payload,id){for(const listener of partySubscribers)listener(payload,id)}
+function partyClosed(){partyLine=''}
 function partyBeforeMatch(map,kind){
  partyDialog.close();
- if(stormwatchHub)stormwatchGoHome(false);
- partyOperationOpen=false;
  if(run||fin)exitNetworkMatch(true);
  setApp(kind==='Zombies'?'zm':'mp');
  if(kind==='Zombies')sel.zmap=map;
 }
-function partyStartStormwatch(spec){
- if(!partyActive||!isHost||!net?.open||run||partyOperationOpen)return false;
- const payload={type:'launch',round:++partyOperation,spec:{...spec,seed:crypto.getRandomValues(new Uint32Array(1))[0]}};
- partyDialog.close();partyOperationOpen=true;resetPartyTraffic();
- netSend({t:'party-sw-launch',payload});
- partyDispatch(payload,myId);partyStatus('Deploying the party into Stormwatch.');return true;
-}
-function partyReadStormwatch(d,cn){
- if(!partyActive||!cn.vf||!d.payload||typeof d.payload.type!=='string')return;
- const payload=d.payload;
- if(d.t==='party-sw-launch'){
-  if(isHost||cn.peer!==hostPid||d.id!==hostPid||!Number.isInteger(payload.round)||payload.round<=partyOperation)return;
-  const spec=payload.spec;
-  if(payload.type!=='launch'||!spec||!['timbervale','ironridge','canyonlands','obsidian'].includes(spec.region)||
-   !hasOwn(StormwatchOperations.missions,spec.mission)||!Number.isInteger(spec.seed))return;
-  partyOperation=payload.round;partyOperationOpen=true;partyDialog.close();resetPartyTraffic();
-  if(run||fin)exitNetworkMatch(true);
-  if(!stormwatchHub)stormwatchOpen();
-  partyDispatch(payload,hostPid);partyStatus('Deploying the party into Stormwatch.');return;
+partyReady=true;partyStatus();
+
+/* Stormfront uses the same inventory catalogue, model builders, and progression ledgers. */
+const stormfrontWeaponKey=key=>'sd-'+key.toLowerCase();
+let stormfrontFrame=null;
+function openStormfront(){
+ if(stormfrontFrame||window.SD_SPLIT||window.SD_MOD_SESSION)return;
+ if(!window.SpartanStormfront){addEventListener('sd-ready',openStormfront,{once:true});return}
+ document.exitPointerLock?.();
+ LX.releasePostTargets();
+ $('#home').inert=true;$('#menu').inert=true;
+ document.body.classList.add('sf-embedded');
+ const frame=document.createElement('iframe');
+ frame.className='sf-embed';frame.title='Stormfront';frame.allow='gamepad; fullscreen; autoplay';
+ stormfrontFrame=frame;
+ if(location.protocol==='file:'){
+  document.body.append(frame);mountLocalStormfront(frame);
+ }else{
+  frame.src='stormfront.html';document.body.append(frame);
  }
- if(d.t!=='party-sw'||payload.round!==partyOperation||!partyOperationOpen&&payload.type!=='end'||
-    !Number.isSafeInteger(payload.sequence)||payload.sequence<=(partyReceived.get(cn.peer)||0))return;
- if(isHost?!['pose','action','withdraw'].includes(payload.type):cn.peer!==hostPid||d.id!==hostPid)return;
- partyReceived.set(cn.peer,payload.sequence);partyDispatch(payload,cn.peer);
 }
-function partyStormwatchAdapter(update){
- const localListeners=new Set();
- partyUpdates.add(update);
+function mountLocalStormfront(frame){
+ const page=frame.contentDocument,scope=frame.contentWindow;
+ if(!page||!scope){closeStormfront();return}
+ page.title='Stormfront';page.documentElement.lang='en';page.body.className='sf-page';
+ scope.THREE=window.THREE;scope.Peer=window.Peer;
+ const url=name=>new URL(name,location.href).href;
+ const stylesheet=page.createElement('link');stylesheet.rel='stylesheet';stylesheet.href=url('style.css');page.head.append(stylesheet);
+ const stage=page.createElement('div');stage.id='sf-stage';stage.setAttribute('aria-hidden','true');
+ const root=page.createElement('main');root.id='sf-root';
+ const boot=page.createElement('p');boot.className='sf-boot';boot.textContent='Establishing the Homebase uplink…';
+ root.append(boot);page.body.append(stage,root);
+ // Safari can reuse scripts from an earlier local iframe after the game has been edited.
+ const revision='?local='+Date.now();
+ for(const name of ['js/net-safety.js','js/stormfront-data.js','js/stormfront.js']){
+  const script=page.createElement('script');script.async=false;script.src=url(name)+revision;page.body.append(script);
+ }
+}
+$('#hsw').onclick=openStormfront;
+function closeStormfront(){
+ if(!stormfrontFrame)return;
+ stormfrontFrame.remove();stormfrontFrame=null;
+ document.body.classList.remove('sf-embedded');
+ $('#home').inert=false;$('#menu').inert=false;
+ const url=new URL(location.href);
+ if(url.searchParams.has('stormfront')){url.searchParams.delete('stormfront');history.replaceState(null,'',url)}
+ showRank();$('#hsw').focus({preventScroll:true});
+}
+function stormfrontMarkModel(model){
+ model.traverse(part=>{if(part.isMesh||part.isSprite)part.userData.sfBorrowed=true});
+ return model;
+}
+function stormfrontSharedWeapon(key,look={}){
+ if(key==='KATANA'){
+  const sword=buildKatana();sword.visible=true;stormfrontMarkModel(sword);return sword;
+ }
+ if(!hasOwn(W,key))return null;
+ const finish=typeof look.camo==='string'?look.camo.slice(0,48):'';
+ const attachments=Array.isArray(look.attachments)?look.attachments.filter(a=>hasOwn(A,a)&&attachmentFits(key,a)).slice(0,7):[];
+ const model=previewGun(key,attachments,camoRm(key,finish));
+ addPassCharm(model,typeof look.charm==='string'&&hasOwn(PASS_CHARMS,look.charm)?look.charm:'');
+ return stormfrontMarkModel(model);
+}
+function stormfrontSharedOperator(root,id){
+ const rig=mkHuman(root,{operator:operatorId(id)});
+ stormfrontMarkModel(root);return rig;
+}
+function stormfrontWeaponLook(key){
+ const localAttachments=key===L.p?L.pa:key===L.s?L.sa:[];
+ return {camo:myCamo(key)||'',attachments:passAttachments(key,localAttachments).filter(a=>a!=='Dual Wield'),charm:passExtra('charm')};
+}
+function stormfrontArsenal(){
+ const elemental={RG:'Energy',TEA:'Fire',CY:'Nature'},range={SG:20,AN:19,RL:58,SN:85};
+ const stock=Object.entries(W).filter(([key])=>!['KEY','ULT'].includes(key)&&!key.startsWith('mod:')).map(([key,w])=>{
+  const effective=eff(key,[]);
+  let type=CLS[key]||'Assault Rifle';
+  if(key==='SN'||key==='PD')type='Sniper Rifle';
+  if(key==='RL'||key==='TEA'||key==='RG')type='Explosive Launcher';
+  if(key==='AN')type='Shotgun Pistol';
+  else if(/Shotgun/.test(type))type='Shotgun';
+  return {id:stormfrontWeaponKey(key),arenaKey:key,name:w.n,type,damage:Math.max(12,effective.d*(key==='TEA'?3.7:effective.pel>1?Math.min(effective.pel,4):1.10)),
+   rpm:Math.min(1500,60/Math.max(.04,effective.r)),mag:effective.m,element:elemental[key]||'Physical',color:'#'+(w.col||0x677679).toString(16).padStart(6,'0'),
+   reload:effective.rl,durability:100+Math.round((w.m||15)*.65),range:range[key],blast:w.ex?{radius:w.ex.R,damage:w.ex.d}:null,unlocked:unlocked(key)};
+ });
+ stock.push({id:'sd-katana',arenaKey:'KATANA',name:'Katana',type:'Sword',damage:82,rpm:95,mag:0,element:'Physical',color:'#c0b7a3',durability:145,unlocked:true});
+ return stock;
+}
+function stormfrontRank(){
+ return {level:prof.master?prof.ml:prof.lvl,rank:prof.master?'Prestige Master':prof.pres?'Prestige '+prof.pres:'Spartan Drill',xp:prof.xp,
+  xpMax:need(),passTier:passTier(),seasonXp:pass.xp,bux:pass.bux,passGoal:PASS_XP};
+}
+function stormfrontEarn(reward){
+ if(!stormfrontFrame||window.SD_MOD_SESSION||!reward||typeof reward.id!=='string'||reward.id.length>80)return false;
+ const credits=amount=>Number.isFinite(amount)?Math.trunc(Math.min(5000,Math.max(0,amount))):0;
+ let stored;
+ try{stored=JSON.parse(localStorage.getItem('sd-prof'))}catch{}
+ if(stored?.v===1)prof=stored;
+ prof.stormfrontRewards=Array.isArray(prof.stormfrontRewards)?prof.stormfrontRewards.slice(-30):[];
+ if(!prof.stormfrontRewards.includes(reward.id)){
+  prof.stormfrontRewards.push(reward.id);
+  giveXP(credits(reward.xp));
+ }
+ pass=passLoad();
+ if(!pass.stormfrontRewards?.includes(reward.id)){
+  const receipts=[...(pass.stormfrontRewards||[]),reward.id].slice(-30);
+  passSave(passGrant({...pass,stormfrontRewards:receipts,
+   xp:Math.min(PASS_TRACK.length*PASS_XP,pass.xp+credits(reward.seasonXp)),bux:pass.bux+credits(reward.bux)}));
+ }
+ return stormfrontRank();
+}
+function stormfrontClassicGear(operator,records){
+ const look=idrLocal();
+ if(operator&&lockerOwns('operator',operator))look.operator=operator;
+ const {model,rig}=studioHuman(look.operator);
+ function weapon(k,list=[]){
+  const attachments=passAttachments(k,list);
+  const blueprint=passWeaponData(k);
+  const finish=blueprint?pass.blueprints[k]:passOwns('camo',pass.finish)?pass.finish:'';
+  const normal=prof.camo[k],camo=finish?'pass/'+finish:allCamos(k).some(c=>c.ok&&c.n===normal)?normal:'';
+  const skin=camoRm(k,camo),gun=buildGun(k,skin);
+  gun.traverse(part=>{
+   if(!part.isMesh)return;
+   if(!part.geometry.boundingBox)part.geometry.computeBoundingBox();
+   const {min,max}=part.geometry.boundingBox;
+   if(min.toArray().some(n=>!Number.isFinite(n))||max.toArray().some(n=>!Number.isFinite(n))||
+    part.position.toArray().some(n=>!Number.isFinite(n))||part.scale.toArray().some(n=>!Number.isFinite(n)))part.visible=false;
+  });
+  attApply(gun,k,attachments,1);
+  addPassCharm(gun,look.charm);
+  const barrel=attMuzzle(gun,1),muzzle=new THREE.Group();
+  const exit=weaponMuzzleLocal(gun),tip=exit.z;
+  muzzle.position.set(exit.x,exit.y,exit.z+.012);
+  const fit=gun.userData.fit;
+  if(!Number.isFinite(fit.s+fit.gz+fit.mz)){
+   const anchor=gun.userData.a||{},rz=anchor.r?.[2]||0,lz=anchor.l?.[2]||rz+.4;
+   const min=Number.isFinite(barrel.bb.min.z)?barrel.bb.min.z:rz-.25;
+   const scale=Math.min(1,.62/Math.max(.3,lz-min),1/Math.max(.2,tip-min));
+   gun.userData.fit={s:scale,gz:min<-.18?.1-min*scale:.46-rz*scale,mz:tip};
+  }
+  gun.add(muzzle);model.add(gun);
+  return {k,model:gun,muzzle,stats:eff(k,attachments),icon:wImg(k),name:blueprint?.name||W[k].n,type:CLS[k]||'Ranged weapon',camo};
+ }
+ const weapons=records.filter(item=>item.key!=='KATANA'&&hasOwn(W,item.key)).map(item=>{
+  const built=weapon(item.key,item.key===L.p?L.pa:item.key===L.s?L.sa:[]);
+  return {...built,record:item};
+ });
+ const loot=['VA','KTS','LT','HC','PD','RD','BR','BP','AN'].filter(k=>hasOwn(W,k)).map(k=>({k,name:W[k].n}));
+ const avatar={m:model,rig,i:0,net:true,em:-1};
+ const emote=passOwns('emote',pass.emote)?pass.emote:0;
  return {
-  get id(){return myId},get host(){return !!isHost},get room(){return partyActive?partyCode:''},
-  get size(){return Object.keys(names).length||1},get names(){return new Map(Object.entries(names))},
-  status(){partyStatus()},
-  subscribe(fn){partySubscribers.add(fn);localListeners.add(fn);return ()=>{partySubscribers.delete(fn);localListeners.delete(fn)}},
-  send(payload){netSend({t:'party-sw',payload:stampPartyPacket(payload)})},
-  direct(id,payload){sendPeerPacket(conns.find(c=>c.peer===id&&c.vf&&c.open),{t:'party-sw',id:myId,payload:stampPartyPacket(payload)})},
-  launch:partyStartStormwatch,
-  create:openGameParty,join:openGameParty,quick:openGameParty,remove:removeRoomPeer,toggleLock:toggleRoomLock,
-  leave(){netClose();stormwatchGoHome(false);stormwatchOpen()},
-  returns(){partyOperationOpen=false;partyStatus(isHost?'Pick another operation or game mode.':'Waiting for the leader to deploy.')},
-  close(){partyUpdates.delete(update);for(const fn of localListeners)partySubscribers.delete(fn);localListeners.clear()}
+  model,weapons,loot,weapon,operator:look.operator,operatorName:OPERATORS[look.operator]?.name,
+  itemInfo:key=>hasOwn(W,key)?{k:key,name:W[key].n,type:CLS[key]||'Ranged weapon',stats:eff(key,[]),icon:wImg(key)}:null,
+  shot(key,audio,output,level){
+   if(key==='RG'){pew(level,audio,output);return true}
+   if(!Object.hasOwn(GS,key))return false;
+   snd(GS[key],level,audio,output);return true;
+  },
+  groundWeapon(key){
+   const gun=stormfrontSharedWeapon(key);
+   if(!gun)return null;
+   const bounds=previewBounds(gun),center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3());
+   if(!Number.isFinite(size.lengthSq())||size.lengthSq()<.001)return null;
+   const pivot=new THREE.Group();
+   gun.position.sub(center);pivot.add(gun);pivot.scale.setScalar(.92/Math.max(size.x,size.y,size.z));
+   pivot.rotation.y=.72;
+   return pivot;
+  },
+  teammate(id){
+   const {model,rig}=studioHuman(operatorId(id)),mate={m:model,rig,i:11,net:true,em:-1},weapons=new Map();
+   return {model,pose(pos,angle,moving,dt,key){
+    if(key&&hasOwn(W,key)&&!weapons.has(key)){
+     const gun=stormfrontSharedWeapon(key);
+     if(gun){weapons.set(key,gun);model.add(gun)}
+    }
+    for(const [id,gun] of weapons)gun.visible=id===key;
+    mate.hg=weapons.get(key);mate.wk=key;mate.hold=mate.hg?.userData.fit;
+    Object.assign(mate,{x:pos.x,y:pos.y,z:pos.z,tyaw:angle+Math.PI,ry:angle+Math.PI});
+    animBot(mate,Math.max(.001,dt));model.rotation.y-=angle;
+   }};
+  },
+  canForge:key=>hasOwn(W,key),tracer:PASS_TRACERS[look.tracer]?.color,emoteLength:EMLEN[emote],emotes:stormfrontEmotes(),
+  profile:idrPlate(look,hname(),PASS_TITLES[look.title]?.name),
+  pose(input,weapon,dt,grip){
+   avatar.x=input.pos.x;avatar.y=input.pos.y;avatar.z=input.pos.z;
+   avatar.tyaw=avatar.ry=input.yaw+Math.PI;
+   avatar.pi=input.pitch;avatar.aj=!input.ground;avatar.poseRun=input.sprint;
+   avatar.visualRecoil=input.anim>0?Math.min(1,input.anim/.53)**2*(weapon?.stats.rc||1)*.22:0;
+   avatar.hg=weapon?.model;avatar.wk=weapon?.k;avatar.hold=avatar.hg?.userData.fit;
+   avatar.rlOn=!!weapon&&input.reload>0;avatar.rlt=avatar.rlOn?Math.max(0,weapon.stats.rl-input.reload-dt):0;
+   model.position.set(0,0,0);
+   animBot(avatar,Math.max(.001,dt));
+   model.rotation.y-=input.yaw;
+   if(input.emote>0){
+    const id=input.emoteId??emote,duration=EMLEN[id]||EMLEN[0];
+    const pose=emoPose(rig,id,duration-input.emote,duration);
+    model.position.y=pose.y;model.rotation.y+=pose.ry;
+   }else{
+    rig.legL.rotation.z=rig.legR.rotation.z=0;
+    if(grip){
+     const local=v=>V(-v.x,v.y,-v.z),axis=local(grip.axis);
+     rig.sh.rotation.z=grip.phase*.10;
+     gripArm(shPos(rig,1),local(grip.right),V(.62,-.68,-.19),rig.armR,axis,1);
+     gripArm(shPos(rig,-1),local(grip.left),V(-.58,-.76,-.14),rig.armL,axis,-1);
+    }else if(!weapon){
+     ik(shPos(rig,1),V(.29,1.16,.27),V(.6,-.7,-.3),rig.armR);
+     ik(shPos(rig,-1),V(-.27,1.16,.28),V(-.6,-.8,-.3),rig.armL);
+    }
+   }
+   camoFx();
+  }
  };
 }
-partyReady=true;partyStatus();
+
+function stormfrontEmotes(){
+ return EMN.flatMap((name,id)=>id<8||passOwns('emote',id)?[{id,name,length:EMLEN[id]}]:[]);
+}
+addEventListener('sd-ready',()=>{
+ if(window.SD_SPLIT||window.SD_MOD_SESSION)return;
+ window.SpartanStormfront=Object.freeze({
+  arsenal:stormfrontArsenal,classicGear:stormfrontClassicGear,
+  wheel(doc,select,done){
+   const last=passOwns('emote',pass.emote)?pass.emote:7,wheel=renderSharedEmoteWheel(doc,last);
+   const scope=doc.defaultView,controls=new scope.AbortController(),signal=controls.signal;
+   const slots=[...wheel.querySelectorAll('.sl')];
+   wheel.classList.add('sf-shared-wheel');wheel.setAttribute('role','dialog');wheel.setAttribute('aria-label','Emote wheel');
+   let active=-1,x=0,y=0,closed=false,edges=[];
+   function highlight(index){
+    active=index;
+    slots.forEach((slot,i)=>slot.classList.toggle('on',i===index));
+    wheel.querySelector('#emn').textContent=index<0?'Move to choose':EMN[index===7?last:index];
+   }
+   function close(){
+    if(closed)return;closed=true;controls.abort();wheel.remove();done();
+   }
+   function pick(index){
+    if(index<0||index>7){close();return}
+    const id=index===7?last:index;close();select({id,name:EMN[id],length:EMLEN[id]});
+   }
+   highlight(-1);
+   slots.forEach((slot,i)=>{
+    slot.setAttribute('role','button');slot.tabIndex=0;
+    slot.addEventListener('pointerenter',()=>highlight(i),{signal});
+    slot.addEventListener('click',()=>pick(i),{signal});
+   });
+   scope.addEventListener('keydown',event=>{
+    event.stopImmediatePropagation();
+    if(event.code==='Escape'||event.code==='KeyE'){event.preventDefault();close()}
+    else if(/^Digit[1-8]$/.test(event.code)){event.preventDefault();pick(Number(event.code.slice(-1))-1)}
+    else if(event.code==='Enter'||event.code==='Space'){event.preventDefault();pick(active)}
+    else if(event.code.startsWith('Arrow')){
+     event.preventDefault();
+     const backward=event.code==='ArrowLeft'||event.code==='ArrowUp';
+     highlight(active<0?backward?7:0:(active+(backward?7:1))%8);
+    }
+   },{capture:true,signal});
+   const direction=(vx,vy)=>Math.floor(((Math.atan2(vx,-vy)+Math.PI*2)%(Math.PI*2))/(Math.PI/4)+.5)%8;
+   scope.addEventListener('mousemove',event=>{
+    if(!doc.pointerLockElement)return;
+    x=Math.max(-110,Math.min(110,x+event.movementX));y=Math.max(-110,Math.min(110,y+event.movementY));
+    highlight(Math.hypot(x,y)>25?direction(x,y):-1);
+   },{signal});
+   scope.addEventListener('click',event=>{if(doc.pointerLockElement){event.stopImmediatePropagation();pick(active)}},{capture:true,signal});
+   function controller(){
+    if(closed)return;
+    let pad;try{pad=[...(scope.navigator.getGamepads?.()||[])].find(p=>p?.connected)}catch{}
+    if(pad){
+     const next=pad.buttons.map(b=>b.pressed);
+     const sx=pad.axes[2]||0,sy=pad.axes[3]||0;
+     if(Math.hypot(sx,sy)>.36)highlight(direction(sx,sy));
+     if(edges.length&&next[0]&&!edges[0]){pick(active);return}
+     if(edges.length&&next[1]&&!edges[1]){close();return}
+     edges=next;
+    }
+    scope.requestAnimationFrame(controller);
+   }
+   scope.requestAnimationFrame(controller);
+   return close;
+  },
+  emote:(rig,id,elapsed,duration)=>emoPose(rig,id,elapsed,duration),
+  packs:()=>stormfrontMods(),
+  mods(){closeStormfront();document.querySelector('.mods-open')?.click()},
+  gear:()=>({operator:passOperator(),operatorName:OPERATORS[passOperator()].name,
+   operators:Object.entries(OPERATORS).filter(([id])=>lockerOwns('operator',id)).map(([id,def])=>[id,def.name]),
+   primary:stormfrontWeaponKey(L.p),secondary:L.s?stormfrontWeaponKey(L.s):null,
+   tracer:PASS_TRACERS[passExtra('tracer')]?.color||null,rank:stormfrontRank()}),
+  operator:(parent,id)=>stormfrontSharedOperator(parent,id),
+  walk:operatorWalk,
+  look:stormfrontWeaponLook,
+  weapon:stormfrontSharedWeapon,
+  ammoSound(key){if(key==='RG')return pew(.48);if(GS[key])return snd(GS[key],.42);noise(.09,2800,.16)},
+  pose(rig,gun,positions,aim,tool){
+   gun.updateMatrix();
+   const grip=point=>V(...point).applyMatrix4(gun.matrix);
+   const left=positions?.l||[.01,0,.54],right=positions?.r||[0,-.07,.1];
+   ik(shPos(rig,1),grip(tool?[.03,-.01,.22]:right),V(.55,-1,-.2),rig.armR);
+   ik(shPos(rig,-1),grip(tool?[0,0,-.19]:left),V(-.57,-1,-.3),rig.armL);
+  },
+  animateCamos:camoFx,
+  earn:stormfrontEarn,
+  close:closeStormfront
+ });
+ if(new URLSearchParams(location.search).get('stormfront')==='1')openStormfront();
+});

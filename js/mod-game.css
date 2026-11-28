@@ -1,0 +1,60 @@
+/* Scripting API UI. This stylesheet is loaded only in v3 engine sessions. */
+.sd-game-hud {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  top: max(110px, 18vh);
+  z-index: 64;
+  display: grid;
+  gap: 7px;
+  max-width: 200px;
+}
+.sd-game-hud[hidden], .sd-game-toast[hidden] { display: none; }
+.sd-game-pause, .sd-game-menu-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+}
+.sd-game-pause:not(:empty) { margin-block-start: 14px; }
+.sd-game-button {
+  background: #1b292f;
+  color: #e8f3f0;
+  border: 1px solid #52716c;
+  border-radius: 4px;
+  padding: .68em 1em;
+  font: 600 .9rem system-ui, sans-serif;
+  cursor: pointer;
+}
+.sd-game-button:is(:hover, :focus-visible) {
+  border-color: #a4e2ca;
+  background: #23504a;
+}
+.sd-game-menu {
+  width: min(470px, calc(100% - 28px));
+  max-height: min(680px, 85vh);
+  margin: auto;
+  color: #e8f3f0;
+  background: #122125;
+  border: 1px solid #638e81;
+  border-radius: 8px;
+  padding: clamp(16px, 5vw, 30px);
+  box-shadow: 0 20px 80px #000b;
+}
+.sd-game-menu::backdrop { background: #071015b8; }
+.sd-game-menu h2 { margin: 0 0 .55em; }
+.sd-game-menu p { margin: 0 0 1.2em; color: #afc8c1; }
+.sd-game-menu > button { margin-block-start: 12px; }
+.sd-game-toast, .sd-script-error {
+  position: fixed;
+  inset: auto 18px max(18px, env(safe-area-inset-bottom)) auto;
+  z-index: 80;
+  max-width: min(380px, 82vw);
+  border: 1px solid #659487;
+  background: #142629;
+  color: #e8f3f0;
+  padding: 12px 16px;
+  border-radius: 5px;
+  font: .9rem system-ui, sans-serif;
+  pointer-events: none;
+}
+.sd-script-error { inset: 16px 16px auto auto; border-color: #da9962; }
+.script-mod-session .mods-open, .script-mod-session .mod-play { display: none !important; }

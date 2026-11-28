@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+ <meta name="referrer" content="no-referrer">
+ <title>Spartan Drill Mods</title>
+ <style>
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111920;color:#e9eef1;font:16px system-ui}
+  iframe{display:block;width:100%;height:100%;border:0;background:#111920}
+  #conversion-exit{position:fixed;z-index:1;right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));padding:4px 8px;color:#e6edf1;background:#131c24e8;border-radius:3px;font-size:11px;text-decoration:none}
+  #conversion-exit:focus-visible{outline:2px solid currentColor}
+  #conversion-status{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);margin:0;text-align:center}
+ </style>
+</head>
+<body>
+ <iframe id="conversion-frame" title="Full conversion" sandbox="allow-scripts allow-pointer-lock allow-downloads" allow="gamepad *; fullscreen *; autoplay *" referrerpolicy="no-referrer" credentialless></iframe>
+ <p id="conversion-status" role="status">Loading mod…</p>
+ <a id="conversion-exit" href="index.html?mods=1" aria-label="Mods loaded. Return to Spartan Drill Mods." title="Back to Spartan Drill Mods">Mods loaded</a>
+ <script src="js/stormfront-data.js"></script>
+ <script src="js/mods.js"></script>
+</body>
+</html>

@@ -1,0 +1,3031 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Spartan Drill .sdmod v3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "version",
+    "id",
+    "name"
+  ],
+  "dependentRequired": {
+    "entry": [
+      "files"
+    ],
+    "scripts": [
+      "files"
+    ],
+    "keybinds": [
+      "scripts"
+    ]
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "files"
+        ]
+      },
+      "then": {
+        "anyOf": [
+          {
+            "required": [
+              "entry"
+            ]
+          },
+          {
+            "required": [
+              "mapPatches"
+            ]
+          },
+          {
+            "required": [
+              "engine"
+            ]
+          },
+          {
+            "required": [
+              "scripts"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "anyOf": [
+          {
+            "required": [
+              "engine"
+            ]
+          },
+          {
+            "required": [
+              "scripts"
+            ]
+          }
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "entry"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "connections"
+        ]
+      },
+      "then": {
+        "anyOf": [
+          {
+            "required": [
+              "entry",
+              "files"
+            ]
+          },
+          {
+            "required": [
+              "engine"
+            ]
+          },
+          {
+            "required": [
+              "scripts"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "anyOf": [
+    {
+      "required": [
+        "entry",
+        "files"
+      ]
+    },
+    {
+      "required": [
+        "engine"
+      ]
+    },
+    {
+      "required": [
+        "stormfront"
+      ]
+    },
+    {
+      "required": [
+        "weapons"
+      ],
+      "properties": {
+        "weapons": {
+          "minItems": 1
+        }
+      }
+    },
+    {
+      "required": [
+        "maps"
+      ],
+      "properties": {
+        "maps": {
+          "minItems": 1
+        }
+      }
+    },
+    {
+      "required": [
+        "playlists"
+      ],
+      "properties": {
+        "playlists": {
+          "minItems": 1
+        }
+      }
+    },
+    {
+      "required": [
+        "mapPatches"
+      ],
+      "properties": {
+        "mapPatches": {
+          "minItems": 1
+        }
+      }
+    },
+    {
+      "required": [
+        "scripts"
+      ]
+    }
+  ],
+  "properties": {
+    "format": {
+      "const": "spartan-drill-mod"
+    },
+    "version": {
+      "const": 3
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "weapons": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "base"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,31}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60,
+            "pattern": "^[^<>&\"'\\u0000-\\u001f]+$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240,
+            "pattern": "^[^\\u0000-\\u001f]+$"
+          },
+          "base": {
+            "enum": [
+              "AR",
+              "SMG",
+              "BR",
+              "SG",
+              "MG",
+              "MP",
+              "VA",
+              "BP",
+              "KTS",
+              "RD",
+              "HC",
+              "AN",
+              "OH",
+              "SW",
+              "LT",
+              "PD",
+              "MVR",
+              "TRB",
+              "TUR",
+              "VMP",
+              "CT",
+              "CY",
+              "SN",
+              "RG",
+              "RL",
+              "TEA"
+            ]
+          },
+          "damage": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 300
+          },
+          "rpm": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 1800
+          },
+          "magazine": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 150
+          },
+          "reserves": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30
+          },
+          "reloadSeconds": {
+            "type": "number",
+            "minimum": 0.2,
+            "maximum": 12
+          },
+          "spread": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.25
+          },
+          "recoil": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 16
+          },
+          "pellets": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16
+          },
+          "automatic": {
+            "type": "boolean"
+          },
+          "explosion": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "radius",
+              "damage"
+            ],
+            "properties": {
+              "radius": {
+                "type": "number",
+                "minimum": 0.5,
+                "maximum": 18
+              },
+              "damage": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 300
+              }
+            }
+          },
+          "color": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "model": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "parts",
+              "grip",
+              "foregrip",
+              "muzzle"
+            ],
+            "properties": {
+              "parts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "shape",
+                    "at",
+                    "size",
+                    "color"
+                  ],
+                  "properties": {
+                    "shape": {
+                      "enum": [
+                        "box",
+                        "cylinder",
+                        "sphere",
+                        "cone"
+                      ]
+                    },
+                    "at": {
+                      "type": "array",
+                      "prefixItems": [
+                        {
+                          "type": "number",
+                          "minimum": -3,
+                          "maximum": 3
+                        },
+                        {
+                          "type": "number",
+                          "minimum": -3,
+                          "maximum": 3
+                        },
+                        {
+                          "type": "number",
+                          "minimum": -3,
+                          "maximum": 3
+                        }
+                      ],
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "size": {
+                      "type": "array",
+                      "prefixItems": [
+                        {
+                          "type": "number",
+                          "minimum": 0.005,
+                          "maximum": 2
+                        },
+                        {
+                          "type": "number",
+                          "minimum": 0.005,
+                          "maximum": 2
+                        },
+                        {
+                          "type": "number",
+                          "minimum": 0.005,
+                          "maximum": 2
+                        }
+                      ],
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "rotation": {
+                      "type": "array",
+                      "prefixItems": [
+                        {
+                          "type": "number",
+                          "minimum": -6.3,
+                          "maximum": 6.3
+                        },
+                        {
+                          "type": "number",
+                          "minimum": -6.3,
+                          "maximum": 6.3
+                        },
+                        {
+                          "type": "number",
+                          "minimum": -6.3,
+                          "maximum": 6.3
+                        }
+                      ],
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "color": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$"
+                    },
+                    "magazine": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "minItems": 1,
+                "maxItems": 96
+              },
+              "grip": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -3,
+                    "maximum": 3
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3,
+                    "maximum": 3
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3,
+                    "maximum": 3
+                  }
+                ],
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "foregrip": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -3,
+                    "maximum": 3
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3,
+                    "maximum": 3
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3,
+                    "maximum": 3
+                  }
+                ],
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "muzzle": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -3,
+                    "maximum": 3
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3,
+                    "maximum": 3
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -3,
+                    "maximum": 3
+                  }
+                ],
+                "minItems": 3,
+                "maxItems": 3
+              }
+            }
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 16
+    },
+    "maps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "halfSize",
+          "boxes"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,31}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60,
+            "pattern": "^[^<>&\"'\\u0000-\\u001f]+$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240,
+            "pattern": "^[^\\u0000-\\u001f]+$"
+          },
+          "kind": {
+            "enum": [
+              "arena",
+              "zombies"
+            ]
+          },
+          "halfSize": {
+            "type": "integer",
+            "minimum": 14,
+            "maximum": 96
+          },
+          "sky": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "ground": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "wall": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "surface": {
+            "enum": [
+              "brick",
+              "stucco",
+              "plank",
+              "concrete",
+              "asphalt",
+              "grass",
+              "shingle",
+              "tile",
+              "metal",
+              "sand",
+              "rust",
+              "cobble"
+            ]
+          },
+          "night": {
+            "type": "boolean"
+          },
+          "boxes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at",
+                "size",
+                "color"
+              ],
+              "properties": {
+                "at": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": -96,
+                      "maximum": 96
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -96,
+                      "maximum": 96
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "size": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 80
+                    },
+                    {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 36
+                    },
+                    {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 80
+                    }
+                  ],
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "elevation": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 32
+                },
+                "color": {
+                  "type": "string",
+                  "pattern": "^#[0-9a-fA-F]{6}$"
+                },
+                "material": {
+                  "enum": [
+                    "brick",
+                    "stucco",
+                    "plank",
+                    "concrete",
+                    "asphalt",
+                    "grass",
+                    "shingle",
+                    "tile",
+                    "metal",
+                    "sand",
+                    "rust",
+                    "cobble",
+                    "glass",
+                    "glow"
+                  ]
+                }
+              }
+            },
+            "minItems": 0,
+            "maxItems": 340
+          },
+          "props": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at",
+                "size",
+                "color"
+              ],
+              "properties": {
+                "at": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": -96,
+                      "maximum": 96
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -96,
+                      "maximum": 96
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "size": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 80
+                    },
+                    {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 36
+                    },
+                    {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 80
+                    }
+                  ],
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "elevation": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 32
+                },
+                "color": {
+                  "type": "string",
+                  "pattern": "^#[0-9a-fA-F]{6}$"
+                },
+                "material": {
+                  "enum": [
+                    "brick",
+                    "stucco",
+                    "plank",
+                    "concrete",
+                    "asphalt",
+                    "grass",
+                    "shingle",
+                    "tile",
+                    "metal",
+                    "sand",
+                    "rust",
+                    "cobble",
+                    "glass",
+                    "glow"
+                  ]
+                },
+                "shape": {
+                  "enum": [
+                    "box",
+                    "cylinder",
+                    "sphere",
+                    "cone"
+                  ]
+                }
+              }
+            },
+            "minItems": 0,
+            "maxItems": 220
+          },
+          "lights": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at",
+                "height",
+                "color",
+                "intensity",
+                "radius"
+              ],
+              "properties": {
+                "at": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": -96,
+                      "maximum": 96
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -96,
+                      "maximum": 96
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "height": {
+                  "type": "number",
+                  "minimum": 0.5,
+                  "maximum": 30
+                },
+                "color": {
+                  "type": "string",
+                  "pattern": "^#[0-9a-fA-F]{6}$"
+                },
+                "intensity": {
+                  "type": "number",
+                  "minimum": 0.1,
+                  "maximum": 5
+                },
+                "radius": {
+                  "type": "number",
+                  "minimum": 2,
+                  "maximum": 36
+                }
+              }
+            },
+            "minItems": 0,
+            "maxItems": 8
+          },
+          "spawns": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "number",
+                  "minimum": -96,
+                  "maximum": 96
+                },
+                {
+                  "type": "number",
+                  "minimum": -96,
+                  "maximum": 96
+                }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "minItems": 1,
+            "maxItems": 32
+          },
+          "blueSpawns": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "number",
+                  "minimum": -96,
+                  "maximum": 96
+                },
+                {
+                  "type": "number",
+                  "minimum": -96,
+                  "maximum": 96
+                }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "minItems": 1,
+            "maxItems": 16
+          },
+          "redSpawns": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "number",
+                  "minimum": -96,
+                  "maximum": 96
+                },
+                {
+                  "type": "number",
+                  "minimum": -96,
+                  "maximum": 96
+                }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "minItems": 1,
+            "maxItems": 16
+          },
+          "flags": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -96,
+                    "maximum": 96
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -96,
+                    "maximum": 96
+                  }
+                ],
+                "minItems": 2,
+                "maxItems": 2
+              },
+              {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -96,
+                    "maximum": 96
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -96,
+                    "maximum": 96
+                  }
+                ],
+                "minItems": 2,
+                "maxItems": 2
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "zones": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -96,
+                    "maximum": 96
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -96,
+                    "maximum": 96
+                  }
+                ],
+                "minItems": 2,
+                "maxItems": 2
+              },
+              {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -96,
+                    "maximum": 96
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -96,
+                    "maximum": 96
+                  }
+                ],
+                "minItems": 2,
+                "maxItems": 2
+              },
+              {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -96,
+                    "maximum": 96
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -96,
+                    "maximum": 96
+                  }
+                ],
+                "minItems": 2,
+                "maxItems": 2
+              }
+            ],
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "zombieSpawns": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at"
+              ],
+              "properties": {
+                "at": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": -96,
+                      "maximum": 96
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -96,
+                      "maximum": 96
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "room": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 32
+                }
+              }
+            },
+            "minItems": 1,
+            "maxItems": 36
+          },
+          "doors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at",
+                "name",
+                "size",
+                "cost",
+                "rooms"
+              ],
+              "properties": {
+                "at": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": -96,
+                      "maximum": 96
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -96,
+                      "maximum": 96
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40,
+                  "pattern": "^[^\\u0000-\\u001f]+$"
+                },
+                "size": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": 0.5,
+                      "maximum": 8
+                    },
+                    {
+                      "type": "number",
+                      "minimum": 0.5,
+                      "maximum": 8
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "cost": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 25000
+                },
+                "rooms": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 32
+                    },
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 32
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              }
+            },
+            "minItems": 0,
+            "maxItems": 16
+          },
+          "stations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at",
+                "kind"
+              ],
+              "properties": {
+                "at": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": -96,
+                      "maximum": 96
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -96,
+                      "maximum": 96
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "kind": {
+                  "enum": [
+                    "rev",
+                    "vit",
+                    "quick",
+                    "dbl",
+                    "stam",
+                    "mule",
+                    "crypt",
+                    "pap",
+                    "box",
+                    "wall",
+                    "ammo"
+                  ]
+                },
+                "facing": {
+                  "enum": [
+                    "N",
+                    "S",
+                    "E",
+                    "W"
+                  ]
+                },
+                "weapon": {
+                  "type": "string",
+                  "pattern": "^(?:@[a-z][a-z0-9-]{0,31}|[A-Z][A-Z0-9]{0,11})$"
+                },
+                "cost": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 25000
+                }
+              }
+            },
+            "minItems": 0,
+            "maxItems": 32
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 8
+    },
+    "playlists": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "base",
+          "map"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,31}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60,
+            "pattern": "^[^<>&\"'\\u0000-\\u001f]+$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240,
+            "pattern": "^[^\\u0000-\\u001f]+$"
+          },
+          "base": {
+            "enum": [
+              "Slayer",
+              "Team Deathmatch",
+              "Capture the Flag",
+              "Domination",
+              "Hardpoint",
+              "Kill Confirmed",
+              "Time Attack",
+              "Survival",
+              "Zombies",
+              "One in the Chamber",
+              "Gun Game",
+              "Objective Course"
+            ]
+          },
+          "map": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60,
+            "pattern": "^[^\\u0000-\\u001f]+$"
+          },
+          "primary": {
+            "type": "string",
+            "pattern": "^(?:@[a-z][a-z0-9-]{0,31}|[A-Z][A-Z0-9]{0,11})$"
+          },
+          "secondary": {
+            "type": "string",
+            "pattern": "^(?:@[a-z][a-z0-9-]{0,31}|[A-Z][A-Z0-9]{0,11})$"
+          },
+          "botWeapons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^(?:@[a-z][a-z0-9-]{0,31}|[A-Z][A-Z0-9]{0,11})$"
+            },
+            "minItems": 1,
+            "maxItems": 16
+          },
+          "weaponLadder": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^(?:@[a-z][a-z0-9-]{0,31}|[A-Z][A-Z0-9]{0,11})$"
+            },
+            "minItems": 1,
+            "maxItems": 32
+          },
+          "bots": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 12
+          },
+          "scoreLimit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999
+          },
+          "timeSeconds": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 3600
+          },
+          "waveLimit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "health": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "shield": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 300
+          },
+          "startPoints": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 50000
+          },
+          "infiniteAmmo": {
+            "type": "boolean"
+          },
+          "deathLimit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "objectives": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "kind"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 70,
+                  "pattern": "^[^\\u0000-\\u001f]+$"
+                },
+                "kind": {
+                  "enum": [
+                    "reach",
+                    "hold",
+                    "interact",
+                    "eliminate"
+                  ]
+                },
+                "at": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": -96,
+                      "maximum": 96
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -96,
+                      "maximum": 96
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "radius": {
+                  "type": "number",
+                  "minimum": 1.25,
+                  "maximum": 14
+                },
+                "seconds": {
+                  "type": "number",
+                  "minimum": 0.5,
+                  "maximum": 120
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                },
+                "reward": {
+                  "enum": [
+                    "heal",
+                    "refill",
+                    "none"
+                  ]
+                }
+              }
+            },
+            "minItems": 1,
+            "maxItems": 20
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 24
+    },
+    "mapPatches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "map"
+        ],
+        "properties": {
+          "map": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60,
+            "pattern": "^[^\\u0000-\\u001f]+$"
+          },
+          "sky": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "ground": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "wall": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "surface": {
+            "enum": [
+              "brick",
+              "stucco",
+              "plank",
+              "concrete",
+              "asphalt",
+              "grass",
+              "shingle",
+              "tile",
+              "metal",
+              "sand",
+              "rust",
+              "cobble"
+            ]
+          },
+          "groundTexture": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "file"
+            ],
+            "properties": {
+              "file": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "pattern": "^[^\\u0000-\\u001f]+$"
+              },
+              "tileSize": {
+                "type": "number",
+                "minimum": 0.08,
+                "maximum": 120
+              },
+              "roughness": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "metalness": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          },
+          "textures": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "surface",
+                "file"
+              ],
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160,
+                  "pattern": "^[^\\u0000-\\u001f]+$"
+                },
+                "tileSize": {
+                  "type": "number",
+                  "minimum": 0.08,
+                  "maximum": 120
+                },
+                "roughness": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "metalness": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "surface": {
+                  "enum": [
+                    "brick",
+                    "stucco",
+                    "plank",
+                    "concrete",
+                    "asphalt",
+                    "grass",
+                    "shingle",
+                    "tile",
+                    "metal",
+                    "sand",
+                    "rust",
+                    "cobble",
+                    "glass",
+                    "glow",
+                    "flat",
+                    "foliage",
+                    "glassL"
+                  ]
+                },
+                "at": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": -512,
+                      "maximum": 512
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -512,
+                      "maximum": 512
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "radius": {
+                  "type": "number",
+                  "minimum": 0.1,
+                  "maximum": 512
+                }
+              }
+            },
+            "minItems": 0,
+            "maxItems": 48
+          },
+          "removeBoxes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at",
+                "radius"
+              ],
+              "properties": {
+                "at": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": -512,
+                      "maximum": 512
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -512,
+                      "maximum": 512
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "radius": {
+                  "type": "number",
+                  "minimum": 0.1,
+                  "maximum": 512
+                }
+              }
+            },
+            "minItems": 0,
+            "maxItems": 80
+          },
+          "removeProps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at",
+                "radius"
+              ],
+              "properties": {
+                "at": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": -512,
+                      "maximum": 512
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -512,
+                      "maximum": 512
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "radius": {
+                  "type": "number",
+                  "minimum": 0.1,
+                  "maximum": 512
+                }
+              }
+            },
+            "minItems": 0,
+            "maxItems": 80
+          },
+          "replaceBoxes": {
+            "type": "boolean"
+          },
+          "replaceProps": {
+            "type": "boolean"
+          },
+          "boxes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at",
+                "size",
+                "color"
+              ],
+              "properties": {
+                "at": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": -512,
+                      "maximum": 512
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -512,
+                      "maximum": 512
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "size": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 80
+                    },
+                    {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 36
+                    },
+                    {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 80
+                    }
+                  ],
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "elevation": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 32
+                },
+                "color": {
+                  "type": "string",
+                  "pattern": "^#[0-9a-fA-F]{6}$"
+                },
+                "material": {
+                  "enum": [
+                    "brick",
+                    "stucco",
+                    "plank",
+                    "concrete",
+                    "asphalt",
+                    "grass",
+                    "shingle",
+                    "tile",
+                    "metal",
+                    "sand",
+                    "rust",
+                    "cobble",
+                    "glass",
+                    "glow"
+                  ]
+                }
+              }
+            },
+            "minItems": 0,
+            "maxItems": 340
+          },
+          "props": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at",
+                "size",
+                "color"
+              ],
+              "properties": {
+                "at": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": -512,
+                      "maximum": 512
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -512,
+                      "maximum": 512
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "size": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 80
+                    },
+                    {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 36
+                    },
+                    {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 80
+                    }
+                  ],
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "elevation": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 32
+                },
+                "color": {
+                  "type": "string",
+                  "pattern": "^#[0-9a-fA-F]{6}$"
+                },
+                "material": {
+                  "enum": [
+                    "brick",
+                    "stucco",
+                    "plank",
+                    "concrete",
+                    "asphalt",
+                    "grass",
+                    "shingle",
+                    "tile",
+                    "metal",
+                    "sand",
+                    "rust",
+                    "cobble",
+                    "glass",
+                    "glow"
+                  ]
+                },
+                "shape": {
+                  "enum": [
+                    "box",
+                    "cylinder",
+                    "sphere",
+                    "cone"
+                  ]
+                }
+              }
+            },
+            "minItems": 0,
+            "maxItems": 220
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "file",
+                "at"
+              ],
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160,
+                  "pattern": "^[^\\u0000-\\u001f]+$"
+                },
+                "at": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number",
+                      "minimum": -512,
+                      "maximum": 512
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -512,
+                      "maximum": 512
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "elevation": {
+                  "type": "number",
+                  "minimum": -16,
+                  "maximum": 72
+                },
+                "scale": {
+                  "type": "number",
+                  "minimum": 0.01,
+                  "maximum": 48
+                },
+                "rotation": {
+                  "type": "number",
+                  "minimum": -360,
+                  "maximum": 360
+                },
+                "color": {
+                  "type": "string",
+                  "pattern": "^#[0-9a-fA-F]{6}$"
+                },
+                "texture": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160,
+                  "pattern": "^[^\\u0000-\\u001f]+$"
+                }
+              }
+            },
+            "minItems": 0,
+            "maxItems": 48
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 24
+    },
+    "stormfront": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "zones": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,31}$"
+              },
+              "extends": {
+                "enum": [
+                  "quarrywood",
+                  "timbervale",
+                  "mesa-gorge",
+                  "obsidian-peaks"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              },
+              "biome": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              },
+              "ore": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              },
+              "min": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 145
+              },
+              "max": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 145
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              },
+              "ground": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              },
+              "sky": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              }
+            },
+            "required": [
+              "id",
+              "extends"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "missions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,31}$"
+              },
+              "extends": {
+                "enum": [
+                  "relay",
+                  "atlas",
+                  "data",
+                  "lightning",
+                  "repair",
+                  "evacuate",
+                  "bomb",
+                  "encampments",
+                  "rescue",
+                  "radar",
+                  "seal-classic",
+                  "nests-classic",
+                  "payload-classic",
+                  "shield"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              },
+              "brief": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              },
+              "seconds": {
+                "type": "number",
+                "minimum": 8,
+                "maximum": 1800
+              },
+              "offset": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 50
+              },
+              "element": {
+                "enum": [
+                  "Physical",
+                  "Fire",
+                  "Water",
+                  "Nature"
+                ]
+              },
+              "icon": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              },
+              "base": {
+                "enum": [
+                  "relay",
+                  "atlas",
+                  "data",
+                  "lightning",
+                  "repair",
+                  "evacuate",
+                  "bomb",
+                  "encampments",
+                  "rescue",
+                  "radar",
+                  "seal-classic",
+                  "nests-classic",
+                  "payload-classic",
+                  "shield"
+                ]
+              },
+              "biome": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              },
+              "levels": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 4
+              },
+              "objects": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "at": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": -36,
+                        "maximum": 36
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "model": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "shape": {
+                            "enum": [
+                              "box",
+                              "sphere",
+                              "cylinder",
+                              "cone",
+                              "octa",
+                              "torus"
+                            ]
+                          },
+                          "at": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -30,
+                              "maximum": 30
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "size": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": 0.02,
+                              "maximum": 25
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "rotation": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -6.283185307179586,
+                              "maximum": 6.283185307179586
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "color": {
+                            "type": "string",
+                            "pattern": "^#[0-9a-fA-F]{6}$"
+                          },
+                          "glow": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "shape",
+                          "at",
+                          "size",
+                          "color"
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 48
+                    },
+                    "salvage": {
+                      "enum": [
+                        "Wood",
+                        "Stone",
+                        "Metal"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "at",
+                    "model"
+                  ]
+                },
+                "minItems": 0,
+                "maxItems": 32
+              },
+              "reward": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "xp": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  },
+                  "gold": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  },
+                  "tokens": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  },
+                  "evolution": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  },
+                  "bux": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  }
+                },
+                "required": []
+              },
+              "roster": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{0,31}$"
+                },
+                "minItems": 1,
+                "maxItems": 28
+              }
+            },
+            "required": [
+              "id",
+              "extends"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "heroes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,31}$"
+              },
+              "extends": {
+                "enum": [
+                  "mara",
+                  "bram",
+                  "ika",
+                  "ren",
+                  "mira",
+                  "axel",
+                  "sol",
+                  "lark"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              },
+              "role": {
+                "enum": [
+                  "Soldier",
+                  "Constructor",
+                  "Ninja",
+                  "Outlander"
+                ]
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              },
+              "abilities": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "War Cry",
+                        "Shockwave",
+                        "Scatter Charge",
+                        "Bull Rush",
+                        "DECOY",
+                        "Arc Barrage",
+                        "Dragon Slash",
+                        "Kunai Storm",
+                        "Smoke Screen",
+                        "Phase Shift",
+                        "T.E.D.D.Y.",
+                        "Chain Tower"
+                      ]
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9-]{0,31}$"
+                    }
+                  ]
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "perk": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              },
+              "rarity": {
+                "enum": [
+                  "Common",
+                  "Uncommon",
+                  "Rare",
+                  "Epic",
+                  "Legendary",
+                  "Mythic"
+                ]
+              },
+              "model": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "shape": {
+                      "enum": [
+                        "box",
+                        "sphere",
+                        "cylinder",
+                        "cone",
+                        "octa",
+                        "torus"
+                      ]
+                    },
+                    "at": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": -30,
+                        "maximum": 30
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "size": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": 0.02,
+                        "maximum": 25
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "rotation": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": -6.283185307179586,
+                        "maximum": 6.283185307179586
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "color": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$"
+                    },
+                    "glow": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "shape",
+                    "at",
+                    "size",
+                    "color"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 48
+              }
+            },
+            "required": [
+              "id",
+              "extends"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "weapons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,31}$"
+              },
+              "extends": {
+                "enum": [
+                  "rook",
+                  "slate",
+                  "cinder",
+                  "annihilator",
+                  "wasp",
+                  "northstar",
+                  "hinge",
+                  "flare",
+                  "edge",
+                  "pike",
+                  "harrow",
+                  "maul",
+                  "cleaver",
+                  "spanner"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              },
+              "type": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              },
+              "damage": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 2500
+              },
+              "rpm": {
+                "type": "number",
+                "minimum": 15,
+                "maximum": 1800
+              },
+              "mag": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 150
+              },
+              "element": {
+                "enum": [
+                  "Physical",
+                  "Energy",
+                  "Fire",
+                  "Water",
+                  "Nature"
+                ]
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              },
+              "model": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "shape": {
+                      "enum": [
+                        "box",
+                        "sphere",
+                        "cylinder",
+                        "cone",
+                        "octa",
+                        "torus"
+                      ]
+                    },
+                    "at": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": -30,
+                        "maximum": 30
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "size": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": 0.02,
+                        "maximum": 25
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "rotation": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": -6.283185307179586,
+                        "maximum": 6.283185307179586
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "color": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$"
+                    },
+                    "glow": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "shape",
+                    "at",
+                    "size",
+                    "color"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 48
+              }
+            },
+            "required": [
+              "id",
+              "extends"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "traps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,31}$"
+              },
+              "extends": {
+                "enum": [
+                  "gas",
+                  "field",
+                  "drop",
+                  "darts",
+                  "dynamo",
+                  "piston",
+                  "broadside",
+                  "spikes",
+                  "freeze",
+                  "launcher",
+                  "anti-air",
+                  "campfire",
+                  "healing",
+                  "defender"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              },
+              "mount": {
+                "enum": [
+                  "floor",
+                  "wall",
+                  "ceiling"
+                ]
+              },
+              "behavior": {
+                "enum": [
+                  "gas",
+                  "shock",
+                  "launch",
+                  "shot",
+                  "ricochet",
+                  "snare",
+                  "freeze",
+                  "intercept",
+                  "heal",
+                  "defend"
+                ]
+              },
+              "damage": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2500
+              },
+              "reload": {
+                "type": "number",
+                "minimum": 0.3,
+                "maximum": 60
+              },
+              "durability": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 250
+              },
+              "range": {
+                "type": "number",
+                "minimum": 0.5,
+                "maximum": 25
+              },
+              "crit": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "impact": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 20
+              },
+              "element": {
+                "enum": [
+                  "Physical",
+                  "Energy",
+                  "Fire",
+                  "Water",
+                  "Nature"
+                ]
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              },
+              "model": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "shape": {
+                      "enum": [
+                        "box",
+                        "sphere",
+                        "cylinder",
+                        "cone",
+                        "octa",
+                        "torus"
+                      ]
+                    },
+                    "at": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": -30,
+                        "maximum": 30
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "size": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": 0.02,
+                        "maximum": 25
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "rotation": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": -6.283185307179586,
+                        "maximum": 6.283185307179586
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "color": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$"
+                    },
+                    "glow": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "shape",
+                    "at",
+                    "size",
+                    "color"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 48
+              }
+            },
+            "required": [
+              "id",
+              "extends"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "enemies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,31}$"
+              },
+              "extends": {
+                "enum": [
+                  "basic",
+                  "husky",
+                  "pitcher",
+                  "lobber",
+                  "sploder",
+                  "hive",
+                  "riot",
+                  "zapper",
+                  "shielder",
+                  "nurse",
+                  "smasher",
+                  "blaster",
+                  "taker",
+                  "flinger"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              },
+              "behavior": {
+                "enum": [
+                  "melee",
+                  "tank",
+                  "throw",
+                  "lob",
+                  "explode",
+                  "swarm",
+                  "shield",
+                  "laser",
+                  "ward",
+                  "heal",
+                  "charge",
+                  "beam",
+                  "phase",
+                  "fling"
+                ]
+              },
+              "hp": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 20000
+              },
+              "speed": {
+                "type": "number",
+                "minimum": 0.1,
+                "maximum": 14
+              },
+              "damage": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 500
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              },
+              "weight": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 8
+              },
+              "model": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "shape": {
+                      "enum": [
+                        "box",
+                        "sphere",
+                        "cylinder",
+                        "cone",
+                        "octa",
+                        "torus"
+                      ]
+                    },
+                    "at": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": -30,
+                        "maximum": 30
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "size": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": 0.02,
+                        "maximum": 25
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "rotation": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": -6.283185307179586,
+                        "maximum": 6.283185307179586
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "color": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$"
+                    },
+                    "glow": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "shape",
+                    "at",
+                    "size",
+                    "color"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 48
+              }
+            },
+            "required": [
+              "id",
+              "extends"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "abilities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,31}$"
+              },
+              "extends": {
+                "enum": [
+                  "War Cry",
+                  "Shockwave",
+                  "Scatter Charge",
+                  "Bull Rush",
+                  "DECOY",
+                  "Arc Barrage",
+                  "Dragon Slash",
+                  "Kunai Storm",
+                  "Smoke Screen",
+                  "Phase Shift",
+                  "T.E.D.D.Y.",
+                  "Chain Tower"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              },
+              "behavior": {
+                "enum": [
+                  "buff",
+                  "burst",
+                  "throw",
+                  "dash",
+                  "decoy",
+                  "jump",
+                  "field",
+                  "phase",
+                  "turret"
+                ]
+              },
+              "cooldown": {
+                "type": "number",
+                "minimum": 0.5,
+                "maximum": 120
+              },
+              "range": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 30
+              },
+              "damage": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1800
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              }
+            },
+            "required": [
+              "id",
+              "extends"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 32
+        }
+      },
+      "required": [],
+      "anyOf": [
+        {
+          "required": [
+            "zones"
+          ],
+          "properties": {
+            "zones": {
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "required": [
+            "missions"
+          ],
+          "properties": {
+            "missions": {
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "required": [
+            "heroes"
+          ],
+          "properties": {
+            "heroes": {
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "required": [
+            "weapons"
+          ],
+          "properties": {
+            "weapons": {
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "required": [
+            "traps"
+          ],
+          "properties": {
+            "traps": {
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "required": [
+            "enemies"
+          ],
+          "properties": {
+            "enemies": {
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "required": [
+            "abilities"
+          ],
+          "properties": {
+            "abilities": {
+              "minItems": 1
+            }
+          }
+        }
+      ]
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "entry": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_@.-]+(?:/[a-zA-Z0-9_@.-]+)*$"
+    },
+    "connections": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      }
+    },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "page": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_@.-]+(?:/[a-zA-Z0-9_@.-]+)*$"
+        },
+        "replace": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-zA-Z0-9_@.-]+(?:/[a-zA-Z0-9_@.-]+)*$"
+          },
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "patches": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "file",
+              "find",
+              "replace"
+            ],
+            "properties": {
+              "file": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_@.-]+(?:/[a-zA-Z0-9_@.-]+)*$"
+              },
+              "find": {
+                "type": "string",
+                "minLength": 1
+              },
+              "replace": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000
+              }
+            }
+          }
+        },
+        "order": {
+          "type": "array",
+          "maxItems": 128,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_@.-]+(?:/[a-zA-Z0-9_@.-]+)*$"
+          }
+        },
+        "scripts": {
+          "type": "array",
+          "maxItems": 128,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_@.-]+(?:/[a-zA-Z0-9_@.-]+)*$"
+          }
+        },
+        "styles": {
+          "type": "array",
+          "maxItems": 128,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_@.-]+(?:/[a-zA-Z0-9_@.-]+)*$"
+          }
+        }
+      }
+    },
+    "files": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[a-zA-Z0-9_@.-]+(?:/[a-zA-Z0-9_@.-]+)*$"
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "base64",
+              "type"
+            ],
+            "properties": {
+              "base64": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9+/]*={0,2}$"
+              },
+              "type": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9!#$&^_.+-]+/[a-zA-Z0-9!#$&^_.+-]+$"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "scripts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9_@.-]+(?:/[a-zA-Z0-9_@.-]+)*\\.[mM]?[jJ][sS]$"
+      }
+    },
+    "keybinds": {
+      "type": "object",
+      "maxProperties": 64,
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^(?:[A-Za-z0-9]|[A-Za-z][A-Za-z0-9]{1,31})$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          }
+        }
+      }
+    }
+  }
+}

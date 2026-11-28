@@ -1,0 +1,20 @@
+{
+  "format": "spartan-drill-mod",
+  "version": 3,
+  "id": "vehicle-workshop",
+  "name": "Vehicle Workshop",
+  "author": "Spartan Drill",
+  "description": "Press V in a local Multiplayer or Zombies match to spawn vehicles and toggle NPC AI.",
+  "scripts": [
+    "workshop.js"
+  ],
+  "keybinds": {
+    "workshop": {
+      "key": "KeyV",
+      "label": "Vehicle Workshop"
+    }
+  },
+  "files": {
+    "workshop.js": "const { game } = SpartanMod;\n\ngame.vehicles.registerVehicle({\n  id: 'trail-racer',\n  name: 'Trail Racer',\n  stats: { size: [1.65, 1.15, 3.15], topSpeed: 25, acceleration: 15, health: 325, seats: 2 }\n});\n\nconst menu = game.ui.addMenu({\n  title: 'Vehicle Workshop',\n  description: 'Select a vehicle to deploy nearby. Press F to enter or exit. Drive with WASD and brake with Space.'\n});\n\nfunction deploy(type, color) {\n  const [x, y, z] = game.player.getPosition();\n  const { yaw } = game.player.getCamera();\n  const heading = yaw + Math.PI;\n  const { stats: { size } } = game.vehicles.types().find(vehicle => vehicle.id === type);\n  const placement = [0, -.9, .9, -1.75, 1.75, Math.PI].map(offset => {\n    const direction = heading + offset;\n    const sx = x + Math.sin(direction) * 4;\n    const sz = z + Math.cos(direction) * 4;\n    return { direction, position: [sx, game.world.groundHeight(sx, sz, y + .4), sz] };\n  }).find(({ position, direction }) => game.world.isAreaClear(position, size, direction));\n  if (!placement) {\n    game.ui.showToast('Move to a clear space before deploying a vehicle.');\n    return;\n  }\n  game.vehicles.spawn(type, placement.position, { heading: placement.direction, color });\n  menu.close();\n  game.ui.showToast('Vehicle deployed. Press F at the driver’s door.');\n}\n\nmenu.addButton('Sports car', () => deploy('sports-car', '#c85533'));\nmenu.addButton('Utility truck', () => deploy('truck', '#78a783'));\nmenu.addButton('Motorbike', () => deploy('bike', '#4e91c6'));\nmenu.addButton('Trail Racer', () => deploy('trail-racer', '#dbab4d'));\nmenu.addButton('Toggle NPC AI', () => {\n  const enabled = !game.bots.isEnabled();\n  game.bots.setEnabled(enabled);\n  game.ui.showToast(enabled ? 'NPC AI resumed.' : 'NPC AI paused.');\n});\nmenu.addButton('Remove vehicles', () => {\n  for (const vehicle of game.vehicles.list()) game.vehicles.remove(vehicle.id);\n  game.ui.showToast('Vehicles cleared.');\n});\n\nconst toggle = () => menu.toggle();\ngame.ui.addKeybind('workshop', toggle);\ngame.ui.addHudButton('Vehicles · V', toggle);\ngame.ui.addPauseMenuEntry('Vehicle Workshop', toggle);\n"
+  }
+}

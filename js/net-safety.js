@@ -4,9 +4,9 @@ const partyInviteLength=6;
 const dataChannelLabel='spartan-data-1';
 const peerWireLimit=128*1024;
 const wireEncoder=new TextEncoder();
-const relayURL=new URL('sd-relay',location.href);
+const relayURL=window.SD_ENGINE_MOD?new URL('about:blank'):new URL('sd-relay',document.baseURI);
 let gameRelayAvailable=false;
-const gameRelayReady=window.SD_MOD_SESSION||typeof AbortController!=='function'||typeof fetch!=='function'||location.protocol==='file:'
+const gameRelayReady=window.SD_ENGINE_MOD||window.SD_MOD_SESSION||typeof AbortController!=='function'||typeof fetch!=='function'||relayURL.protocol==='file:'
  ?Promise.resolve():(()=>{
   const cancel=new AbortController(),timer=setTimeout(()=>cancel.abort(),2500);
   return fetch(relayURL,{cache:'no-store',redirect:'error',signal:cancel.signal})

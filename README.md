@@ -17,14 +17,14 @@ Static hosting uses PeerJS and WebRTC without the HTTPS fallback. Direct WebRTC 
 
 | Path | Contents |
 | --- | --- |
-| `index.html`, `style.css`, `favicon.svg` | Main game, menus, HUD, and site icon |
-| `stormwatch.html` | Standalone Stormwatch entry point |
+| `index.html`, `style.css` | Main game, menus, HUD, and site icon |
+| `stormfront.html` | Stormfront entry point |
 | `js/world.js`, `js/systems.js` | Map geometry, rendering, combat, bots, and 3D models |
-| `js/interface.js`, `js/menus.js`, `js/player-audio.js` | Input, progression, menus, and shared audio |
+| `js/interface.js`, `js/menus.js` | Input, progression, menus, and the Stormfront equipment bridge |
 | `js/zombies.js`, `js/streaks.js` | Zombies maps and quests, equipment, training, match features, and killstreaks |
-| `js/stormwatch-services.js`, `js/stormwatch.js` | Stormwatch command, campaign, construction, physics, and missions |
+| `js/stormfront-data.js`, `js/stormfront.js` | Stormfront campaign, construction, original field engine, and expanded missions |
 | `js/net-safety.js`, `relay.py` | Shared multiplayer transports and optional same-origin relay |
-| `js/mods.js` | Mod file schema, library, and local mod sessions |
+| `js/mods.js`, `conversion.html` | Mod library, add-on format, and full conversion runtime |
 | `assets/` | Map preview images |
 
 ## Controls
@@ -32,60 +32,68 @@ Static hosting uses PeerJS and WebRTC without the HTTPS fallback. Direct WebRTC 
 WASD moves, Shift sprints, Space jumps or mantles, and C crouches or slides. Use the left mouse button to fire, right mouse button to aim, R to reload, V for melee, E for lethal equipment, Q for tactical equipment, and F to interact or revive. Use 1 and 2 or the mouse wheel to switch weapons, 3–6 to use killstreaks, M to view the tactical map, Tab for the scoreboard, and Esc to pause. See **Settings → Controls** for rebinding, controller prompts, WebXR, and touch controls.
 
 ## Home screen
-The home screen opens Multiplayer, Zombies, or Stormwatch. Back returns to mode select.
+The home screen opens Multiplayer, Zombies, or Stormfront. Back returns to mode select.
 
 ## Official mod support
 
-Open **Mods** on the main menu and drop in one `.sdmod` file. You can also use **Choose file**. Enable a pack and close Mods. Its arena playlists and maps appear in **Multiplayer → Match setup**, its weapons appear in **Loadout**, and its Zombies maps and playlists appear under **Zombies → Play**. Use **Load example mod** to install Signal Yard. Return to Mods to switch packs, disable the active pack, export a file, or remove an installed pack.
+Version 3 adds `SpartanMod.game` for scripting local Multiplayer and Zombies matches. Install and launch the [Vehicle Workshop example](examples/vehicle-workshop.sdmod), start a match, then press **V**. See the [API reference](docs/modding-api.md), [TypeScript declarations](docs/spartan-mod.d.ts), [v3 schema](spartan-drill-mod-v3.schema.json), and [source index](docs/source-index.md) to build your own pack.
 
-To make a mod with AI, click **Copy AI prompt**, paste it into an AI chat, and describe your idea. Save the JSON it gives you as a file ending in `.sdmod`, then drop that file into Mods. **Download template** gives you a complete working pack. **Download schema** gives you the versioned JSON Schema for validation in an editor or an AI coding tool. The importer also checks references and map rules and shows the location of any error.
+Open **Mods** and drop in one `.sdmod` file, or use **Choose file**. The same format can add weapons, maps, or playlists to Spartan Drill, include a game with its own menus and gameplay, or do both. **Enable** adds the pack's content to the regular menus. **Launch** opens its custom game. The launcher supplies the installed engine files automatically for both browser-hosted and local-folder copies. When an enabled pack includes a game, you can also launch it from the main menu.
 
-A v1 pack is plain UTF-8 JSON, up to 384 KiB. It contains every definition it needs. The smallest pack can use existing maps and weapons.
+**Install example** adds Apex Loop, which includes a fullscreen 3D driving demo and an arena playlist. **Download template** exports the source, **Download schema** exports the unified v3 JSON Schema, and **Copy AI prompt** gives an AI the format and example. Existing v1 packs and previously installed v2 games still load.
+
+### A single mod file
+
+This minimal v3 pack has both a native playlist and a custom game.
 
 ```json
 {
   "format": "spartan-drill-mod",
-  "version": 1,
+  "version": 3,
   "id": "dock-duel",
   "name": "Dock Duel",
   "playlists": [
-    {
-      "id": "duel",
-      "name": "First to Five",
-      "base": "Slayer",
-      "map": "Dry Dock",
-      "bots": 1,
-      "scoreLimit": 5,
-      "timeSeconds": 90
-    }
-  ]
+    { "id": "duel", "name": "First to Five", "base": "Slayer", "map": "Dry Dock", "bots": 1, "scoreLimit": 5 }
+  ],
+  "entry": "index.html",
+  "files": {
+    "index.html": "<button id='play'>Play</button><script type='module' src='{{file:game.js}}'></script>",
+    "game.js": "document.getElementById('play').onclick = () => { document.body.textContent = 'Game started' }"
+  }
 }
 ```
 
-- **Weapons** inherit the defaults of an official weapon. Override damage, RPM, ammo, recoil, spread, reload time, fire mode, pellets, and explosive damage. Build an original 3D model out of colored and rotated parts, with hand grips, a muzzle and optional moving magazine parts. Set a playlist's starting weapons and bot pool. Custom weapons are also eligible for the Zombies Mystery Box.
-- **Maps** define their terrain palette, collision boxes, decorative props, lights, spawn points, and flag or zone positions. Coordinates are `[x, z]` and sizes are `[width, height, depth]`. Zombies maps use the same geometry and can define rooms, paid doors, enemy spawns, wall buys, perk machines, the Mystery Box, Pack-a-Punch and ammo crates. Room `0` is open at the start.
-- **Playlists** combine a map, starting loadout, bot count, and match rules such as score, round, or time limits, starting health and shields, and infinite ammo. **Gun Game** can use a custom weapon ladder. **Objective Course** supports ordered reach, hold, interact, and eliminate steps with optional heal or ammo-refill rewards. Map and weapon references written as `@id` refer to definitions in the current file.
-- **Progression** is frozen while any pack is enabled, including when playing a built-in map or mode. Official rank and XP, weapon mastery and camos, Battle Pass and Bux, challenges, quest rewards, Chewables, and combat records stay in the official game. Points, ammo, upgrades and score earned inside a mod still work for that match.
+### Content in the regular menus
 
-Version 1 supports offline arena and Zombies content and data-defined rules. It accepts game data only. Online mod play, Stormwatch mods, arbitrary scripts, and imported asset files are outside this version's format.
+Use whichever of `weapons`, `maps`, or `playlists` your idea needs. Arena playlists and maps appear in **Multiplayer → Match setup**, weapons appear in **Loadout**, and Zombies maps and playlists appear under **Zombies → Play**. Use `@id` to reference a map or weapon from the current pack.
 
-## Stormwatch
+- **Weapons** inherit a stock weapon and can override its stats or define an original model from colored 3D parts.
+- **Maps** define terrain colors, collision boxes, props, lights, spawns, and objectives. Positions are `[x, z]` and sizes are `[width, height, depth]`. Zombies maps can include rooms, doors, wall buys, perk stations, Mystery Boxes, and Pack-a-Punch.
+- **Playlists** set loadouts, bots and match rules. Gun Game supports a custom ladder. Objective Course supports ordered reach, hold, interact, and eliminate steps.
 
-Stormwatch opens at Command. Choose one of four regions on the World Map, then pan its sector grid and select a mission marker. **Deploy Solo** launches locally. **Find Squad** looks for players queuing for that operation. **Squad** also supports private codes for up to four players. Teammates share the objective and fortifications. Use **F** near a downed teammate to revive them.
+### A custom game in the same pack
 
-The **Inventory** tab shows stored salvage and recovered blueprints, and lets you set a Stormwatch-specific primary and secondary weapon. Salvage and loadout choices carry over on the same browser and origin. Equipped operators and locker cosmetics come from Spartan Drill. Cleared waves and completed stages award Battle Pass XP.
+Supply both `entry` and `files` to include your own game. The HTML entry controls the menus, renderer, HUD, gameplay and input. Package text files as strings and binary files as objects with a `base64` string and a MIME `type`. Browser memory and storage determine practical pack sizes.
 
-- **ATLAS Defense** gives you 60 seconds to fortify before the first of five waves. **Seal the Breach** asks you to collect three Flux Crystals and bring them to the Rift Anchor before a four-minute siege.
-- **Clear the Nests** sends you to five marked sites. Scan each nest, defeat its guardians, and break the exposed core. **Secure the Payload** starts with a 40-second landing countdown and ends after 145 seconds defending the recovery pod inside a contracting storm.
-- Timbervale, Ironridge, Canyonlands, and Obsidian Peaks each generate field layouts. Citadel Power controls deployment access.
-- **Q** opens building. **1–4** select Wall, Floor, Ramp, or Cap. **RMB** changes material. **B** edits an aimed structure and **G** repairs or reinforces it. **Tab** opens the Field Kit for trap recipes and ammo crafting.
-- **F** opens chests, equips their weapon rewards, scans nests, and revives teammates. **5–8** activate the lead operative's abilities. On a controller, click **RS** to edit, use **View** for the Field Kit, and use **D-pad left/right** and **RB** to select and activate abilities in combat.
-- **Field fabrication** uses mission components and building materials to equip a weapon from a Citadel blueprint.
-- **Citadel → Operations** tracks a rotating daily contract, a weekly contract for distinct mission wins, and the Field Index. The highlighted Alert on the deployment board opts into a mission modifier with a once-daily salvage reward.
+- Use `{{file:path}}` in HTML and CSS, `SpartanMod.url(path)` in JavaScript, or `SpartanMod.readText(path)` and `SpartanMod.readBytes(path)` for raw file contents. Import packaged ES modules with specifiers such as `@mod/engine/player.js`.
+- `SpartanMod.content` exposes the pack's own weapons, maps, and playlists. Use `await SpartanMod.load()`, `save(value)`, or `clearSave()` to manage the mod's separate save.
+- A server-backed game can declare a `connections` array of HTTPS or WSS origins. Supply a backend on a separate hostname that accepts requests from the sandbox's `Origin: null`.
 
-The structure grid uses cubic cells with integer contact coordinates for support checks. Edits share their geometry with Rapier collision and Hollow routing. Terrain and settled fortifications use instanced meshes where geometry and materials match. The Citadel management screen uses React and the profile is saved to IndexedDB on the current browser origin. Its saves are separate from Multiplayer and Zombies profiles. The Rapier and Citadel libraries load from jsDelivr.
+Mod play leaves official progression alone. Native content uses temporary profile storage, and custom games run in an opaque-origin browser sandbox with access to their own save.
 
-Epic's front-end notes, mission variety, and progression references informed the operation board, alert rotation, and Field Index. [Front End reorganization](https://www.fortnite.com/patch-notes/v6-30) · [Seasonal mission modifiers](https://www.fortnite.com/news/save-the-worlds-newest-update-7-21-2020) · [Mission Alert rewards](https://www.fortnite.com/news/changes-coming-to-fortnite-save-the-worlds-daily-reward-system-in-v25-10) · [Collection Book](https://www.epicgames.com/help/c-39719500/c-36066936/a25876301)
+## Stormfront
+
+Open **Stormfront** from the Spartan Drill title screen. Homebase shows the current main quest. The Play board includes the returning Relay Defense, Seal the Breach, Clear the Nests, and Secure the Payload operations, plus the expanded campaign and Storm Shield Defense.
+
+- **Campaign Level** rises through completed missions and main-quest milestones. It unlocks survivor and support slots, tools, gadgets, crafting tiers, and storage. **Power Level** comes from the F.O.R.T. stats granted by survivor squads and research.
+- **Armory** carries the same Spartan Drill weapon models and unlocked Locker operators into Stormfront. Crafted items keep their condition and ammunition across missions. Craft or replace them in Armory or the in-mission Field Kit. Winning an official mission also earns Spartan Drill account XP and Battle Pass XP.
+- **World Map** supports solo deployment and private squads of up to four players. The same squad can play returning and expanded operations on the same hosted game URL. An invite authenticates the room and checks that both sides enabled the same Stormfront content.
+- All operations use the recovered Stormwatch field engine, including controller controls, harvesting, weapons, construction and saved relay outposts. Every mission allows building on the same structural grid. The maps cover 320 × 320 world units, four times their original area.
+- Press **I** or **Tab** for the in-game inventory. Equip or recycle carried weapons and craft more weapons and ammunition. Press **Q** to build, **1–4** to choose a piece, right mouse to cycle materials, **B** to edit, and **G** to repair. Press **F** to interact and **E** for the same emote wheel used in Multiplayer and Zombies.
+
+### Stormfront mods
+
+Install one Spartan Drill `.sdmod` version 2 pack in the shared **Mods** library. Add a top-level `stormfront` object to define extra zones, missions, heroes, abilities, weapons, traps, or enemies. Select **Enable Stormfront** on a pack before opening the mode. Use **Download schema** and **Download template** in that same library. The bundled example includes Signal Recovery and an original Relay Tech. A pack may also include Multiplayer or Zombies content and a full conversion. Enabled Stormfront content uses its own campaign save.
 
 ## Balance
 Every fighter has 50 health plus 50 recharging shield and uses the same weapon stats, so a standard weapon kills in 3 to 5 body shots. Each match is worth 1 to 3 player levels.
@@ -109,7 +117,7 @@ Multiplayer includes Blockfort, Pillars, Canyon, Suburbia, Boomtown, Rust, Decay
 The Play screen has a Random mode card and a Random map card. Pick them and a new combination is rolled every time you select Find Match. The private match host also has Random mode and Random map in the dropdowns. Multiplayer matchmaking fills unused seats with game bots.
 Private lobbies stay connected after a match. The host picks a mode and map again and presses Start match. Use Leave lobby to disconnect.
 
-**Party** on the home screen or menu creates a reusable six-character code for up to four players. The leader can switch between modes and deploy everyone together into the same Multiplayer, Zombies, or Stormwatch session. Teammates stay together in team-based Multiplayer modes. Returning from a match keeps the party connected.
+**Party** on the home screen or menu creates a reusable six-character code for up to four players. The leader can switch between modes and deploy everyone together into the same Multiplayer or Zombies session. Teammates stay together in team-based Multiplayer modes. Returning from a match keeps the party connected.
 
 ## Zombies
 

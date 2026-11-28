@@ -96,7 +96,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def game_file(self):
         path = urlsplit(self.path).path
-        if path in ("/", "/index.html", "/stormwatch.html", "/style.css", "/favicon.svg"):
+        if path in ("/", "/index.html", "/stormfront.html", "/conversion.html", "/style.css"):
             return True
         return re.fullmatch(r"/(?:js|assets)/[a-zA-Z0-9_.-]+\.(?:js|webp)", path)
 
